@@ -571,7 +571,7 @@ var DEFAULTS = {
     $("done-title").textContent = c.gracias_titulo;
     $("done-pay").textContent = c.gracias_texto;
     $("done-pay").hidden = !c.gracias_texto;
-    $("mail-field").hidden = !isYes(c.pedir_mail);
+    $("mail-field").hidden = false;
     var sc = $("scene"), bg = c.imagen_fondo && !/^\s*(no|ninguna|sin)\s*$/i.test(c.imagen_fondo) ? parseMedia(c.imagen_fondo) : null;
     if (bg && bg.t === "img") { sc.style.backgroundImage = "url(\"" + bg.src + "\")"; sc.classList.remove("noimg"); } else { sc.style.backgroundImage = ""; sc.classList.add("noimg"); }
     Array.prototype.forEach.call(document.querySelectorAll(".tr"), function (b) { b.hidden = !hasAlias; b.textContent = "Quiero transferir"; });
@@ -657,7 +657,24 @@ var DEFAULTS = {
     return { n: n, t: t };
   }
 
+  var CART_KEY = "uovo-carrito", CART_TTL = 2 * 3600 * 1000;
+  function saveCart() {
+    try {
+      var q = {}, any = false;
+      Object.keys(qty).forEach(function (k) { if (qty[k] > 0) { q[k] = qty[k]; any = true; } });
+      if (any) localStorage.setItem(CART_KEY, JSON.stringify({ q: q, t: Date.now() })); else localStorage.removeItem(CART_KEY);
+    } catch (e) {}
+  }
+  function loadCart() {
+    try {
+      var c = JSON.parse(localStorage.getItem(CART_KEY) || "null");
+      if (!c || Date.now() - c.t > CART_TTL) { localStorage.removeItem(CART_KEY); return; }
+      data.productos.forEach(function (p) { if (c.q[p.nombre] > 0 && !p.agotada && !qty[p.nombre]) qty[p.nombre] = Math.min(99, c.q[p.nombre]); });
+    } catch (e) {}
+  }
+
   function refresh() {
+    saveCart();
     data.productos.forEach(function (p, i) {
       var out = $("q-" + i);
       if (!out) return;
@@ -675,6 +692,7 @@ var DEFAULTS = {
 
   function applyData(raw) {
     data = normalize(raw);
+    loadCart();
     renderTop();
     renderGrid();
     setupCarousels();
@@ -785,7 +803,7 @@ var DEFAULTS = {
   /* ---------- Pop-up ---------- */
   function showWho(on) {
     $("who").hidden = !on; $("fields").style.display = on ? "none" : "grid";
-    $("who-n").textContent = $("name").value; $("who-e").textContent = [isYes(data.config.pedir_mail) ? $("email").value : "", $("phone").value].filter(Boolean).join(" · ");
+    $("who-n").textContent = $("name").value; $("who-e").textContent = [$("email").value, $("phone").value].filter(Boolean).join(" · ");
   }
   $("who-edit").addEventListener("click", function () { showWho(false); $("name").focus(); });
 
@@ -846,7 +864,7 @@ var DEFAULTS = {
     try { s = JSON.parse(localStorage.getItem("uovo-cliente") || "null"); } catch (err) {}
     if (s && s.n) { $("name").value = s.n; $("email").value = s.e || ""; $("phone").value = s.t || ""; }
     $("phone-err").hidden = true;
-    showWho(!!(s && s.n && s.t && (s.e || !isYes(data.config.pedir_mail))));
+    showWho(!!(s && s.n && s.t && s.e));
     Array.prototype.forEach.call(document.querySelectorAll(".tr"), function (b) { b.textContent = "Quiero transferir"; });
     $("copy").classList.remove("ok");
     $("step-confirm").hidden = false; $("step-done").hidden = true; $("copybox").hidden = true;
@@ -869,7 +887,7 @@ var DEFAULTS = {
   var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   $("confirm").addEventListener("click", function (e) {
     var okName = $("name").value.trim().length > 0;
-    var okMail = !isYes(data.config.pedir_mail) || EMAIL_RE.test($("email").value.trim());
+    var okMail = EMAIL_RE.test($("email").value.trim());
     var okPhone = $("phone").value.replace(/\D/g, "").length >= 8;
     $("name-err").hidden = okName; $("email-err").hidden = okMail; $("phone-err").hidden = okPhone;
     if (!okName || !okMail || !okPhone) { e.preventDefault(); showWho(false); (!okName ? $("name") : !okMail ? $("email") : $("phone")).focus(); return; }
@@ -878,6 +896,7 @@ var DEFAULTS = {
     logOrder();
     $("step-confirm").hidden = true;
     $("step-done").hidden = false;
+    qty = {}; refresh();
   });
 
   $("copy").addEventListener("click", copyAlias);

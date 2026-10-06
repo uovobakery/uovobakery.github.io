@@ -1,0 +1,871 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0F59C4">
+<meta name="description" content="Uovo: cookies hechas una vez al mes en Bahía Blanca. Elegí las tuyas y enviá el pedido por WhatsApp.">
+<title>Uovo</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap">
+<style>
+/* Layout: logo + franja azul de fechas con rayas del branding, quiénes somos, catálogo en tarjetas con carrusel, barra fija de pedido, footer azul. */
+:root {
+  --blue: #0F59C4;       /* azul exacto del logo */
+  --blue-deep: #0B3F91;
+  --sky: #EAF2FD;
+  --sky-line: #C9DDF8;
+  --ink: #0C2247;
+  --ink-soft: #46597C;
+  --paper: #FFFFFF;
+  --disabled: #AEBBD2;
+  --err: #B3261E;
+  --font-display: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
+  --font-body: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.55; padding-bottom: 96px;
+}
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; margin: 0; text-wrap: balance; }
+p { margin: 0; }
+a { color: inherit; }
+:focus-visible { outline: 3px solid #6FA4F2; outline-offset: 2px; }
+.wrap { width: 100%; max-width: 1040px; margin-inline: auto; padding-inline: 16px; }
+
+/* Header: caja de cierre | logo | caja de entrega */
+.top { position: relative; overflow: hidden; isolation: isolate; background: radial-gradient(circle at 10% 15%, rgba(15, 89, 196, .14), transparent 45%), radial-gradient(circle at 92% 85%, rgba(111, 164, 242, .32), transparent 48%), repeating-linear-gradient(118deg, rgba(15, 89, 196, .07) 0 26px, rgba(255, 255, 255, 0) 26px 70px), #F7FAFE; }
+.hero { position: relative; display: grid; grid-template-columns: 1fr 1fr; grid-template-areas: "logo logo" "cl dl"; gap: 14px 12px; align-items: center; max-width: 1040px; margin-inline: auto; padding: 36px 16px 36px; text-align: center; }
+.hero .logo { grid-area: logo; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.hero .logo img { width: min(260px, 70vw); height: auto; display: block; mix-blend-mode: multiply; }
+.pt { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
+.pt .sl { position: absolute; inset: 0; background: center 30% / cover no-repeat; will-change: transform; }
+.pt-tex { position: absolute; inset: 0; z-index: 0; pointer-events: none; background: linear-gradient(rgba(247, 250, 255, .62), rgba(247, 250, 255, .62)), repeating-linear-gradient(118deg, rgba(15, 89, 196, .2) 0 26px, rgba(255, 255, 255, 0) 26px 70px); }
+.hero .logo p { font-weight: 700; color: var(--ink-soft); }
+.dbox { background: var(--paper); border: 2px solid var(--sky-line); border-radius: 18px; padding: 12px 10px; display: grid; gap: 1px; align-content: center; min-height: 118px; }
+#box-close { grid-area: cl; background: var(--blue); border-color: var(--blue); color: #fff; }
+#box-deliv { grid-area: dl; }
+.dbox .k { font-family: var(--font-display); font-weight: 500; letter-spacing: .06em; text-transform: uppercase; font-size: .72rem; opacity: .85; }
+.dbox .d { font-family: var(--font-display); font-weight: 600; font-size: clamp(1rem, 4.2vw, 1.3rem); line-height: 1.2; text-wrap: balance; }
+#box-deliv .d, #box-deliv .k { color: var(--blue); }
+.dbox .cd { margin-top: 6px; font-family: var(--font-display); font-weight: 600; font-size: .95rem; line-height: 1.1; }
+#box-close .cd { color: #FFD84D; }
+.dbox .cd .ttl { font-size: 1rem; line-height: 1.15; }
+.clock { display: flex; justify-content: center; gap: 10px; margin-top: 6px; }
+.clock span { display: grid; justify-items: center; font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; min-width: 52px; }
+.clock i { font-style: normal; font-family: var(--font-display); font-weight: 700; font-size: 1.9rem; line-height: 1; background: rgba(255, 255, 255, .16); border-radius: 10px; padding: 4px 8px; min-width: 52px; font-variant-numeric: tabular-nums; }
+#box-close.last .clock i { background: rgba(15, 89, 196, .12); color: var(--blue); }
+#box-close.last .clock span { color: var(--ink); }
+#box-close.last .cd .ttl { color: #C2200E; font-size: 1.5rem; }
+
+#box-close.last { background: #FFD84D; border-color: #FFD84D; color: var(--blue); }
+#box-close.last .cd { color: var(--ink); }
+
+#box-close.last.urgent { animation-duration: 1s; }
+#box-close.urgent { animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 216, 77, .75); } 50% { box-shadow: 0 0 0 8px rgba(255, 216, 77, 0); } }
+@media (min-width: 760px) {
+  .hero { max-width: none; grid-template-columns: 1fr auto 1fr; grid-template-areas: "cl logo dl"; gap: 24px; padding: 62px clamp(24px, 4vw, 64px); }
+  #box-close { justify-self: start; } #box-deliv { justify-self: end; } .dbox { width: 100%; max-width: 310px; }
+  .dbox { min-height: 150px; padding: 16px 14px; } .dbox .k { font-size: .8rem; } .dbox .d { font-size: 1.45rem; }
+}
+
+/* Franja azul con rayas + fondo de mesa */
+.stripe { height: 54px; background: var(--blue); position: relative; overflow: hidden; }
+.stripe::before, .stripe::after { content: ""; position: absolute; top: 0; bottom: 0; width: 150px; background: repeating-linear-gradient(90deg, #fff 0 10px, transparent 10px 25px); clip-path: polygon(0 0, 100% 0, 100% 55%, 0 100%); }
+.stripe::before { left: 16px; } .stripe::after { right: 16px; transform: scaleX(-1); }
+.scene { position: relative; background: #fff center top / max(100%, 900px) auto repeat-y; isolation: isolate; }
+.scene.noimg::before { background: linear-gradient(180deg, #CFE0F8 0, #EAF2FD 220px, #fff 100%); }
+.scene::before { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(15, 89, 196, .22) 0, rgba(225, 236, 252, .16) 110px, rgba(247, 250, 255, .1) 100%); }
+
+/* Quiénes somos */
+
+.about { padding-block: 40px 8px; }
+.about .wrap { display: grid; gap: 10px; }
+.about .wrap > *, .menu-head { }
+.about .in, .menu-head { background: rgba(255, 255, 255, .78); border-radius: 18px; padding: 16px 18px; justify-self: start; backdrop-filter: blur(3px); }
+.about h2 { font-size: 1.6rem; color: var(--blue); }
+.about p { max-width: 62ch; white-space: pre-line; }
+
+/* Catálogo */
+.menu { padding-block: 44px 24px; }
+.menu-head { display: grid; gap: 4px; margin-bottom: 24px; }
+.scene footer { margin-top: 0; }
+.menu-head h2 { font-size: 1.9rem; color: var(--blue); }
+.menu-head p { color: var(--ink-soft); }
+.grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
+.grid.has-nav { padding-inline: 46px; }
+.rwin { overflow: hidden; padding: 4px 2px 10px; margin: -4px -2px -10px; }
+@media (min-width: 640px) { .grid.has-nav { padding-inline: 58px; } }
+.grid > .msg { width: 100%; }
+.ring { --cw: 100%; display: flex; gap: 20px; will-change: transform; }
+.ring > .card { flex: 0 0 var(--cw); width: auto; max-width: none; }
+@media (min-width: 640px) { .ring { --cw: calc((100% - 20px) / 2); } }
+@media (min-width: 980px) { .ring { --cw: calc((100% - 40px) / 3); } }
+.rnav { position: absolute; top: 38%; z-index: 5; width: 42px; height: 42px; border-radius: 50%; border: 0; background: rgba(255, 255, 255, .92); color: var(--blue); font: 600 1.6rem/1 var(--font-display); cursor: pointer; box-shadow: 0 2px 10px rgba(12, 34, 71, .3); padding: 0 0 3px; }
+.rnav.l { left: 0; } .rnav.r { right: 0; }
+@media (max-width: 639px) { .rnav { width: 38px; height: 38px; } }
+.msg { width: 100%; text-align: center; color: var(--ink-soft); padding-block: 24px; display: grid; gap: 12px; justify-items: center; }
+.card {
+  position: relative; width: 100%; max-width: 420px; background: rgba(255, 255, 255, .82); backdrop-filter: blur(4px);
+  border: 2px solid var(--sky-line); border-radius: 20px; overflow: hidden;
+  display: flex; flex-direction: column; transition: border-color .15s;
+}
+@media (min-width: 640px) { .card { width: calc(50% - 10px); } }
+@media (min-width: 980px) { .card { width: calc(33.333% - 14px); } }
+.card.on { border-color: var(--blue); }
+.card.sold .media { filter: grayscale(.85) opacity(.7); }
+.badge { position: absolute; top: 12px; left: 12px; z-index: 3; background: var(--ink); color: #fff; font: 600 .9rem var(--font-display); padding: 6px 14px; border-radius: 999px; }
+.badge.hot { background: #FFC93C; color: #0C2247; box-shadow: 0 2px 8px rgba(12,34,71,.25); }
+
+/* Carrusel */
+.media { position: relative; background: var(--sky); }
+.track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.track::-webkit-scrollbar { display: none; }
+.slide { flex: 0 0 100%; scroll-snap-align: center; aspect-ratio: 4 / 5; background: var(--sky); }
+.slide img, .slide video, .slide iframe { display: block; width: 100%; height: 100%; object-fit: cover; border: 0; }
+.nav {
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; width: 40px; height: 40px; border: 0; border-radius: 50%;
+  background: rgba(255,255,255,.92); color: var(--blue); font: 600 1.5rem/1 var(--font-display); cursor: pointer; padding: 0 0 3px;
+  display: grid; place-items: center;
+}
+.nav.prev { left: 8px; } .nav.next { right: 8px; }
+.dots { position: absolute; bottom: 10px; left: 0; right: 0; display: flex; justify-content: center; gap: 6px; z-index: 2; pointer-events: none; }
+.dots i { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.7); box-shadow: 0 0 0 1px rgba(12,34,71,.25); }
+.dots i.on { background: var(--blue); box-shadow: 0 0 0 2px #fff; }
+
+.card-body { display: grid; gap: 10px; padding: 14px 16px 16px; }
+.card-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.card h3 { font-size: 1.25rem; min-width: 0; }
+.price { font-family: var(--font-display); font-weight: 600; color: var(--blue); font-size: 1.2rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.desc { color: var(--ink-soft); font-size: .95rem; }
+.stepper { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 2px; }
+.stepper .lbl { font-weight: 700; font-size: .9rem; color: var(--ink-soft); }
+.ctrl { display: inline-flex; align-items: center; gap: 6px; background: var(--sky); border-radius: 999px; padding: 4px; }
+.ctrl button {
+  width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--blue); color: #fff;
+  font: 600 1.6rem/1 var(--font-display); cursor: pointer; display: grid; place-items: center; padding: 0 0 3px;
+}
+.ctrl button:disabled { background: var(--disabled); cursor: default; }
+.ctrl button:active:not(:disabled) { background: var(--blue-deep); }
+.ctrl output { min-width: 34px; text-align: center; font: 600 1.25rem var(--font-display); font-variant-numeric: tabular-nums; }
+
+/* Footer */
+footer { background: var(--blue); color: #fff; padding-block: 36px; margin-top: 0; }
+footer .wrap { display: grid; gap: 20px; }
+footer img { width: 150px; height: auto; border-radius: 12px; display: block; }
+.social { display: grid; gap: 14px; }
+.social a { display: flex; align-items: center; gap: 14px; text-decoration: none; width: fit-content; max-width: 100%; }
+.social .ic { flex: 0 0 auto; width: 48px; height: 48px; border-radius: 50%; background: #fff; color: var(--blue); display: grid; place-items: center; }
+.social .ic svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.social .tx { display: grid; line-height: 1.25; min-width: 0; }
+.social .tx b { font: 600 1.1rem var(--font-display); }
+.social .tx span { opacity: .9; overflow-wrap: anywhere; }
+.social a:hover .tx b { text-decoration: underline; text-underline-offset: 3px; }
+.small { opacity: .85; font-size: .92rem; }
+
+/* Barra de pedido */
+.bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--paper);
+  border-top: 2px solid var(--sky-line);
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+}
+.bar-in { max-width: 1040px; margin-inline: auto; display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.sum { min-width: 0; line-height: 1.2; }
+.sum .n { font-weight: 700; font-size: .88rem; color: var(--ink-soft); }
+.sum .t { font: 600 1.45rem var(--font-display); color: var(--ink); font-variant-numeric: tabular-nums; }
+.btn {
+  border: 0; border-radius: 999px; background: var(--blue); color: #fff; cursor: pointer; text-decoration: none;
+  font: 600 1.1rem var(--font-display); padding: 14px 26px; min-height: 52px; display: inline-flex; align-items: center; justify-content: center; text-align: center;
+}
+.btn:hover:not(:disabled) { background: var(--blue-deep); }
+.btn:disabled { background: var(--disabled); cursor: default; }
+.btn.ghost { background: var(--sky); color: var(--blue); }
+.btn.ghost:hover { background: var(--sky-line); }
+
+/* Pop-up */
+.backdrop { position: fixed; inset: 0; z-index: 40; background: rgba(12, 34, 71, .6); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.panel { width: 100%; max-width: 440px; max-height: 92dvh; overflow: auto; background: var(--paper); border-radius: 22px; padding: 22px; }
+.panel .step { display: grid; gap: 14px; }
+.panel h2 { font-size: 1.5rem; color: var(--blue); }
+.lines { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.lines li { display: flex; justify-content: space-between; gap: 12px; font-variant-numeric: tabular-nums; }
+.lines li span:first-child { min-width: 0; }
+.total { display: flex; justify-content: space-between; border-top: 2px solid var(--sky-line); padding-top: 10px; font: 600 1.35rem var(--font-display); font-variant-numeric: tabular-nums; }
+.when { background: var(--sky); border-radius: 12px; padding: 10px 12px; font-size: .95rem; }
+.field { display: grid; gap: 4px; }
+.field label { font-weight: 700; font-size: .92rem; }
+.field input { font: inherit; font-size: 1rem; padding: 12px 14px; border: 2px solid var(--sky-line); border-radius: 12px; color: var(--ink); background: var(--paper); width: 100%; }
+.field input:focus { border-color: var(--blue); outline: none; }
+.field .err { color: var(--err); font-weight: 700; font-size: .88rem; }
+.actions { display: grid; gap: 10px; }
+.note { font-size: .9rem; color: var(--ink-soft); }
+.topbar { background: var(--blue); color: #fff; text-align: center; font-weight: 700; font-size: .92rem; padding: 9px 16px; line-height: 1.35; }
+.panel { position: relative; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pair .btn { width: 100%; padding-inline: 8px; }
+.pair .btn:only-child, .pair .tr[hidden] ~ .btn { grid-column: 1 / -1; }
+.acctbar { display: flex; align-items: center; justify-content: flex-end; gap: 12px; padding: 8px 16px 0; font-size: .85rem; color: var(--ink-soft); min-height: 44px; flex-wrap: wrap; text-align: right; }
+.acctbar #gbtn { display: flex; min-height: 32px; }
+.acctbar button { font: inherit; color: var(--blue); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
+.acctbar #acct-name { font-weight: 800; color: var(--ink); }
+.who { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--sky); border-radius: 14px; padding: 10px 12px; }
+.who-t { display: grid; font-size: .95rem; min-width: 0; } .who-t b { font-size: 1.05rem; } .who-t small { color: var(--ink-soft); overflow-wrap: anywhere; }
+.pencil { flex: none; width: 38px; height: 38px; border-radius: 10px; border: 2px solid var(--sky-line); background: var(--paper); color: var(--blue); display: grid; place-items: center; cursor: pointer; padding: 0; }
+.pencil svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.iconbtn { position: absolute; top: 12px; right: 12px; width: 38px; height: 38px; border-radius: 10px; border: 2px solid var(--sky-line); background: var(--paper); color: var(--blue); display: grid; place-items: center; cursor: pointer; padding: 0; }
+.iconbtn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.iconbtn.ok { background: var(--blue); color: #fff; border-color: var(--blue); }
+.copybox { width: 100%; min-height: 120px; font: inherit; font-size: .88rem; padding: 10px; border: 2px solid var(--sky-line); border-radius: 12px; color: var(--ink); background: var(--paper); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+
+<div class="topbar" id="topbar" hidden></div>
+
+<div class="top">
+<div class="pt" id="pt" aria-hidden="true"></div><div class="pt-tex" aria-hidden="true"></div>
+<div class="acctbar" id="acct" hidden>
+  <span id="acct-msg">Iniciá sesión y completamos tus datos solos</span>
+  <div id="gbtn"></div>
+  <span id="acct-user" hidden><span id="acct-name"></span> · <button type="button" id="acct-out">Salir</button></span>
+</div>
+
+<header class="hero">
+  <div class="dbox" id="box-close">
+    <span class="k" id="k-close">Pedidos hasta el</span>
+    <span class="d" id="d-close">Cargando…</span>
+    <span class="cd" id="cd-close" hidden></span>
+  </div>
+  <div class="logo">
+    <img src="logo.png" alt="Uovo Bakery" width="708" height="349">
+    <p id="frase" hidden></p>
+  </div>
+  <div class="dbox" id="box-deliv">
+    <span class="k" id="k-deliv">Entrega</span>
+    <span class="d" id="d-deliv"></span>
+    <span class="cd" id="cd-deliv" hidden></span>
+  </div>
+</header>
+</div>
+
+<div class="stripe" aria-hidden="true"></div>
+
+<div class="scene noimg" id="scene">
+<section class="about" id="about" hidden>
+  <div class="wrap"><div class="in">
+    <h2 id="t-quienes">Quiénes somos</h2>
+    <p id="about-text"></p>
+  </div></div>
+</section>
+
+<main class="menu wrap" id="catalogo">
+  <div class="menu-head">
+    <h2 id="t-menu">Elegí tus cookies</h2>
+    <p id="x-menu">Sumá la cantidad que quieras de cada una. El total se arma solo.</p>
+  </div>
+  <div class="grid" id="grid"><div class="msg">Cargando cookies…</div></div>
+</main>
+</div>
+
+<footer>
+  <div class="wrap">
+    <img src="logo.png" alt="Uovo Bakery" width="708" height="349">
+    <div class="social">
+      <a id="ig" href="#" target="_blank" rel="noopener">
+        <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><path d="M17.5 6.5h.01"/></svg></span>
+        <span class="tx"><b>Instagram</b><span id="ig-user"></span></span>
+      </a>
+      <a id="wa" href="#" target="_blank" rel="noopener">
+        <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/><g transform="translate(7.4 7.2) scale(.38)"><path stroke-width="4.6" d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></g></svg></span>
+        <span class="tx"><b>WhatsApp</b><span id="wa-num"></span></span>
+      </a>
+    </div>
+    <p class="small" id="pie"></p>
+  </div>
+</footer>
+
+<div class="bar">
+  <div class="bar-in">
+    <div class="sum"><div class="n" id="bar-n">Todavía no elegiste nada</div><div class="t" id="bar-t">$0</div></div>
+    <button class="btn" id="send" type="button" disabled>Enviar pedido</button>
+  </div>
+</div>
+
+<div class="backdrop" id="modal" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="m-title">
+    <div class="step" id="step-confirm">
+      <h2 id="m-title">¿Confirmás el envío del pedido?</h2>
+      <ul class="lines" id="m-lines"></ul>
+      <div class="total"><span>Total</span><span id="m-total"></span></div>
+      <div class="when" id="m-when"></div>
+      <div class="who" id="who" hidden>
+        <span class="who-t">Pedido a nombre de <b id="who-n"></b><small id="who-e"></small></span>
+        <button type="button" class="pencil" id="who-edit" aria-label="Editar mis datos" title="Editar mis datos"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+      </div>
+      <div id="fields" style="display:grid;gap:14px">
+      <div class="field">
+        <label for="name">Tu nombre</label>
+        <input id="name" type="text" autocomplete="given-name" maxlength="60" placeholder="Así te identificamos en el pedido">
+        <span class="err" id="name-err" hidden>Escribí tu nombre para continuar.</span>
+      </div>
+      <div class="field" id="mail-field">
+        <label for="email">Tu mail</label>
+        <input id="email" type="email" autocomplete="email" maxlength="100" placeholder="nombre@ejemplo.com">
+        <span class="err" id="email-err" hidden>Escribí un mail válido para continuar.</span>
+      </div>
+      </div>
+      <div class="actions">
+        <a class="btn" id="confirm" href="#" target="_blank" rel="noopener">Confirmar y enviar por WhatsApp</a>
+        <button class="btn ghost tr" type="button" hidden>Quiero transferir</button>
+        <button class="btn ghost" id="back" type="button">Volver al pedido</button>
+      </div>
+      <p class="note">Se abre WhatsApp con tu pedido ya escrito. El pedido queda enviado cuando apretás enviar ahí.</p>
+    </div>
+    <div class="step" id="step-done" hidden>
+      <button class="iconbtn" id="copy" type="button" aria-label="Copiar alias" title="Copiar alias" hidden><svg viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+      <h2 id="done-title">¡Gracias por tu pedido!</h2>
+      <p class="note" id="done-pay"></p>
+      <div class="actions">
+        <a class="btn" id="again" href="#" target="_blank" rel="noopener">Abrir WhatsApp de nuevo</a>
+        <div class="pair">
+          <button class="btn ghost tr" type="button" hidden>Quiero transferir</button>
+          <button class="btn ghost" id="close" type="button">Cerrar</button>
+        </div>
+      </div>
+      <textarea class="copybox" id="copybox" readonly hidden aria-label="Texto del pedido"></textarea>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CONEXIÓN CON LA PLANILLA
+   Pegá acá la URL de la aplicación web de Apps Script (termina en /exec).
+   Vacío = modo demo, con los datos de ejemplo de abajo.
+   ============================================================ */
+var ENDPOINT = "https://script.google.com/macros/s/AKfycbwRgztSNbcqRVjj6Kji1BbUCoZxAdQlYLYPxf5-266YiG16hzG9J4II1L7qhxlENjmZNA/exec";
+
+var DEFAULTS = {
+  config: {
+    whatsapp: "5492915242816",
+    whatsapp_pedidos: "",
+    alias_transferencia: "",
+    gracias_titulo: "¡Gracias por tu pedido!",
+    gracias_texto: "Si pagás por transferencia, acordate de mandarnos el comprobante por WhatsApp.",
+    pedir_mail: "SI",
+    carrusel_segundos: "4",
+    cartel_mas_vendidas: "Más vendida",
+    google_client_id: "",
+    titulo_quienes: "Quiénes somos",
+    titulo_menu: "Elegí tus cookies",
+    texto_menu: "Sumá la cantidad que quieras de cada una. El total se arma solo.",
+    boton_enviar: "Enviar pedido",
+    titulo_confirmar: "¿Confirmás el envío del pedido?",
+    boton_confirmar: "Confirmar y enviar por WhatsApp",
+    imagen_fondo: "fondo.jpg",
+    portada_imagenes: "portada1.jpg|30|100, portada2.jpg|80",
+    portada_segundos: 8,
+    cookies_segundos: 5,
+    franja: "",
+    instagram_url: "https://www.instagram.com/uovo.bahiablanca/",
+    instagram_usuario: "@uovo.bahiablanca",
+    frase: "",
+    quienes_somos: "Somos Uovo. Hacemos cookies grandes y rellenas, una tanda por mes. Elegí tus variedades, enviá el pedido por WhatsApp y coordinamos el pago y la entrega por ahí.",
+    pie: "Bahía Blanca · El pago y la entrega se coordinan por WhatsApp.",
+    mensaje_inicial: "Hola! Quiero hacer un pedido 🍪",
+    pedidos_activos: "SI"
+  },
+  tandas: [
+    { cierre: "2026-10-15", entrega: "2026-11-07" },
+    { cierre: "2026-11-12", entrega: "2026-12-05" }
+  ],
+  productos: [
+    { nombre: "Red Velvet", descripcion: "Masa suave con toque de cacao y vainilla, combinada con trozos de choco blanco Águila.", precio: 3500, agotada: false, medios: "red.jpg" },
+    { nombre: "Chocomarsh", descripcion: "Masa intensa de puro cacao, trozos de choco semi amargo Águila, almendras tostadas y marshmallow derretido.", precio: 3500, agotada: false, medios: "choco.jpg" },
+    { nombre: "Trichoc", descripcion: "Masa clásica de vainilla rellena con una explosión de tres chocolates: blanco, con leche y semi amargo.", precio: 3500, agotada: false, medios: "trichoc.jpg" },
+    { nombre: "Limón & Choco Blanco", descripcion: "Masa fresca con ralladura natural de limón y la dulzura cremosa del chocolate blanco Águila.", precio: 3500, agotada: false, medios: "limon.jpg" },
+    { nombre: "Choco Águila & Nueces", descripcion: "Masa de vainilla cargada con trozos de chocolate semi amargo Águila y nueces tostadas.", precio: 3500, agotada: false, medios: "aguila.jpg" }
+  ]
+};
+
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+
+  var _pk = "", _pt = null;
+  function setPortada(c) {
+    var key = String(c.portada_imagenes || "") + "|" + c.portada_segundos;
+    if (key === _pk) return; _pk = key;
+    var box = $("pt"); if (!box) return;
+    if (_pt) { clearInterval(_pt); _pt = null; }
+    box.innerHTML = "";
+    var list = String(c.portada_imagenes || "").split(/[\n,;]+/).map(function (x) { return x.trim(); }).filter(function (x) { return x && !/^(no|ninguna|sin)$/i.test(x); });
+    var secs = Number(c.portada_segundos) || 0;
+    if (!list.length) return;
+    var sl = list.map(function (u, i) {
+      var d = document.createElement("div"); d.className = "sl"; var pp = u.split("|"); d.style.backgroundImage = "url(\"" + pp[0].trim() + "\")"; if (pp[1]) d.style.backgroundPosition = (pp[2] ? pp[2].trim() : "50") + "% " + pp[1].trim() + "%"; if (pp[2]) d.style.backgroundSize = "122% auto";
+      d.style.transform = "translateX(" + (i ? 100 : 0) + "%)"; box.appendChild(d); return d;
+    });
+    if (sl.length < 2 || secs <= 0) return;
+    var cur = 0;
+    _pt = setInterval(function () {
+      if (document.hidden) return;
+      var nx = (cur + 1) % sl.length;
+      sl[nx].style.transition = "none"; sl[nx].style.transform = "translateX(100%)"; void sl[nx].offsetWidth;
+      sl[cur].style.transition = "transform .9s ease"; sl[nx].style.transition = "transform .9s ease";
+      sl[cur].style.transform = "translateX(-100%)"; sl[nx].style.transform = "translateX(0)";
+      cur = nx;
+    }, secs * 1000);
+  }
+  var data = null;       // { config, tandas, productos } ya normalizado
+  var qty = {};          // nombre de cookie -> cantidad
+  var cycle = null, closeTxt = "", deliveryTxt = "";
+  var orderId = "";
+
+  function money(n) { return "$" + Number(n || 0).toLocaleString("es-AR"); }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function parseDay(s) { var a = String(s).split("-").map(Number); return new Date(a[0], a[1] - 1, a[2], 23, 59, 59); }
+  function longDate(d) { return d.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" }); }
+  function digits(v) { return String(v == null ? "" : v).replace(/\D/g, ""); }
+  function isYes(v) { return !/^\s*(no|false|0)\s*$/i.test(String(v == null ? "SI" : v)); }
+
+  /* ---------- Fotos y videos ---------- */
+  function parseMedia(line) {
+    line = String(line || "").trim();
+    if (!line) return null;
+    var asVideo = /^video:\s*/i.test(line);
+    line = line.replace(/^video:\s*/i, "");
+    var yt = line.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{6,})/);
+    if (yt) return { t: "frame", src: "https://www.youtube.com/embed/" + yt[1] };
+    var dm = line.match(/drive\.google\.com\/file\/d\/([\w-]+)/) || line.match(/drive\.google\.com\/(?:open|uc)\?(?:[^#]*&)?id=([\w-]+)/);
+    if (dm) {
+      if (asVideo) return { t: "frame", src: "https://drive.google.com/file/d/" + dm[1] + "/preview" };
+      return { t: "img", src: "https://lh3.googleusercontent.com/d/" + dm[1] + "=w1200" };
+    }
+    if (asVideo || /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(line)) return { t: "video", src: line };
+    return { t: "img", src: line };
+  }
+  function mediaList(text) {
+    return String(text || "").split(/\r?\n/).map(parseMedia).filter(Boolean);
+  }
+
+  /* ---------- Datos ---------- */
+  var BLANK_OK = ["google_client_id", "texto_menu", "gracias_texto", "frase", "quienes_somos", "pie", "franja", "alias_transferencia", "whatsapp_pedidos"];
+  function normalize(raw) {
+    var c = {}, k;
+    for (k in DEFAULTS.config) c[k] = DEFAULTS.config[k];
+    if (raw && raw.config) for (k in raw.config) if (raw.config[k] != null && (raw.config[k] !== "" || BLANK_OK.indexOf(k) >= 0)) c[k] = String(raw.config[k]);
+    var tandas = (raw && raw.tandas ? raw.tandas : []).filter(function (t) { return t && t.cierre && t.entrega; });
+    var prods = (raw && raw.productos ? raw.productos : []).filter(function (p) { return p && p.nombre; }).map(function (p) {
+      return { nombre: String(p.nombre), descripcion: String(p.descripcion || ""), precio: Number(p.precio) || 0, agotada: p.agotada === true, medios: mediaList(p.medios) };
+    });
+    var top = (raw && raw.masvendidas ? raw.masvendidas : []).map(function (x) { return String(x).toLowerCase(); });
+    var cartel = String(c.cartel_mas_vendidas || "").trim();
+    var off = !cartel || /^(no|ninguno|ninguna|sin)$/i.test(cartel);
+    prods.forEach(function (p) { p.top = !off && top.indexOf(p.nombre.toLowerCase()) >= 0; });
+    return { config: c, tandas: tandas, productos: prods };
+  }
+
+  /* ---------- Pintar ---------- */
+  var closeEnd = null, tickT = null;
+  function two(n) { return (n < 10 ? "0" : "") + n; }
+  function tick() {
+    var el = $("clock");
+    if (!el || !closeEnd) return;
+    var ms = Math.max(0, closeEnd - new Date()), m = Math.floor(ms / 60000);
+    var d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mi = m % 60;
+    el.innerHTML = '<span><i>' + two(d) + '</i>días</span><span><i>' + two(h) + '</i>horas</span><span><i>' + two(mi) + '</i>min</span>';
+  }
+  if (!tickT) tickT = setInterval(tick, 20000);
+
+  function renderTop() {
+    var c = data.config, now = new Date();
+    cycle = null;
+    for (var i = 0; i < data.tandas.length; i++) { if (parseDay(data.tandas[i].cierre) >= now) { cycle = data.tandas[i]; break; } }
+    var paused = !isYes(c.pedidos_activos);
+    if (cycle && !paused) {
+      var dc = parseDay(cycle.cierre), de = parseDay(cycle.entrega);
+      closeTxt = longDate(dc);
+      deliveryTxt = longDate(de);
+      $("k-close").textContent = "Pedidos hasta el";
+      $("d-close").textContent = closeTxt;
+      $("k-deliv").textContent = "Se entrega el";
+      $("d-deliv").textContent = deliveryTxt;
+      var t0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      var cl = Math.floor((dc - t0) / 864e5), dl = Math.floor((de - t0) / 864e5);
+      var bc = $("box-close");
+      bc.classList.toggle("urgent", cl <= 3);
+      bc.classList.toggle("last", cl <= 0); bc.classList.toggle("mana", cl === 1);
+      closeEnd = dc;
+      if (cl <= 0) { $("k-close").textContent = "🔥 Pedidos hasta hoy 🔥"; }
+      var ttl = cl <= 0 ? "¡ÚLTIMO DÍA!" : (cl === 1 ? "¡MAÑANA CIERRA!" : "Cierran los pedidos en");
+      $("cd-close").innerHTML = '<b class="ttl">' + ttl + '</b><span class="clock" id="clock"></span>';
+      tick();
+      $("cd-deliv").hidden = true;
+      $("cd-close").hidden = false;
+    } else {
+      closeTxt = ""; deliveryTxt = "";
+      $("k-close").textContent = "Próxima tanda";
+      $("d-close").textContent = "Muy pronto";
+      $("k-deliv").textContent = "Enterate";
+      $("d-deliv").textContent = "En nuestro Instagram";
+      $("cd-close").hidden = true; $("cd-deliv").hidden = true;
+    }
+    setPortada(c);
+    $("frase").textContent = c.frase;
+    $("frase").hidden = !c.frase;
+    $("about").hidden = !c.quienes_somos;
+    $("about-text").textContent = c.quienes_somos;
+    $("ig").href = c.instagram_url;
+    $("ig-user").textContent = c.instagram_usuario;
+    $("wa").href = "https://wa.me/" + digits(c.whatsapp);
+    $("wa-num").textContent = "+" + digits(c.whatsapp).replace(/^(\d{2})(\d)(\d{3})(\d{3})(\d{4})$/, "$1 $2 $3 $4-$5");
+    $("pie").textContent = c.pie;
+    $("topbar").hidden = !c.franja;
+    $("topbar").textContent = c.franja;
+    var hasAlias = !!c.alias_transferencia;
+    $("t-quienes").textContent = c.titulo_quienes;
+    $("t-menu").textContent = c.titulo_menu;
+    $("x-menu").textContent = c.texto_menu; $("x-menu").hidden = !c.texto_menu;
+    $("send").textContent = c.boton_enviar;
+    $("m-title").textContent = c.titulo_confirmar;
+    $("confirm").textContent = c.boton_confirmar;
+    $("done-title").textContent = c.gracias_titulo;
+    $("done-pay").textContent = c.gracias_texto;
+    $("done-pay").hidden = !c.gracias_texto;
+    $("mail-field").hidden = !isYes(c.pedir_mail);
+    var sc = $("scene"), bg = c.imagen_fondo && !/^\s*(no|ninguna|sin)\s*$/i.test(c.imagen_fondo) ? parseMedia(c.imagen_fondo) : null;
+    if (bg && bg.t === "img") { sc.style.backgroundImage = "url(\"" + bg.src + "\")"; sc.classList.remove("noimg"); } else { sc.style.backgroundImage = ""; sc.classList.add("noimg"); }
+    Array.prototype.forEach.call(document.querySelectorAll(".tr"), function (b) { b.hidden = !hasAlias; b.textContent = "Quiero transferir"; });
+    $("copy").hidden = !hasAlias;
+  }
+
+  function slideHtml(m, name, first) {
+    if (m.t === "video") return '<div class="slide"><video src="' + esc(m.src) + '" controls playsinline preload="metadata" aria-label="Video de ' + esc(name) + '"></video></div>';
+    if (m.t === "frame") return '<div class="slide"><iframe src="' + esc(m.src) + '" loading="lazy" allowfullscreen title="Video de ' + esc(name) + '"></iframe></div>';
+    return '<div class="slide"><img src="' + esc(m.src) + '" alt="Cookie ' + esc(name) + '"' + (first ? "" : ' loading="lazy"') + '></div>';
+  }
+
+  var _ring = null, _rt = null, _rp = 0, _rbusy = false;
+  function ringStep(dir) {
+    var ring = $("grid").querySelector(".ring"); if (!ring || _rbusy) return;
+    var c = ring.children; if (c.length < 2) return;
+    var st = c[0].getBoundingClientRect().width + 20;
+    _rbusy = true;
+    if (dir > 0) {
+      ring.style.transition = "transform 1.8s cubic-bezier(.4, 0, .2, 1)"; ring.style.transform = "translateX(-" + st + "px)";
+      setTimeout(function () { ring.style.transition = "none"; ring.appendChild(ring.firstElementChild); ring.style.transform = "none"; _rbusy = false; }, 1850);
+    } else {
+      ring.style.transition = "none"; ring.insertBefore(ring.lastElementChild, ring.firstElementChild); ring.style.transform = "translateX(-" + st + "px)"; void ring.offsetWidth;
+      ring.style.transition = "transform 1.8s cubic-bezier(.4, 0, .2, 1)"; ring.style.transform = "none";
+      setTimeout(function () { ring.style.transition = "none"; _rbusy = false; }, 1850);
+    }
+  }
+  function initRing() {
+    return;
+    var g = $("grid"); if (_rt) { clearInterval(_rt); _rt = null; }
+    var cards = g.querySelectorAll(":scope > .card"); if (!cards.length) return;
+    var ring = document.createElement("div"); ring.className = "ring";
+    var win = document.createElement("div"); win.className = "rwin"; win.appendChild(ring);
+    cards.forEach(function (c) { ring.appendChild(c); }); g.appendChild(win);
+    g.classList.remove("has-nav");
+    var per = function () { return window.innerWidth >= 980 ? 3 : window.innerWidth >= 640 ? 2 : 1; };
+    if (cards.length <= per()) return;
+    g.classList.add("has-nav");
+    ["l", "r"].forEach(function (k) {
+      var b = document.createElement("button"); b.type = "button"; b.className = "rnav " + k; b.textContent = k === "l" ? "‹" : "›";
+      b.setAttribute("aria-label", k === "l" ? "Anterior" : "Siguiente");
+      b.addEventListener("click", function () { _rp = Date.now() + 9000; ringStep(k === "l" ? -1 : 1); });
+      g.appendChild(b);
+    });
+    if (!g._bound) { g._bound = true;
+    var sx = null;
+    g.addEventListener("touchstart", function (e) { sx = e.touches[0].clientX; _rp = Date.now() + 9000; }, { passive: true });
+    g.addEventListener("touchend", function (e) { if (sx === null) return; var dx = e.changedTouches[0].clientX - sx; sx = null; if (Math.abs(dx) > 50) ringStep(dx < 0 ? 1 : -1); }, { passive: true });
+    g.addEventListener("mouseenter", function () { _rp = Date.now() + 3000; }); g.addEventListener("mousemove", function () { _rp = Date.now() + 3000; });
+    g.addEventListener("focusin", function () { _rp = Date.now() + 9000; });
+    }
+    var secs = Number(data.config.cookies_segundos); if (isNaN(secs)) secs = 5; if (secs <= 0) return;
+    _rt = setInterval(function () { if (document.hidden || Date.now() < _rp) return; ringStep(1); }, secs * 1000);
+  }
+  function renderGrid() {
+    var ps = data.productos;
+    if (!ps.length) { $("grid").innerHTML = '<div class="msg">Todavía no hay cookies cargadas.</div>'; refresh(); return; }
+    $("grid").innerHTML = ps.map(function (p, i) {
+      var n = p.medios.length;
+      var media = '<div class="media"><div class="track" tabindex="0" aria-label="Fotos de ' + esc(p.nombre) + '">' +
+        p.medios.map(function (m, j) { return slideHtml(m, p.nombre, j === 0); }).join("") + '</div>' +
+        (n > 1 ? '<button class="nav prev" type="button" data-nav="-1" aria-label="Foto anterior">‹</button><button class="nav next" type="button" data-nav="1" aria-label="Foto siguiente">›</button>' +
+          '<div class="dots">' + p.medios.map(function (_, j) { return "<i" + (j === 0 ? ' class="on"' : "") + "></i>"; }).join("") + "</div>" : "") +
+        "</div>";
+      var step = p.agotada
+        ? '<div class="stepper"><span class="lbl">Por ahora no hay stock</span></div>'
+        : '<div class="stepper"><span class="lbl">Cantidad</span><div class="ctrl">' +
+            '<button type="button" data-i="' + i + '" data-d="-1" aria-label="Quitar una ' + esc(p.nombre) + '">−</button>' +
+            '<output id="q-' + i + '" aria-live="polite">0</output>' +
+            '<button type="button" data-i="' + i + '" data-d="1" aria-label="Sumar una ' + esc(p.nombre) + '">+</button></div></div>';
+      return '<article class="card' + (p.agotada ? " sold" : "") + '" id="card-' + i + '">' +
+        (p.agotada ? '<span class="badge">Agotada</span>' : (p.top ? '<span class="badge hot">★ ' + esc(data.config.cartel_mas_vendidas) + "</span>" : "")) + media +
+        '<div class="card-body"><div class="card-top"><h3>' + esc(p.nombre) + '</h3><span class="price">' + money(p.precio) + "</span></div>" +
+        (p.descripcion ? '<p class="desc">' + esc(p.descripcion) + "</p>" : "") + step + "</div></article>";
+    }).join("");
+    initRing();
+    refresh();
+  }
+
+  function totals() {
+    var n = 0, t = 0;
+    data.productos.forEach(function (p) { var q = p.agotada ? 0 : (qty[p.nombre] || 0); n += q; t += q * p.precio; });
+    return { n: n, t: t };
+  }
+
+  function refresh() {
+    data.productos.forEach(function (p, i) {
+      var out = $("q-" + i);
+      if (!out) return;
+      var q = qty[p.nombre] || 0;
+      out.textContent = q;
+      $("card-" + i).classList.toggle("on", q > 0);
+      var minus = document.querySelector('button[data-i="' + i + '"][data-d="-1"]');
+      if (minus) minus.disabled = q === 0;
+    });
+    var x = totals();
+    $("bar-n").textContent = x.n === 0 ? "Todavía no elegiste nada" : x.n + (x.n === 1 ? " cookie" : " cookies");
+    $("bar-t").textContent = money(x.t);
+    $("send").disabled = x.n === 0 || !cycle || !deliveryTxt;
+  }
+
+  function applyData(raw) {
+    data = normalize(raw);
+    renderTop();
+    renderGrid();
+    setupCarousels();
+    setupGoogle();
+  }
+
+  /* Carruseles: pasan solos y cambian de foto al pasar el mouse */
+  var carT = null;
+  function trackIdx(tr) { return Math.round(tr.scrollLeft / Math.max(1, tr.clientWidth)); }
+  function goSlide(tr, i) { tr.scrollTo({ left: i * tr.clientWidth, behavior: "smooth" }); }
+  function setupCarousels() {
+    if (carT) { clearInterval(carT); carT = null; }
+    var tracks = Array.prototype.slice.call(document.querySelectorAll(".media"));
+    var canHover = window.matchMedia && window.matchMedia("(hover: hover)").matches;
+    tracks.forEach(function (m) {
+      var tr = m.querySelector(".track");
+      if (!tr || tr.children.length < 2 || m.getAttribute("data-car")) return;
+      m.setAttribute("data-car", "1");
+      if (canHover) {
+        m.addEventListener("mouseenter", function () { m._hover = true; if (trackIdx(tr) === 0) goSlide(tr, 1); });
+        m.addEventListener("mouseleave", function () { m._hover = false; goSlide(tr, 0); });
+      }
+      m.addEventListener("touchstart", function () { m._touch = Date.now(); }, { passive: true });
+    });
+    var sec = Number(data.config.carrusel_segundos);
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!sec || sec < 1 || reduce) return;
+    carT = setInterval(function () {
+      tracks.forEach(function (m) {
+        var tr = m.querySelector(".track");
+        if (!tr || tr.children.length < 2 || m._hover || (m._touch && Date.now() - m._touch < 8000)) return;
+        var r = m.getBoundingClientRect();
+        if (r.bottom < 0 || r.top > window.innerHeight) return;
+        var cur = trackIdx(tr);
+        if (tr.children[cur] && tr.children[cur].querySelector("video, iframe")) return;
+        goSlide(tr, (cur + 1) % tr.children.length);
+      });
+    }, sec * 1000);
+  }
+
+  /* Cantidades y carrusel */
+  $("grid").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-i]");
+    if (b) {
+      var p = data.productos[Number(b.getAttribute("data-i"))];
+      qty[p.nombre] = Math.max(0, Math.min(99, (qty[p.nombre] || 0) + Number(b.getAttribute("data-d"))));
+      refresh();
+      return;
+    }
+    var nv = e.target.closest("button[data-nav]");
+    if (nv) {
+      var tr = nv.parentNode.querySelector(".track");
+      tr.scrollBy({ left: Number(nv.getAttribute("data-nav")) * tr.clientWidth, behavior: "smooth" });
+    }
+  });
+  $("grid").addEventListener("scroll", function (e) {
+    var tr = e.target;
+    if (!tr.classList || !tr.classList.contains("track")) return;
+    var dots = tr.parentNode.querySelectorAll(".dots i");
+    var idx = Math.round(tr.scrollLeft / Math.max(1, tr.clientWidth));
+    for (var i = 0; i < dots.length; i++) dots[i].classList.toggle("on", i === idx);
+  }, true);
+
+  /* ---------- Mensaje de WhatsApp ---------- */
+  function newId() {
+    var abc = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", s = "";
+    for (var i = 0; i < 4; i++) s += abc.charAt(Math.floor(Math.random() * abc.length));
+    return "U-" + s;
+  }
+  function chosen() {
+    return data.productos.filter(function (p) { return !p.agotada && (qty[p.nombre] || 0) > 0; });
+  }
+  function buildMessage() {
+    var lines = chosen().map(function (p) { return qty[p.nombre] + " x " + p.nombre + " - " + money(qty[p.nombre] * p.precio); });
+    return data.config.mensaje_inicial + "\n\n" +
+      "Nombre: " + $("name").value.trim() + "\n\n" +
+      lines.join("\n") + "\n\n" +
+      "Total: " + money(totals().t) + "\n" +
+      "Entrega: " + deliveryTxt;
+  }
+  function waUrl() { return "https://wa.me/" + (digits(data.config.whatsapp_pedidos) || digits(data.config.whatsapp)) + "?text=" + encodeURIComponent(buildMessage()); }
+  function syncLinks() { var u = waUrl(); $("confirm").href = u; $("again").href = u; }
+
+  /* Registro silencioso en la planilla: si falla, no frena el envío */
+  function logOrder() {
+    if (!ENDPOINT) return;
+    try {
+      var order = {
+        id: orderId, nombre: $("name").value.trim(), email: $("email").value.trim(), entrega: deliveryTxt,
+        items: chosen().map(function (p) { return { nombre: p.nombre, cantidad: qty[p.nombre] }; })
+      };
+      fetch(ENDPOINT, { method: "POST", mode: "no-cors", keepalive: true, body: JSON.stringify(order) }).catch(function () {});
+    } catch (err) {}
+  }
+
+  /* ---------- Pop-up ---------- */
+  function showWho(on) {
+    $("who").hidden = !on; $("fields").style.display = on ? "none" : "grid";
+    $("who-n").textContent = $("name").value; $("who-e").textContent = isYes(data.config.pedir_mail) ? $("email").value : "";
+  }
+  $("who-edit").addEventListener("click", function () { showWho(false); $("name").focus(); });
+
+  /* Continuar con Google (opcional: se activa con google_client_id en Config) */
+  var gReady = false, gInit = false;
+  function jwtPayload(t) {
+    var b = t.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(decodeURIComponent(escape(atob(b))));
+  }
+  function profile() { try { return JSON.parse(localStorage.getItem("uovo-cliente") || "null"); } catch (e) { return null; } }
+  function paintAcct() {
+    var s = profile(), on = !!(s && s.g && s.n);
+    $("gbtn").hidden = on; $("acct-msg").hidden = on; $("acct-user").hidden = !on;
+    if (on) $("acct-name").textContent = s.n.split(" ")[0];
+  }
+  $("acct-out").addEventListener("click", function () {
+    try { localStorage.removeItem("uovo-cliente"); if (window.google && google.accounts) google.accounts.id.disableAutoSelect(); } catch (e) {}
+    $("name").value = ""; $("email").value = ""; paintAcct();
+  });
+  function setupGoogle() {
+    var id = data.config.google_client_id;
+    if (!id) { $("acct").hidden = true; return; }
+    $("acct").hidden = false; paintAcct();
+    function go() {
+      if (!window.google || !google.accounts) return;
+      if (!gInit) {
+        gInit = true;
+        google.accounts.id.initialize({ client_id: id, callback: function (r) {
+          try {
+            var u = jwtPayload(r.credential);
+            $("name").value = u.name || u.given_name || ""; $("email").value = u.email || "";
+            try { localStorage.setItem("uovo-cliente", JSON.stringify({ n: $("name").value, e: $("email").value, g: 1 })); } catch (err) {}
+            showWho(true); paintAcct();
+          } catch (err) {}
+        } });
+        google.accounts.id.renderButton($("gbtn"), { theme: "outline", size: "medium", text: "signin_with", shape: "pill", locale: "es" });
+      }
+      gReady = true;
+    }
+    if (window.google && window.google.accounts) { go(); return; }
+    if (document.getElementById("gsi")) return;
+    var s = document.createElement("script"); s.id = "gsi"; s.src = "https://accounts.google.com/gsi/client"; s.async = true; s.onload = go;
+    document.head.appendChild(s);
+  }
+
+  var lastFocus = null;
+  function openModal() {
+    orderId = newId();
+    var x = totals();
+    $("m-lines").innerHTML = chosen().map(function (p) {
+      return "<li><span>" + qty[p.nombre] + " × " + esc(p.nombre) + "</span><span>" + money(qty[p.nombre] * p.precio) + "</span></li>";
+    }).join("");
+    $("m-total").textContent = money(x.t);
+    $("m-when").textContent = "Entrega: " + deliveryTxt + " (pedidos hasta el " + closeTxt + ")";
+    $("name-err").hidden = true; $("email-err").hidden = true;
+    var s = null;
+    try { s = JSON.parse(localStorage.getItem("uovo-cliente") || "null"); } catch (err) {}
+    if (s && s.n) { $("name").value = s.n; $("email").value = s.e || ""; }
+    showWho(!!(s && s.n && (s.e || !isYes(data.config.pedir_mail))));
+    Array.prototype.forEach.call(document.querySelectorAll(".tr"), function (b) { b.textContent = "Quiero transferir"; });
+    $("copy").classList.remove("ok");
+    $("step-confirm").hidden = false; $("step-done").hidden = true; $("copybox").hidden = true;
+    syncLinks();
+    lastFocus = document.activeElement;
+    $("modal").hidden = false;
+    $("name").focus();
+  }
+  function closeModal() { $("modal").hidden = true; if (lastFocus && lastFocus.focus) lastFocus.focus(); }
+
+  $("send").addEventListener("click", openModal);
+  $("back").addEventListener("click", closeModal);
+  $("close").addEventListener("click", closeModal);
+  $("modal").addEventListener("click", function (e) { if (e.target === $("modal")) closeModal(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !$("modal").hidden) closeModal(); });
+  $("name").addEventListener("input", function () { $("name-err").hidden = true; syncLinks(); });
+  $("email").addEventListener("input", function () { $("email-err").hidden = true; syncLinks(); });
+
+  var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  $("confirm").addEventListener("click", function (e) {
+    var okName = $("name").value.trim().length > 0;
+    var okMail = !isYes(data.config.pedir_mail) || EMAIL_RE.test($("email").value.trim());
+    $("name-err").hidden = okName; $("email-err").hidden = okMail;
+    if (!okName || !okMail) { e.preventDefault(); (okName ? $("email") : $("name")).focus(); return; }
+    syncLinks();
+    try { localStorage.setItem("uovo-cliente", JSON.stringify({ n: $("name").value.trim(), e: $("email").value.trim() })); } catch (err) {}
+    logOrder();
+    $("step-confirm").hidden = true;
+    $("step-done").hidden = false;
+  });
+
+  $("copy").addEventListener("click", copyAlias);
+  function copyAlias() {
+    var a = data.config.alias_transferencia;
+    function mark() { $("copy").classList.add("ok"); Array.prototype.forEach.call(document.querySelectorAll(".tr"), function (x) { x.textContent = "Alias copiado: " + a; }); }
+    try { navigator.clipboard.writeText(a).then(mark, mark); } catch (err) { mark(); }
+  }
+  Array.prototype.forEach.call(document.querySelectorAll(".tr"), function (b) { b.addEventListener("click", copyAlias); });
+
+  /* ---------- Carga de datos ---------- */
+  var CACHE_KEY = "uovo-datos-v1";
+  function readCache() { try { return JSON.parse(localStorage.getItem(CACHE_KEY)); } catch (e) { return null; } }
+  function writeCache(raw) { try { localStorage.setItem(CACHE_KEY, JSON.stringify(raw)); } catch (e) {} }
+
+  function showError() {
+    $("grid").innerHTML = '<div class="msg"><span>No pudimos cargar las cookies. Revisá tu conexión e intentá de nuevo.</span><button class="btn" id="retry" type="button">Reintentar</button></div>';
+    $("retry").addEventListener("click", load);
+  }
+
+  function load() {
+    if (!ENDPOINT) { applyData(DEFAULTS); return; }
+    var cached = readCache();
+    if (cached && !data) applyData(cached);
+    fetch(ENDPOINT, { method: "GET" })
+      .then(function (r) { if (!r.ok) throw new Error("http"); return r.json(); })
+      .then(function (raw) { writeCache(raw); applyData(raw); })
+      .catch(function () { if (!data) showError(); });
+  }
+
+  /* Estado inicial vacío mientras carga */
+  data = null;
+  setPortada(DEFAULTS.config);
+  load();
+})();
+</script>
+
+</body>
+</html>

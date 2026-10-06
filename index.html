@@ -182,6 +182,10 @@ footer img { width: 150px; height: auto; border-radius: 12px; display: block; }
   padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
 }
 .bar-in { max-width: 1040px; margin-inline: auto; display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.bar-btns { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.btn.wa-btn { background: #25D366; width: 52px; padding: 0; flex-shrink: 0; }
+.wa-btn svg { width: 28px; height: 28px; }
+@media (max-width: 420px) { .bar .btn#send { padding: 12px 14px; font-size: 1rem; } .bar-in { gap: 8px; } .bar-btns { gap: 8px; } .wa-btn { width: 48px; min-height: 48px; } }
 .sum { min-width: 0; line-height: 1.2; }
 .sum .n { font-weight: 700; font-size: .88rem; color: var(--ink-soft); }
 .sum .t { font: 600 1.45rem var(--font-display); color: var(--ink); font-variant-numeric: tabular-nums; }
@@ -302,7 +306,8 @@ footer img { width: 150px; height: auto; border-radius: 12px; display: block; }
 <div class="bar">
   <div class="bar-in">
     <div class="sum"><div class="n" id="bar-n">Todavía no elegiste nada</div><div class="t" id="bar-t">$0</div></div>
-    <button class="btn" id="send" type="button" disabled>Enviar pedido</button>
+    <div class="bar-btns"><button class="btn" id="send" type="button" disabled>Enviar pedido</button>
+    <a class="btn wa-btn" id="wa-ask" href="#" target="_blank" rel="noopener" aria-label="Consultar por WhatsApp" title="Consultar por WhatsApp"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#fff" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg></a></div>
   </div>
 </div>
 
@@ -327,6 +332,11 @@ footer img { width: 150px; height: auto; border-radius: 12px; display: block; }
         <label for="email">Tu mail</label>
         <input id="email" type="email" autocomplete="email" maxlength="100" placeholder="nombre@ejemplo.com">
         <span class="err" id="email-err" hidden>Escribí un mail válido para continuar.</span>
+      </div>
+      <div class="field" id="phone-field">
+        <label for="phone">Tu WhatsApp</label>
+        <input id="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="20" placeholder="Ej: 291 5123456 (con código de área)">
+        <span class="err" id="phone-err" hidden>Escribí tu número con código de área.</span>
       </div>
       </div>
       <div class="actions">
@@ -533,6 +543,7 @@ var DEFAULTS = {
     $("ig").href = c.instagram_url;
     $("ig-user").textContent = c.instagram_usuario;
     $("wa").href = "https://wa.me/" + digits(c.whatsapp);
+    $("wa-ask").href = "https://wa.me/" + digits(c.whatsapp) + "?text=" + encodeURIComponent("¡Hola! Tengo una consulta 🙂");
     $("wa-num").textContent = "+" + digits(c.whatsapp).replace(/^(\d{2})(\d)(\d{3})(\d{3})(\d{4})$/, "$1 $2 $3 $4-$5");
     $("pie").textContent = c.pie;
     $("topbar").hidden = !c.franja;
@@ -739,7 +750,7 @@ var DEFAULTS = {
     if (!ENDPOINT) return;
     try {
       var order = {
-        id: orderId, nombre: $("name").value.trim(), email: $("email").value.trim(), entrega: deliveryTxt,
+        id: orderId, nombre: $("name").value.trim(), email: $("email").value.trim(), telefono: $("phone").value.replace(/[^\d+]/g, ""), entrega: deliveryTxt,
         items: chosen().map(function (p) { return { nombre: p.nombre, cantidad: qty[p.nombre] }; })
       };
       fetch(ENDPOINT, { method: "POST", mode: "no-cors", keepalive: true, body: JSON.stringify(order) }).catch(function () {});
@@ -749,7 +760,7 @@ var DEFAULTS = {
   /* ---------- Pop-up ---------- */
   function showWho(on) {
     $("who").hidden = !on; $("fields").style.display = on ? "none" : "grid";
-    $("who-n").textContent = $("name").value; $("who-e").textContent = isYes(data.config.pedir_mail) ? $("email").value : "";
+    $("who-n").textContent = $("name").value; $("who-e").textContent = [isYes(data.config.pedir_mail) ? $("email").value : "", $("phone").value].filter(Boolean).join(" · ");
   }
   $("who-edit").addEventListener("click", function () { showWho(false); $("name").focus(); });
 
@@ -780,9 +791,10 @@ var DEFAULTS = {
         google.accounts.id.initialize({ client_id: id, callback: function (r) {
           try {
             var u = jwtPayload(r.credential);
-            $("name").value = u.name || u.given_name || ""; $("email").value = u.email || "";
-            try { localStorage.setItem("uovo-cliente", JSON.stringify({ n: $("name").value, e: $("email").value, g: 1 })); } catch (err) {}
-            showWho(true); paintAcct();
+            var old = profile() || {};
+            $("name").value = u.name || u.given_name || ""; $("email").value = u.email || ""; if (old.t) $("phone").value = old.t;
+            try { localStorage.setItem("uovo-cliente", JSON.stringify({ n: $("name").value, e: $("email").value, t: $("phone").value, g: 1 })); } catch (err) {}
+            showWho(!!$("phone").value.trim()); paintAcct();
           } catch (err) {}
         } });
         google.accounts.id.renderButton($("gbtn"), { theme: "outline", size: "medium", text: "signin_with", shape: "pill", locale: "es" });
@@ -807,8 +819,9 @@ var DEFAULTS = {
     $("name-err").hidden = true; $("email-err").hidden = true;
     var s = null;
     try { s = JSON.parse(localStorage.getItem("uovo-cliente") || "null"); } catch (err) {}
-    if (s && s.n) { $("name").value = s.n; $("email").value = s.e || ""; }
-    showWho(!!(s && s.n && (s.e || !isYes(data.config.pedir_mail))));
+    if (s && s.n) { $("name").value = s.n; $("email").value = s.e || ""; $("phone").value = s.t || ""; }
+    $("phone-err").hidden = true;
+    showWho(!!(s && s.n && s.t && (s.e || !isYes(data.config.pedir_mail))));
     Array.prototype.forEach.call(document.querySelectorAll(".tr"), function (b) { b.textContent = "Quiero transferir"; });
     $("copy").classList.remove("ok");
     $("step-confirm").hidden = false; $("step-done").hidden = true; $("copybox").hidden = true;
@@ -825,16 +838,18 @@ var DEFAULTS = {
   $("modal").addEventListener("click", function (e) { if (e.target === $("modal")) closeModal(); });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !$("modal").hidden) closeModal(); });
   $("name").addEventListener("input", function () { $("name-err").hidden = true; syncLinks(); });
+  $("phone").addEventListener("input", function () { $("phone-err").hidden = true; });
   $("email").addEventListener("input", function () { $("email-err").hidden = true; syncLinks(); });
 
   var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   $("confirm").addEventListener("click", function (e) {
     var okName = $("name").value.trim().length > 0;
     var okMail = !isYes(data.config.pedir_mail) || EMAIL_RE.test($("email").value.trim());
-    $("name-err").hidden = okName; $("email-err").hidden = okMail;
-    if (!okName || !okMail) { e.preventDefault(); (okName ? $("email") : $("name")).focus(); return; }
+    var okPhone = $("phone").value.replace(/\D/g, "").length >= 8;
+    $("name-err").hidden = okName; $("email-err").hidden = okMail; $("phone-err").hidden = okPhone;
+    if (!okName || !okMail || !okPhone) { e.preventDefault(); showWho(false); (!okName ? $("name") : !okMail ? $("email") : $("phone")).focus(); return; }
     syncLinks();
-    try { localStorage.setItem("uovo-cliente", JSON.stringify({ n: $("name").value.trim(), e: $("email").value.trim() })); } catch (err) {}
+    try { localStorage.setItem("uovo-cliente", JSON.stringify({ n: $("name").value.trim(), e: $("email").value.trim(), t: $("phone").value.trim(), g: (profile() || {}).g ? 1 : 0 })); } catch (err) {}
     logOrder();
     $("step-confirm").hidden = true;
     $("step-done").hidden = false;

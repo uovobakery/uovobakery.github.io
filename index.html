@@ -219,6 +219,8 @@ footer img { width: 150px; height: auto; border-radius: 12px; display: block; }
 .acctbar { display: flex; align-items: center; justify-content: flex-end; gap: 12px; padding: 8px 16px 0; font-size: .85rem; color: var(--ink-soft); min-height: 44px; flex-wrap: wrap; text-align: right; }
 .acctbar #gbtn { display: flex; min-height: 32px; }
 .acctbar button { font: inherit; color: var(--blue); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
+.acctbar { position: relative; z-index: 2; }
+.acctbar #acct-user { margin-right: auto; background: rgba(255,255,255,.92); border-radius: 999px; padding: 6px 14px; box-shadow: 0 1px 6px rgba(0,0,0,.15); }
 .acctbar #acct-name { font-weight: 800; color: var(--ink); }
 .who { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--sky); border-radius: 14px; padding: 10px 12px; }
 .who-t { display: grid; font-size: .95rem; min-width: 0; } .who-t b { font-size: 1.05rem; } .who-t small { color: var(--ink-soft); overflow-wrap: anywhere; }

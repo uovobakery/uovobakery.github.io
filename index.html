@@ -42,7 +42,7 @@ a { color: inherit; }
 .top { position: relative; overflow: hidden; isolation: isolate; background: radial-gradient(circle at 10% 15%, rgba(15, 89, 196, .14), transparent 45%), radial-gradient(circle at 92% 85%, rgba(111, 164, 242, .32), transparent 48%), repeating-linear-gradient(118deg, rgba(15, 89, 196, .07) 0 26px, rgba(255, 255, 255, 0) 26px 70px), #F7FAFE; }
 .hero { position: relative; display: grid; grid-template-columns: 1fr 1fr; grid-template-areas: "logo logo" "cl dl"; gap: 14px 12px; align-items: center; max-width: 1040px; margin-inline: auto; padding: 36px 16px 36px; text-align: center; }
 .hero .logo { grid-area: logo; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.hero .logo img { width: min(260px, 70vw); height: auto; display: block; mix-blend-mode: multiply; }
+.hero .logo img { width: min(260px, 70vw); height: auto; display: block; }
 .pt { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
 .pt .sl { position: absolute; inset: 0; background: center 30% / cover no-repeat; will-change: transform; }
 .pt-tex { position: absolute; inset: 0; z-index: 0; pointer-events: none; background: linear-gradient(rgba(247, 250, 255, .62), rgba(247, 250, 255, .62)), repeating-linear-gradient(118deg, rgba(15, 89, 196, .2) 0 26px, rgba(255, 255, 255, 0) 26px 70px); }
@@ -97,6 +97,18 @@ a { color: inherit; }
 .about .in, .menu-head { background: rgba(255, 255, 255, .78); border-radius: 18px; padding: 16px 18px; justify-self: start; backdrop-filter: blur(3px); }
 .about h2 { font-size: 1.6rem; color: var(--blue); }
 .about p { max-width: 62ch; white-space: pre-line; }
+
+/* Reseñas (solo aparecen si hay cargadas en la planilla) */
+.reviews { padding-block: 24px 40px; }
+.reviews > h2 { font-size: 1.9rem; color: var(--blue); background: rgba(255, 255, 255, .78); border-radius: 18px; padding: 12px 18px; display: inline-block; margin-bottom: 18px; backdrop-filter: blur(3px); }
+.rgrid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.rcard { background: rgba(255, 255, 255, .88); border-radius: 18px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 2px 10px rgba(0,0,0,.08); }
+.rcard img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; }
+.rcard .rb { padding: 14px 16px 16px; display: grid; gap: 6px; }
+.rstars { color: #F5B301; font-size: 1.15rem; letter-spacing: 2px; }
+.rstars .off { color: #D8DEE9; }
+.rcard p { white-space: pre-line; }
+.rcard b { color: var(--blue); }
 
 /* Catálogo */
 .menu { padding-block: 44px 24px; }
@@ -256,7 +268,7 @@ footer img { width: 150px; height: auto; border-radius: 12px; display: block; }
     <span class="cd" id="cd-close" hidden></span>
   </div>
   <div class="logo">
-    <img src="img/logo.png" alt="Uovo Bakery" width="708" height="349">
+    <img src="img/logo_t.png" alt="Uovo Bakery" width="708" height="349">
     <p id="frase" hidden></p>
   </div>
   <div class="dbox" id="box-deliv">
@@ -284,6 +296,7 @@ footer img { width: 150px; height: auto; border-radius: 12px; display: block; }
   </div>
   <div class="grid" id="grid"><div class="msg">Cargando cookies…</div></div>
 </main>
+<section class="reviews wrap" id="reviews" hidden aria-labelledby="t-rev"><h2 id="t-rev">Lo que dicen de nosotros</h2><div class="rgrid" id="rgrid"></div></section>
 </div>
 
 <footer>
@@ -487,7 +500,7 @@ var DEFAULTS = {
     var cartel = String(c.cartel_mas_vendidas || "").trim();
     var off = !cartel || /^(no|ninguno|ninguna|sin)$/i.test(cartel);
     prods.forEach(function (p) { p.top = !off && top.indexOf(p.nombre.toLowerCase()) >= 0; });
-    return { config: c, tandas: tandas, productos: prods };
+    return { config: c, tandas: tandas, productos: prods, resenas: (raw && raw.resenas) || [] };
   }
 
   /* ---------- Pintar ---------- */
@@ -543,7 +556,7 @@ var DEFAULTS = {
     $("ig").href = c.instagram_url;
     $("ig-user").textContent = c.instagram_usuario;
     $("wa").href = "https://wa.me/" + digits(c.whatsapp);
-    $("wa-ask").href = "https://wa.me/" + digits(c.whatsapp) + "?text=" + encodeURIComponent("¡Hola! Tengo una consulta 🙂");
+    $("wa-ask").href = "https://wa.me/" + digits(c.whatsapp) + "?text=" + encodeURIComponent("¡Hola! Tengo una consulta");
     $("wa-num").textContent = "+" + digits(c.whatsapp).replace(/^(\d{2})(\d)(\d{3})(\d{3})(\d{4})$/, "$1 $2 $3 $4-$5");
     $("pie").textContent = c.pie;
     $("topbar").hidden = !c.franja;
@@ -666,6 +679,18 @@ var DEFAULTS = {
     renderGrid();
     setupCarousels();
     setupGoogle();
+    renderReviews();
+  }
+  function renderReviews() {
+    var list = (data.resenas || []).filter(function (r) { return r && (r.comentario || r.foto); }), box = $("reviews");
+    box.hidden = !list.length;
+    $("rgrid").innerHTML = list.map(function (r) {
+      var n = Math.max(0, Math.min(5, Math.round(Number(r.estrellas) || 0))), s = "";
+      for (var i = 1; i <= 5; i++) s += i <= n ? "★" : '<span class="off">★</span>';
+      return '<article class="rcard">' + (r.foto ? '<img src="' + esc(r.foto) + '" alt="Foto de ' + esc(r.nombre || "cliente") + '" loading="lazy" referrerpolicy="no-referrer">' : "") +
+        '<div class="rb">' + (n ? '<div class="rstars" aria-label="' + n + ' de 5 estrellas">' + s + "</div>" : "") +
+        (r.comentario ? "<p>" + esc(r.comentario) + "</p>" : "") + (r.nombre ? "<b>" + esc(r.nombre) + "</b>" : "") + "</div></article>";
+    }).join("");
   }
 
   /* Carruseles: pasan solos y cambian de foto al pasar el mouse */
@@ -742,7 +767,7 @@ var DEFAULTS = {
       "Total: " + money(totals().t) + "\n" +
       "Entrega: " + deliveryTxt;
   }
-  function waUrl() { return "https://wa.me/" + (digits(data.config.whatsapp_pedidos) || digits(data.config.whatsapp)) + "?text=" + encodeURIComponent(buildMessage()); }
+  function waUrl() { return "https://wa.me/" + (digits(data.config.whatsapp_pedidos) || digits(data.config.whatsapp)) + "?text=" + encodeURIComponent(buildMessage().replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u200d\ufe0f]/gu, "").replace(/ +\n/g, "\n").replace(/ +$/gm, "")); }
   function syncLinks() { var u = waUrl(); $("confirm").href = u; $("again").href = u; }
 
   /* Registro silencioso en la planilla: si falla, no frena el envío */

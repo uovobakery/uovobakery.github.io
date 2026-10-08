@@ -378,6 +378,19 @@ button.scale:hover { background: #FFEBA3; }
 .dbody { flex: 1; overflow-y: auto; padding: 0 26px 10px; display: flex; flex-direction: column; }
 .dfoot { padding: 18px 26px 24px; border-top: 2px solid var(--sky-line); display: grid; gap: 12px; background: var(--paper); }
 .dfoot .total { border: 0; padding: 0; margin-top: 2px; }
+.dpromo.cup { background: var(--sky); color: var(--blue); font-weight: 700; }
+.ocard { border: 2px solid #C9D9F5; border-radius: 16px; padding: 14px 16px; margin: 0 0 14px; background: #fff; display: grid; gap: 8px; }
+.ocard .oh { display: flex; justify-content: space-between; gap: 8px; font-size: .85rem; color: var(--ink-soft); }
+.ocard .oh b { color: var(--ink); }
+.ocard ul { margin: 0; padding-left: 18px; font-size: .92rem; color: var(--ink); }
+.ocard .ot { display: flex; justify-content: space-between; font-weight: 800; }
+.ocard .os { font-weight: 700; color: var(--blue); }
+.ocard.bad .os { color: #C2200E; }
+.ocard .oa { display: flex; gap: 8px; flex-wrap: wrap; }
+.ocard .oa button, .ocard .oa a { font: 700 .88rem var(--font-body, inherit); border-radius: 999px; padding: 8px 14px; border: 2px solid var(--blue); background: #fff; color: var(--blue); cursor: pointer; text-decoration: none; }
+.ocard .oa .danger { border-color: #C2200E; color: #C2200E; }
+.ocard .oa .solid { background: var(--blue); color: #fff; }
+.ocard .oq { font-size: .88rem; color: var(--ink); font-weight: 700; }
 .dsum { display: grid; gap: 4px; color: var(--ink-soft); font-size: .95rem; }
 .dsum div { display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; }
 .dsum .g { color: #1B7A3A; font-weight: 800; }
@@ -416,7 +429,7 @@ button.scale:hover { background: #FFEBA3; }
   <div class="acctbar" id="acct" hidden>
     <span id="acct-msg">Iniciá sesión y completamos tus datos solos</span>
     <div id="gbtn"></div>
-    <span id="acct-user" hidden><span id="acct-name"></span> · <button type="button" id="acct-out">Salir</button></span>
+    <span id="acct-user" hidden><span id="acct-name"></span> · <button type="button" id="acct-orders">Mis pedidos</button> · <button type="button" id="acct-out">Salir</button></span>
   </div>
   <form class="sform" id="sform" role="search">
     <input id="q" type="search" placeholder="Buscá por nombre o ingrediente…" autocomplete="off" aria-label="Buscar cookies">
@@ -501,10 +514,15 @@ button.scale:hover { background: #FFEBA3; }
   </div>
 </footer>
 
+<aside class="drawer" id="orders" aria-hidden="true" aria-label="Mis pedidos">
+    <div class="dh"><h2 id="t-orders">Mis pedidos</h2><button type="button" class="dx" id="ord-x" aria-label="Cerrar">×</button></div>
+    <div class="dbody"><div id="ord-list"></div></div>
+</aside>
 <aside class="drawer" id="drawer" aria-hidden="true" aria-label="Tu pedido">
     <div class="dh"><h2 id="t-pedido">Tu pedido</h2><button type="button" class="dx" id="cart-x" aria-label="Cerrar">×</button></div>
     <div class="dbody">
       <div class="dpromo" id="c-promo" hidden></div>
+      <div class="dpromo cup" id="c-cup" hidden></div>
       <ul class="lines cartlines" id="c-lines"></ul>
       <div class="dempty" id="c-empty" hidden>Todavía no elegiste nada.</div>
     </div>
@@ -636,6 +654,21 @@ var DEFAULTS = {
     texto_elegir_variedades: "Elegir variedades ›",
     texto_ahorras: "Ahorrás",
     texto_ahorro_total: "Ahorro total",
+    titulo_mis_pedidos: "Mis pedidos",
+    texto_sin_pedidos: "Todavía no hiciste pedidos con esta cuenta.",
+    estado_pendiente: "Recibimos tu pedido. Lo estamos revisando.",
+    estado_aprobado: "Tu pedido se está cocinando.",
+    estado_hecho: "Tu pedido está listo. Coordinamos el envío.",
+    estado_entregado: "¡Gracias por tu compra! Esperamos que lo disfrutes.",
+    estado_cancelado_cliente: "Cancelaste este pedido.",
+    estado_cancelado_cocina: "La cocina canceló este pedido. Escribinos y lo resolvemos.",
+    boton_cancelar_pedido: "Cancelar pedido",
+    texto_cancelar_confirmar: "¿Seguro que querés cancelar este pedido?",
+    boton_whatsapp_cocina: "Escribirle a la cocina",
+    texto_whatsapp_cocina: "Hola! Quiero consultar por mi pedido {id}",
+    texto_cupon: "Tenés un cupón: {texto}",
+    texto_cupon_aplicado: "Cupón aplicado: {nombre}",
+    texto_cupon_minimo: "El cupón se activa con compras desde {min}",
     etiqueta_promo: "PROMO",
     popup_pack_titulo: "Pack de {n} cookies",
     popup_pack_texto: "Elegí {n} cookies entre las variedades disponibles.",
@@ -1123,6 +1156,10 @@ var DEFAULTS = {
   function packText(k) { return Object.keys(k.sel).filter(function (n) { return k.sel[n] > 0; }).map(function (n) { return k.sel[n] + " " + n; }).join(" + "); }
   function validPacks() { return pk.filter(function (k) { return tierFor(k.q); }); }
   function chosenCombos() { return comboList().filter(function (cb) { return (cq[cb.nombre] || 0) > 0; }); }
+  var cupones = [], memToken = "", tokExp = 0;
+  function cuponActivo(base) {
+    var best = null; cupones.forEach(function (c) { if (c.pct > 0 && base > 0 && base >= (c.min || 0) && (!best || c.pct > best.pct)) best = c; }); return best;
+  }
   function totals() {
     var unit = [], n = 0, ct = 0;
     data.productos.forEach(function (p) { var q = p.agotada ? 0 : (qty[p.nombre] || 0); n += q; for (var i = 0; i < q; i++) unit.push(p.precio); });
@@ -1132,7 +1169,8 @@ var DEFAULTS = {
     chosenCombos().forEach(function (cb) { as += Math.max(0, comboNormal(cb) - cb.precio) * cq[cb.nombre]; });
     var prices = data.productos.filter(function (p) { return !p.agotada; }).map(function (p) { return p.precio; }), base = prices.length ? Math.min.apply(null, prices) : 0;
     validPacks().forEach(function (k) { var t = tierFor(k.q), norm = 0; Object.keys(k.sel).forEach(function (nm) { var p = prodByName(nm); norm += (p ? p.precio : base) * k.sel[nm]; }); ct += t.p; n += k.q; as += Math.max(0, norm - t.p); });
-    return { n: n, t: e.total + ct, ahorro: e.ahorro, singles: e.total, combos: ct, ahorroTotal: e.ahorro + as };
+    var t0 = e.total + ct, cp = cuponActivo(t0), cd = cp ? Math.round(t0 * cp.pct / 100) : 0;
+    return { n: n, t: t0 - cd, base: t0, cupon: cp, cupDesc: cd, ahorro: e.ahorro, singles: e.total, combos: ct, ahorroTotal: e.ahorro + as };
   }
 
   var CART_KEY = "uovo-carrito", CART_TTL = 2 * 3600 * 1000;
@@ -1167,10 +1205,10 @@ var DEFAULTS = {
         if (comboNormal(cb) - cb.precio <= 0 || leftCombo(cb) <= 0) continue;
         var ok = cb.items.every(function (it) { var p = prodByName(it.n); return p && !p.agotada && (qty[p.nombre] || 0) >= it.c; });
         if (!ok) continue;
-        var before = totals().t, sq = JSON.stringify(qty), sc = JSON.stringify(cq);
+        var before = totals().base, sq = JSON.stringify(qty), sc = JSON.stringify(cq);
         cb.items.forEach(function (it) { var p = prodByName(it.n); qty[p.nombre] -= it.c; });
         cq[cb.nombre] = (cq[cb.nombre] || 0) + 1;
-        if (totals().t < before) { got.push(cb.nombre); again = true; break; }
+        if (totals().base < before) { got.push(cb.nombre); again = true; break; }
         qty = JSON.parse(sq); cq = JSON.parse(sc);
       }
     }
@@ -1341,6 +1379,7 @@ var DEFAULTS = {
     if (tt.ahorro > 0) lines.push("Descuento por cantidad: -" + money(tt.ahorro));
     chosenCombos().forEach(function (cb) { lines.push(cq[cb.nombre] + " x PACK " + cb.nombre + " (" + cb.items.map(function (it) { return it.c + " " + it.n; }).join(" + ") + ") - " + money(cb.precio * cq[cb.nombre])); });
     validPacks().forEach(function (k) { lines.push("PACK " + k.q + " cookies (" + packText(k) + ") - " + money(tierFor(k.q).p)); });
+    if (tt.cupDesc > 0) lines.push("Cupón " + tt.cupon.nombre + " (-" + tt.cupon.pct + "%): -" + money(tt.cupDesc));
     return data.config.mensaje_inicial + "\n\n" +
       "Nombre: " + $("name").value.trim() + "\n\n" +
       lines.join("\n") + "\n\n" +
@@ -1355,7 +1394,7 @@ var DEFAULTS = {
     if (!ENDPOINT) return;
     try {
       var order = {
-        id: orderId, nombre: $("name").value.trim(), email: $("email").value.trim(), telefono: $("phone").value.replace(/[^\d+]/g, ""), entrega: deliveryTxt,
+        id: orderId, token: memToken, cupon: (totals().cupon || {}).nombre || "", nombre: $("name").value.trim(), email: $("email").value.trim(), telefono: $("phone").value.replace(/[^\d+]/g, ""), entrega: deliveryTxt,
         items: chosen().map(function (p) { return { nombre: p.nombre, cantidad: qty[p.nombre] }; }),
         combos: chosenCombos().map(function (cb) { return { nombre: cb.nombre, cantidad: cq[cb.nombre] }; }),
         packs: validPacks().map(function (k) { return { q: k.q, sel: Object.keys(k.sel).filter(function (n) { return k.sel[n] > 0; }).map(function (n) { return { n: n, c: k.sel[n] }; }) }; })
@@ -1395,9 +1434,10 @@ var DEFAULTS = {
       if (!window.google || !google.accounts) return;
       if (!gInit) {
         gInit = true;
-        google.accounts.id.initialize({ client_id: id, callback: function (r) {
+        google.accounts.id.initialize({ client_id: id, auto_select: true, callback: function (r) {
           try {
             var u = jwtPayload(r.credential);
+            memToken = r.credential; tokExp = (u.exp || 0) * 1000; tokWake(memToken); loadCupones();
             var old = profile() || {};
             $("name").value = u.name || u.given_name || ""; $("email").value = u.email || ""; if (old.t) $("phone").value = old.t;
             try { localStorage.setItem("uovo-cliente", JSON.stringify({ n: $("name").value, e: $("email").value, t: $("phone").value, g: 1 })); } catch (err) {}
@@ -1405,6 +1445,7 @@ var DEFAULTS = {
           } catch (err) {}
         } });
         google.accounts.id.renderButton($("gbtn"), { theme: "outline", size: "medium", text: "signin_with", shape: "pill", locale: "es" });
+        var pf0 = profile(); if (pf0 && pf0.g) { try { google.accounts.id.prompt(); } catch (e3) {} }
       }
       gReady = true;
     }
@@ -1413,6 +1454,71 @@ var DEFAULTS = {
     var s = document.createElement("script"); s.id = "gsi"; s.src = "https://accounts.google.com/gsi/client"; s.async = true; s.onload = go;
     document.head.appendChild(s);
   }
+
+
+  /* Token de Google en memoria (para Mis pedidos y cupones) */
+  var tokWaiters = [];
+  function tokWake(t) { var w = tokWaiters; tokWaiters = []; w.forEach(function (f) { f(t); }); }
+  function getToken(cb) {
+    if (memToken && tokExp - Date.now() > 90000) { cb(memToken); return; }
+    var pf = profile(); if (!(pf && pf.g) || !window.google || !google.accounts) { cb(""); return; }
+    tokWaiters.push(cb);
+    try { google.accounts.id.prompt(); } catch (e) {}
+    setTimeout(function () { var i = tokWaiters.indexOf(cb); if (i > -1) { tokWaiters.splice(i, 1); cb(""); } }, 9000);
+  }
+  function loadCupones() {
+    if (!ENDPOINT || !memToken) return;
+    fetch(ENDPOINT + "?cupones=1&token=" + encodeURIComponent(memToken)).then(function (r) { return r.json(); }).then(function (j) {
+      cupones = (j && j.cupones) || []; if (data) { refresh(); if ($("drawer").classList.contains("open")) renderCart(); }
+    }).catch(function () {});
+  }
+  $("acct-out").addEventListener("click", function () { memToken = ""; tokExp = 0; cupones = []; if (data) refresh(); });
+
+  /* Mis pedidos */
+  var ordData = null, ordAsk = "";
+  function ordEst(est) { return data.config["estado_" + est] || ""; }
+  function renderOrders(msg) {
+    var box = $("ord-list"), c = data.config;
+    if (msg) { box.innerHTML = '<p class="dempty">' + esc(msg) + "</p>"; return; }
+    if (!ordData || !ordData.length) { box.innerHTML = '<p class="dempty">' + esc(c.texto_sin_pedidos) + "</p>"; return; }
+    box.innerHTML = ordData.map(function (o) {
+      var bad = o.estado.indexOf("cancelado") === 0, items = String(o.pedido).split(", ").map(function (t) { return "<li>" + esc(t) + "</li>"; }).join("");
+      var act = "";
+      if (o.estado === "pendiente") act = ordAsk === o.id ? '<span class="oq">' + esc(c.texto_cancelar_confirmar) + '</span><button type="button" class="danger" data-oc="' + esc(o.id) + '">Sí, cancelar</button><button type="button" data-on="1">No</button>' : '<button type="button" class="danger" data-oa="' + esc(o.id) + '">' + esc(c.boton_cancelar_pedido) + "</button>";
+      else if (o.estado === "cancelado_cocina") act = '<a class="solid" target="_blank" rel="noopener" href="https://wa.me/' + (digits(c.whatsapp_pedidos) || digits(c.whatsapp)) + "?text=" + encodeURIComponent(fill(c.texto_whatsapp_cocina, { id: o.id })) + '">' + esc(c.boton_whatsapp_cocina) + "</a>";
+      return '<article class="ocard' + (bad ? " bad" : "") + '"><div class="oh"><b>' + esc(o.fecha) + "</b><span>#" + esc(o.id) + "</span></div><ul>" + items + '</ul><div class="ot"><span>Total</span><span>' + money(o.total) + '</span></div>' +
+        (o.entrega ? '<div class="oh"><span>Entrega: ' + esc(o.entrega) + "</span></div>" : "") + '<div class="os">' + esc(ordEst(o.estado)) + "</div>" + (act ? '<div class="oa">' + act + "</div>" : "") + "</article>";
+    }).join("");
+  }
+  function openOrders() {
+    $("t-orders").textContent = data.config.titulo_mis_pedidos;
+    closeCart(); $("orders").classList.add("open"); $("orders").setAttribute("aria-hidden", "false");
+    renderOrders("Cargando…"); ordAsk = "";
+    getToken(function (tok) {
+      if (!tok) { renderOrders("No pudimos verificar tu sesión. Cerrá sesión y volvé a ingresar con Google."); return; }
+      fetch(ENDPOINT + "?mis=1&token=" + encodeURIComponent(tok)).then(function (r) { return r.json(); }).then(function (j) {
+        if (!j || j.error) { renderOrders("No pudimos verificar tu sesión. Cerrá sesión y volvé a ingresar con Google."); return; }
+        ordData = j.pedidos || []; renderOrders();
+      }).catch(function () { renderOrders("No pudimos cargar tus pedidos. Probá de nuevo en un rato."); });
+    });
+  }
+  function closeOrders() { $("orders").classList.remove("open"); $("orders").setAttribute("aria-hidden", "true"); }
+  $("acct-orders").addEventListener("click", openOrders);
+  $("ord-x").addEventListener("click", closeOrders);
+  $("ord-list").addEventListener("click", function (e) {
+    var a = e.target.closest("[data-oa]"), y = e.target.closest("[data-oc]"), n = e.target.closest("[data-on]");
+    if (a) { ordAsk = a.getAttribute("data-oa"); renderOrders(); return; }
+    if (n) { ordAsk = ""; renderOrders(); return; }
+    if (y) {
+      var id = y.getAttribute("data-oc"); ordAsk = "";
+      getToken(function (tok) {
+        if (!tok) return;
+        try { fetch(ENDPOINT, { method: "POST", mode: "no-cors", keepalive: true, body: JSON.stringify({ accion: "cancelar", token: tok, id: id }) }).catch(function () {}); } catch (err) {}
+        (ordData || []).forEach(function (o) { if (o.id === id) o.estado = "cancelado_cliente"; }); renderOrders();
+        setTimeout(function () { var pf = profile(); if (pf && pf.e) loadUso(pf.e, function () {}); }, 2500);
+      });
+    }
+  });
 
   var lastFocus = null;
   function openModal() {
@@ -1517,14 +1623,17 @@ var DEFAULTS = {
     $("c-lines").innerHTML = cartLinesHtml(true);
     $("c-empty").hidden = x.n > 0;
     var ph = promoHint(), pe = $("c-promo"); pe.hidden = !ph; if (ph) pe.innerHTML = "<span>" + esc(ph.txt) + '</span><div class="bar"><i style="width:' + ph.pct + '%"></i></div>';
-    var sm = $("c-sum"); sm.hidden = !(x.n > 0 && x.ahorroTotal > 0);
-    if (!sm.hidden) sm.innerHTML = "<div><span>Subtotal</span><span>" + money(x.t + x.ahorroTotal) + '</span></div><div class="g"><span>' + esc(data.config.texto_ahorro_total) + "</span><span>−" + money(x.ahorroTotal) + "</span></div>";
+    var sm = $("c-sum"); sm.hidden = !(x.n > 0 && (x.ahorroTotal > 0 || x.cupDesc > 0));
+    if (!sm.hidden) sm.innerHTML = "<div><span>Subtotal</span><span>" + money(x.base + x.ahorroTotal) + "</span></div>" + (x.ahorroTotal > 0 ? '<div class="g"><span>' + esc(data.config.texto_ahorro_total) + "</span><span>−" + money(x.ahorroTotal) + "</span></div>" : "") + (x.cupDesc > 0 ? '<div class="g"><span>' + esc(fill(data.config.texto_cupon_aplicado, { nombre: x.cupon.nombre })) + " (−" + x.cupon.pct + "%)</span><span>−" + money(x.cupDesc) + "</span></div>" : "");
+    var ce = $("c-cup"), cb0 = cupones.slice().sort(function (a, b) { return b.pct - a.pct; })[0];
+    ce.hidden = !(cb0 && x.n > 0 && !x.cupon);
+    if (!ce.hidden) ce.textContent = cb0.min > x.base ? fill(data.config.texto_cupon_minimo, { min: money(cb0.min), nombre: cb0.nombre, pct: cb0.pct }) : fill(data.config.texto_cupon, { texto: cb0.texto || cb0.nombre, nombre: cb0.nombre, pct: cb0.pct });
     $("c-total").textContent = money(x.t); setTransf($("c-transf"), x.t);
     var note = $("c-note"); note.hidden = !(x.n > 0 && !ok); note.textContent = "Por ahora no estamos tomando pedidos.";
     $("cart-go").disabled = !ok;
   }
   function openCart() {
-    renderCart();
+    closeOrders(); renderCart(); if (cupones.length || (profile() || {}).g) getToken(function (t) { if (t && !cupones.length) loadCupones(); });
     $("drawer").classList.add("open"); $("drawer").setAttribute("aria-hidden", "false");
   }
   function closeCart() { $("drawer").classList.remove("open"); $("drawer").setAttribute("aria-hidden", "true"); }
@@ -1548,7 +1657,7 @@ var DEFAULTS = {
   document.addEventListener("click", function (e) { if (!hp.contains(e.target)) { hp.classList.remove("open"); } });
   $("close").addEventListener("click", closeModal);
   $("modal").addEventListener("click", function (e) { if (e.target === $("modal")) closeModal(); });
-  document.addEventListener("keydown", function (e) { if (e.key === "Escape") { if (!$("pk-modal").hidden) closePack(); else if (!$("modal").hidden) closeModal(); else closeCart(); } });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") { if (!$("pk-modal").hidden) closePack(); else if (!$("modal").hidden) closeModal(); else { closeOrders(); closeCart(); } } });
   $("name").addEventListener("input", function () { $("name-err").hidden = true; syncLinks(); });
   $("phone").addEventListener("input", function () { $("phone-err").hidden = true; });
   $("email").addEventListener("input", function () { $("email-err").hidden = true; $("lim-err").hidden = true; syncLinks(); loadUso($("email").value); });

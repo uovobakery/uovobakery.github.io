@@ -111,6 +111,9 @@ a { color: inherit; }
 .rcard .rb { padding: 14px 16px 16px; display: grid; gap: 6px; }
 .rstars { color: #F5B301; font-size: 1.15rem; letter-spacing: 2px; }
 .rstars .off { color: #D8DEE9; }
+.ravg { display: inline-flex; align-items: center; gap: 6px; margin-left: 14px; font-size: .62em; color: #1a2540; vertical-align: middle; }
+.ravg .st { font-size: 1.7em; line-height: 1; background: linear-gradient(90deg, #F5B301 var(--p, 100%), #C3CBDA var(--p, 100%)); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; }
+.ravg small { font-size: .7em; color: #5b6477; font-weight: 400; }
 .rcard p { white-space: pre-line; }
 .rcard b { color: var(--blue); }
 
@@ -277,6 +280,8 @@ button.tier:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(12,
 .tier i.lim, .plim { font-style: normal; font-size: .75rem; font-weight: 700; color: #C2200E; min-height: 0; }
 .plim:empty { display: none; }
 button.tier:disabled { opacity: .55; cursor: default; transform: none; box-shadow: none; }
+.toast { position: fixed; left: 50%; bottom: 22px; transform: translate(-50%, 30px); opacity: 0; pointer-events: none; z-index: 60; background: var(--ink); color: #fff; font-weight: 700; padding: 12px 20px; border-radius: 999px; max-width: 92vw; text-align: center; transition: opacity .3s, transform .3s; box-shadow: 0 6px 24px rgba(0, 0, 0, .3); }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
 .tier em { font-style: normal; font-weight: 700; font-size: .78rem; color: var(--blue); margin-top: 6px; }
 .pkp { max-width: 480px; display: flex; flex-direction: column; gap: 12px; padding: 0; overflow: hidden; }
 .pk-h { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 22px 22px 0; }
@@ -471,7 +476,7 @@ button.scale:hover { background: #FFEBA3; }
 </main>
 <section class="promos wrap" id="packs" hidden aria-labelledby="t-packs"><div class="menu-head"><h2 id="t-packs"></h2><p id="x-packs"></p></div><div class="cwrap"><div class="cview"><div class="pgrid" id="tgrid"></div></div></div></section>
 <section class="promos wrap" id="promos" hidden aria-labelledby="t-promos"><div class="menu-head"><h2 id="t-promos"></h2><p id="x-promos"></p></div><div class="cwrap"><div class="cview"><div class="pgrid" id="pgrid"></div></div></div></section>
-<section class="reviews wrap" id="reviews" hidden aria-labelledby="t-rev"><h2 id="t-rev">Lo que dicen de nosotros</h2><div class="cwrap"><div class="cview"><div class="rgrid" id="rgrid"></div></div></div></section>
+<section class="reviews wrap" id="reviews" hidden aria-labelledby="t-rev"><h2 id="t-rev"><span id="t-rev-t">Lo que dicen de nosotros</span><span class="ravg" id="ravg" hidden></span></h2><div class="cwrap"><div class="cview"><div class="rgrid" id="rgrid"></div></div></div></section>
 </div>
 
 <footer>
@@ -511,6 +516,7 @@ button.scale:hover { background: #FFEBA3; }
     </div>
 </aside>
 
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="backdrop" id="pk-modal" hidden>
   <div class="panel pkp" role="dialog" aria-modal="true" aria-labelledby="pk-title">
     <div class="pk-h"><h2 id="pk-title"></h2><button type="button" class="dx" id="pk-x" aria-label="Cerrar">×</button></div>
@@ -615,6 +621,10 @@ var DEFAULTS = {
     ayuda_telefono: "",
     facebook_url: "",
     titulo_packs: "Nuestros packs",
+    titulo_resenas: "Lo que dicen de nosotros",
+    boton_resenas: "Reseñas",
+    resenas_pc: "3",
+    resenas_cel: "1",
     texto_packs: "Elegí cuántas cookies llevar y armá tu pack con las variedades que más te gusten.",
     titulo_promos: "Promos exclusivas",
     texto_promos: "Combos armados por tiempo limitado.",
@@ -630,6 +640,7 @@ var DEFAULTS = {
     titulo_pedido: "Tu pedido",
     texto_carrito_vacio: "Todavía no elegiste nada.",
     boton_seguir: "Seguir eligiendo",
+    aviso_promo_aplicada: "¡Sumamos la promo {nombre} a tu pedido!",
     texto_limite_cliente: "Máximo {lim} por cliente",
     texto_limite_alcanzado: "Límite alcanzado",
     texto_limite_error: "Ya alcanzaste el límite de {nombre} por cliente en esta tanda. Sacalo del pedido para continuar."
@@ -855,7 +866,7 @@ var DEFAULTS = {
       var c = b.getAttribute("data-cat"), on = false;
       if (filt.cat) on = c.slice(0, 2) !== "__" && fold(c) === fold(filt.cat);
       else if (filt.q) on = false;
-      else if (spyOn === "promos" || spyOn === "packs") on = c === "__" + spyOn;
+      else if (spyOn === "promos" || spyOn === "packs" || spyOn === "resenas") on = c === "__" + spyOn;
       else if (spyOn === "cat" && cats.length === 1) on = b === cats[0];
       else on = c === "";
       b.classList.toggle("on", on); if (on) act = b;
@@ -871,6 +882,7 @@ var DEFAULTS = {
     cats.forEach(function (c) { h += '<button type="button" data-cat="' + esc(c) + '">' + esc(c) + "</button>"; });
     if ((data.escala || []).length) h += '<button type="button" data-cat="__packs">' + esc(data.config.titulo_packs) + "</button>";
     if (comboList().length) h += '<button type="button" data-cat="__promos">' + esc(data.config.titulo_promos) + "</button>";
+    if (reviewList().length && String(data.config.boton_resenas || "").trim()) h += '<button type="button" data-cat="__resenas">' + esc(data.config.boton_resenas) + "</button>";
     $("cats-in").innerHTML = h + '<i class="cats-ind" aria-hidden="true"></i>';
     paintCats();
   }
@@ -878,8 +890,9 @@ var DEFAULTS = {
   function spy() {
     _spyT = 0; if (Date.now() < spyLock) return;
     var st = document.querySelector(".stick"), h = (st ? st.offsetHeight : 110) + Math.round(window.innerHeight * 0.25), w = "";
-    var pr = $("promos"), pa = $("packs"), ct = $("catalogo"), bottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
-    if (!pr.hidden && (pr.getBoundingClientRect().top <= h || (bottom && pr.getBoundingClientRect().top < window.innerHeight))) w = "promos";
+    var rv = $("reviews"), pr = $("promos"), pa = $("packs"), ct = $("catalogo"), bottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
+    if (!rv.hidden && (rv.getBoundingClientRect().top <= h || (bottom && rv.getBoundingClientRect().top < window.innerHeight))) w = "resenas";
+    else if (!pr.hidden && (pr.getBoundingClientRect().top <= h || (bottom && pr.getBoundingClientRect().top < window.innerHeight))) w = "promos";
     else if (!pa.hidden && (pa.getBoundingClientRect().top <= h || (bottom && pa.getBoundingClientRect().top < window.innerHeight))) w = "packs";
     else if (ct.getBoundingClientRect().top <= h) w = "cat";
     if (w !== spyOn) { spyOn = w; paintCats(); }
@@ -890,11 +903,11 @@ var DEFAULTS = {
         renderCats(); renderGrid(); renderPromos(); refresh();
     if (cookieLoop) cookieLoop.refresh(); if (revLoop) revLoop.refresh(); if (promoLoop) promoLoop.refresh(); if (packLoop) packLoop.refresh();
   }
-  function goTo(which) { var was = !!(filt.q || filt.cat); filt = { q: "", cat: "" }; $("q").value = ""; spyOn = which; spyLock = Date.now() + 1000; if (was) applyFilter(); else paintCats(); setTimeout(function () { $(which).scrollIntoView({ behavior: "smooth", block: "start" }); }, was ? 60 : 0); }
+  function goTo(which) { var was = !!(filt.q || filt.cat); filt = { q: "", cat: "" }; $("q").value = ""; spyOn = which === "reviews" ? "resenas" : which; spyLock = Date.now() + 1000; if (was) applyFilter(); else paintCats(); setTimeout(function () { $(which).scrollIntoView({ behavior: "smooth", block: "start" }); }, was ? 60 : 0); }
   $("stripe-promos").addEventListener("click", function () { goTo(!$("packs").hidden || (data.escala || []).length ? "packs" : "promos"); });
   $("cats-in").addEventListener("click", function (e) {
     var b = e.target.closest("button[data-cat]"); if (!b) return;
-    var bc = b.getAttribute("data-cat"); if (bc === "__promos" || bc === "__packs") { goTo(bc.slice(2)); return; }
+    var bc = b.getAttribute("data-cat"); if (bc === "__promos" || bc === "__packs" || bc === "__resenas") { goTo(bc === "__resenas" ? "reviews" : bc.slice(2)); return; }
     filt.promos = false; filt.cat = b.getAttribute("data-cat"); filt.q = ""; $("q").value = "";
     applyFilter();
     spyOn = !filt.cat ? "" : "cat"; spyLock = Date.now() + 1000; paintCats();
@@ -909,6 +922,13 @@ var DEFAULTS = {
   $("fstat").addEventListener("click", function (e) { if (e.target.closest("button")) { filt = { q: "", cat: "" }; $("q").value = ""; applyFilter(); } });
 
   /* Carrusel infinito con deslizamiento suave */
+  function revPer() {
+    var c = (data && data.config) || {}, pc = parseInt(c.resenas_pc, 10), ce = parseInt(c.resenas_cel, 10);
+    pc = pc > 0 ? Math.min(pc, 6) : 3; ce = ce > 0 ? Math.min(ce, 3) : 1;
+    return window.innerWidth >= 640 ? pc : ce;
+  }
+  function revSize() { var n = revPer(); $("rgrid").style.setProperty("--cw", "calc((100% - " + 20 * (n - 1) + "px) / " + n + ")"); }
+  window.addEventListener("resize", function () { revSize(); });
   function Loop(track, o) {
     o = o || {};
     var view = track.parentNode, wrap = view.parentNode, busy = false, pause = 0, hov = false, timer = null;
@@ -945,7 +965,7 @@ var DEFAULTS = {
     refresh();
     return { refresh: refresh, go: go };
   }
-  var cookieLoop = Loop($("grid")), revLoop = Loop($("rgrid"), { auto: 6000 }), packLoop = Loop($("tgrid"), { per: function () { return window.innerWidth >= 980 ? 4 : window.innerWidth >= 640 ? 3 : 2; } }),
+  var cookieLoop = Loop($("grid")), revLoop = Loop($("rgrid"), { auto: 6000, per: revPer }), packLoop = Loop($("tgrid"), { per: function () { return window.innerWidth >= 980 ? 4 : window.innerWidth >= 640 ? 3 : 2; } }),
       promoLoop = Loop($("pgrid"), { per: function () { return window.innerWidth >= 980 ? 4 : window.innerWidth >= 640 ? 3 : 2; } });
   function updNav() { cookieLoop.refresh(); }
 
@@ -1115,7 +1135,29 @@ var DEFAULTS = {
     } catch (e) {}
   }
 
+  var _toastT = null;
+  function toast(msg) { var t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(_toastT); _toastT = setTimeout(function () { t.classList.remove("show"); }, 4800); }
+  function prodByName(n) { return data.productos.filter(function (x) { return x.nombre.toLowerCase() === String(n).toLowerCase(); })[0]; }
+  function autoPromos() {
+    var list = comboList(), got = [], again = true, guard = 0;
+    while (again && guard++ < 20) {
+      again = false;
+      for (var j = 0; j < list.length; j++) {
+        var cb = list[j];
+        if (comboNormal(cb) - cb.precio <= 0 || leftCombo(cb) <= 0) continue;
+        var ok = cb.items.every(function (it) { var p = prodByName(it.n); return p && !p.agotada && (qty[p.nombre] || 0) >= it.c; });
+        if (!ok) continue;
+        var before = totals().t, sq = JSON.stringify(qty), sc = JSON.stringify(cq);
+        cb.items.forEach(function (it) { var p = prodByName(it.n); qty[p.nombre] -= it.c; });
+        cq[cb.nombre] = (cq[cb.nombre] || 0) + 1;
+        if (totals().t < before) { got.push(cb.nombre); again = true; break; }
+        qty = JSON.parse(sq); cq = JSON.parse(sc);
+      }
+    }
+    if (got.length) toast(fill(data.config.aviso_promo_aplicada, { nombre: got.join(", ") }));
+  }
   function refresh() {
+    if (data) autoPromos();
     saveCart(); if (data) updLimits();
     data.productos.forEach(function (p, i) {
       var out = $("q-" + i);
@@ -1188,9 +1230,15 @@ var DEFAULTS = {
     setupGoogle();
     renderReviews();
   }
+  function reviewList() { return (data.resenas || []).filter(function (r) { return r && (r.comentario || r.foto); }); }
   function renderReviews() {
-    var list = (data.resenas || []).filter(function (r) { return r && (r.comentario || r.foto); }), box = $("reviews");
+    var list = reviewList(), box = $("reviews");
     box.hidden = !list.length;
+    $("t-rev-t").textContent = data.config.titulo_resenas || "Lo que dicen de nosotros";
+    var rated = list.filter(function (r) { return Number(r.estrellas) > 0; }), av = $("ravg");
+    if (rated.length) { var m = rated.reduce(function (a, r) { return a + Math.min(5, Number(r.estrellas)); }, 0) / rated.length;
+      av.style.setProperty("--p", Math.round(m / 5 * 100) + "%"); av.innerHTML = '<span class="st" aria-hidden="true">★</span><b>' + m.toFixed(1).replace(".", ",") + "</b><small>(" + rated.length + ")</small>"; av.setAttribute("aria-label", "Promedio " + m.toFixed(1) + " de 5"); av.hidden = false; } else av.hidden = true;
+    revSize();
     $("rgrid").innerHTML = list.map(function (r) {
       var n = Math.max(0, Math.min(5, Math.round(Number(r.estrellas) || 0))), s = "";
       for (var i = 1; i <= 5; i++) s += i <= n ? "★" : '<span class="off">★</span>';

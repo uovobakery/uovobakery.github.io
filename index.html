@@ -248,8 +248,12 @@ footer img { width: 150px; height: auto; border-radius: 12px; display: block; }
 .acctbar #gbtn { display: flex; min-height: 32px; }
 .acctbar #acct-msg { display: none; }
 .acctbar button { font: inherit; color: var(--blue); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
-.acctbar #acct-user { background: var(--sky); border-radius: 999px; padding: 6px 14px; white-space: nowrap; }
-.acctbar #acct-name { font-weight: 800; color: var(--ink); }
+.acctbar #acct-user { display: flex; align-items: flex-start; gap: 14px; }
+.acctbar .tool { color: var(--ink-soft); text-decoration: none; font: 600 .7rem var(--font-body); }
+.acctbar button.tool:hover { color: var(--blue); }
+#acct-who { cursor: default; }
+#acct-who:hover { color: var(--ink-soft); }
+.acctbar #acct-name { font-weight: 800; color: var(--ink); max-width: 9ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sform { grid-area: search; position: relative; display: flex; }
 .sform input { width: 100%; font: inherit; font-size: .95rem; padding: 10px 44px 10px 16px; border: 2px solid var(--sky-line); border-radius: 999px; background: var(--paper); color: var(--ink); }
 .sform input:focus { border-color: var(--blue); outline: none; }
@@ -384,8 +388,6 @@ button.scale:hover { background: #FFEBA3; }
 .dfoot { padding: 18px 26px 24px; border-top: 2px solid var(--sky-line); display: grid; gap: 12px; background: var(--paper); }
 .dfoot .total { border: 0; padding: 0; margin-top: 2px; }
 .aico { width: 1.05em; height: 1.05em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -.16em; margin-right: 4px; }
-#acct-out .aico, #acct-user > .aico:first-child { margin-right: 0; }
-#acct-orders, #acct-out { text-decoration: none !important; }
 .dpromo.cup { background: var(--sky); color: var(--blue); font-weight: 700; }
 .ocard { border: 2px solid #C9D9F5; border-radius: 16px; padding: 14px 16px; margin: 0 0 14px; background: #fff; display: grid; gap: 8px; }
 .ocard .oh { display: flex; justify-content: space-between; gap: 8px; font-size: .85rem; color: var(--ink-soft); }
@@ -437,7 +439,7 @@ button.scale:hover { background: #FFEBA3; }
   <div class="acctbar" id="acct" hidden>
     <span id="acct-msg">Iniciá sesión y completamos tus datos solos</span>
     <div id="gbtn"></div>
-    <span id="acct-user" hidden><svg class="aico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg><span id="acct-name"></span> · <button type="button" id="acct-orders"><svg class="aico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2l-2 4v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6l-2-4z"/><path d="M4 6h16"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Mis pedidos</button> · <button type="button" id="acct-out" aria-label="Salir" title="Salir"><svg class="aico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></button></span>
+    <span id="acct-user" hidden><span class="tool" id="acct-who"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg><span id="acct-name"></span></span><button class="tool" type="button" id="acct-orders"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2l-2 4v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6l-2-4z"/><path d="M4 6h16"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span>Mis pedidos</span></button><button class="tool" type="button" id="acct-out" aria-label="Salir"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg><span>Salir</span></button></span>
   </div>
   <form class="sform" id="sform" role="search">
     <input id="q" type="search" placeholder="Buscá por nombre o ingrediente…" autocomplete="off" aria-label="Buscar cookies">
@@ -453,7 +455,7 @@ button.scale:hover { background: #FFEBA3; }
         <a id="wa-ask" href="#" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg><span>Consultar por WhatsApp</span></a>
       </div>
     </div>
-    <button class="tool" type="button" id="cart-btn" aria-label="Ver mi pedido"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 8h18"/><path d="M7 5.5h.01M10.5 5.5h.01"/><rect x="6.5" y="11" width="11" height="6" rx="1.5"/></svg><span>Mi pedido</span><b class="cart-n" id="cart-n" hidden>0</b></button>
+    <button class="tool" type="button" id="cart-btn" aria-label="Ver mi pedido"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 8h18"/><path d="M7 5.5h.01M10.5 5.5h.01"/><rect x="6.5" y="11" width="11" height="6" rx="1.5"/></svg><span id="cart-lbl">Mi horno</span><b class="cart-n" id="cart-n" hidden>0</b></button>
   </div>
  </div>
 </div>
@@ -661,6 +663,7 @@ var DEFAULTS = {
     texto_elegir_variedades: "Elegir variedades ›",
     texto_ahorras: "Ahorrás",
     texto_ahorro_total: "Ahorro total",
+    texto_boton_carrito: "Mi horno",
     boton_comprobante: "Enviar comprobante por WhatsApp",
     texto_comprobante: "Hola! Te envío el comprobante de mi pedido {id}",
     estado_pago: "Ya recibimos tu pago. ¡Gracias!",
@@ -857,6 +860,7 @@ var DEFAULTS = {
     $("m-title").textContent = c.titulo_confirmar;
     $("confirm").textContent = c.boton_confirmar;
     $("done-title").textContent = c.gracias_titulo;
+    $("cart-lbl").textContent = c.texto_boton_carrito; $("cart-btn").setAttribute("aria-label", c.texto_boton_carrito);
     $("done-pay").textContent = c.gracias_texto;
     $("done-pay").hidden = !c.gracias_texto;
     $("mail-field").hidden = false;

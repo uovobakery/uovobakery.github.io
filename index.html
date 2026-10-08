@@ -78,6 +78,10 @@ a { color: inherit; }
 /* Franja azul con rayas + fondo de mesa */
 .stripe { height: 54px; background: var(--blue); position: relative; overflow: hidden; }
 .stripe::before, .stripe::after { content: ""; position: absolute; top: 0; bottom: 0; width: 150px; background: repeating-linear-gradient(90deg, #fff 0 10px, transparent 10px 25px); clip-path: polygon(0 0, 100% 0, 100% 55%, 0 100%); }
+.stripe { display: flex; align-items: center; justify-content: center; }
+.stripe-link { position: relative; z-index: 2; border: 2px solid #fff; background: transparent; color: #fff; font: 600 .95rem var(--font-display); padding: 6px 18px; border-radius: 999px; cursor: pointer; }
+.stripe-link:hover { background: #fff; color: var(--blue); }
+@media (max-width: 640px) { .stripe::before, .stripe::after { width: 44px; } .stripe-link { font-size: .8rem; padding: 5px 12px; } }
 .stripe::before { left: 16px; } .stripe::after { right: 16px; transform: scaleX(-1); }
 .scene { position: relative; background: #fff center top / max(100%, 900px) auto repeat-y; isolation: isolate; }
 .scene.noimg::before { background: linear-gradient(180deg, #CFE0F8 0, #EAF2FD 220px, #fff 100%); }
@@ -279,7 +283,7 @@ footer img { width: 150px; height: auto; border-radius: 12px; display: block; }
 .cnav[hidden] { display: none; }
 .cnav.l { left: -6px; } .cnav.r { right: -6px; }
 .reviews .cnav { top: 50%; }
-.nodisp, body.promomode .hero, body.promomode .about, body.promomode .stripe, body.promomode #topbar { display: none !important; }
+.nodisp { display: none !important; }
 .promos .menu-head h2 { background: none; padding: 0; display: block; margin: 0; font-size: 1.9rem; backdrop-filter: none; }
 .promos { padding-top: 28px; }
 button.scale { border: 0; cursor: pointer; font-family: inherit; text-align: left; }
@@ -363,7 +367,7 @@ button.scale:hover { background: #FFEBA3; }
 .fcols { display: grid; gap: 24px; }
 @media (min-width: 700px) { .fcols { grid-template-columns: 1fr 1fr; } }
 .fcol h3 { font: 600 1.05rem var(--font-display); margin-bottom: 12px; opacity: .95; }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+@media (prefers-reduced-motion: reduce) { *:not(.grid):not(.rgrid):not(.drawer) { transition: none !important; scroll-behavior: auto !important; } }
 </style>
 </head>
 <body>
@@ -419,7 +423,7 @@ button.scale:hover { background: #FFEBA3; }
 </header>
 </div>
 
-<div class="stripe" aria-hidden="true"></div>
+<div class="stripe"><button type="button" class="stripe-link" id="stripe-promos" hidden>Promos · Llevando más, pagás menos ›</button></div>
 
 <div class="scene noimg" id="scene"><div class="collage" aria-hidden="true"><img src="https://images.unsplash.com/photo-1549590143-d5855148a9d5?auto=format&fit=crop&w=900&q=70" alt="" loading="lazy" referrerpolicy="no-referrer"><img src="https://images.unsplash.com/photo-1518569656558-1f25e69d93d7?auto=format&fit=crop&w=900&q=70" alt="" loading="lazy" referrerpolicy="no-referrer"><img src="https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&w=900&q=70" alt="" loading="lazy" referrerpolicy="no-referrer"><img src="https://images.unsplash.com/photo-1714842981153-ffeaf74e7a1a?auto=format&fit=crop&w=900&q=70" alt="" loading="lazy" referrerpolicy="no-referrer"><img src="https://images.unsplash.com/photo-1627735483792-233bf632619b?auto=format&fit=crop&w=900&q=70" alt="" loading="lazy" referrerpolicy="no-referrer"></div>
 <section class="about" id="about" hidden>
@@ -429,16 +433,16 @@ button.scale:hover { background: #FFEBA3; }
   </div></div>
 </section>
 
-<section class="promos wrap" id="promos" hidden aria-labelledby="t-promos"><div class="menu-head"><h2 id="t-promos">Promos</h2><p>Combos armados y descuentos por cantidad.</p></div><div class="tiers" id="tiers"></div><div class="pgrid" id="pgrid"></div></section>
 <main class="menu wrap" id="catalogo">
   <div class="menu-head">
     <h2 id="t-menu">Elegí tus cookies</h2>
     <p id="x-menu">Sumá la cantidad que quieras de cada una. El total se arma solo.</p>
-    <button type="button" class="scale" id="scale-txt" hidden></button>
+    
   </div>
   <p class="fstat" id="fstat" hidden></p>
   <div class="cwrap"><div class="cview"><div class="grid" id="grid"><div class="msg">Cargando cookies…</div></div></div></div>
 </main>
+<section class="promos wrap" id="promos" hidden aria-labelledby="t-promos"><div class="menu-head"><h2 id="t-promos">Promos</h2><p>Combos armados y descuentos por cantidad.</p></div><div class="tiers" id="tiers"></div><div class="pgrid" id="pgrid"></div></section>
 <section class="reviews wrap" id="reviews" hidden aria-labelledby="t-rev"><h2 id="t-rev">Lo que dicen de nosotros</h2><div class="cwrap"><div class="cview"><div class="rgrid" id="rgrid"></div></div></div></section>
 </div>
 
@@ -648,7 +652,7 @@ var DEFAULTS = {
   }
 
   /* ---------- Datos ---------- */
-  var BLANK_OK = ["google_client_id", "texto_menu", "gracias_texto", "frase", "quienes_somos", "pie", "franja", "alias_transferencia", "whatsapp_pedidos"];
+  var BLANK_OK = ["whatsapp", "instagram_url", "instagram_usuario", "ayuda_mail", "ayuda_telefono", "facebook_url", "google_client_id", "texto_menu", "gracias_texto", "frase", "quienes_somos", "pie", "franja", "alias_transferencia", "whatsapp_pedidos"];
   function normalize(raw) {
     var c = {}, k;
     for (k in DEFAULTS.config) c[k] = DEFAULTS.config[k];
@@ -719,11 +723,6 @@ var DEFAULTS = {
     $("frase").hidden = !c.frase;
     $("about").hidden = !c.quienes_somos;
     $("about-text").textContent = c.quienes_somos;
-    $("ig").href = c.instagram_url;
-    $("ig-user").textContent = c.instagram_usuario;
-    $("wa").href = "https://wa.me/" + digits(c.whatsapp);
-    $("wa-ask").href = "https://wa.me/" + digits(c.whatsapp) + "?text=" + encodeURIComponent("¡Hola! Tengo una consulta");
-    $("wa-num").textContent = "+" + digits(c.whatsapp).replace(/^(\d{2})(\d)(\d{3})(\d{3})(\d{4})$/, "$1 $2 $3 $4-$5");
     $("pie").textContent = c.pie;
     $("topbar").hidden = !c.franja;
     $("topbar").textContent = c.franja;
@@ -731,9 +730,6 @@ var DEFAULTS = {
     $("t-quienes").textContent = c.titulo_quienes;
     $("t-menu").textContent = c.titulo_menu;
     $("x-menu").textContent = c.texto_menu; $("x-menu").hidden = !c.texto_menu;
-    var tiers = (data.escala || []).slice().sort(function (a, b) { return a.q - b.q; });
-    $("scale-txt").hidden = !tiers.length;
-    $("scale-txt").textContent = tiers.length ? "Llevando más, pagás menos: " + tiers.map(function (t) { return t.q + " por " + money(t.p); }).join(" · ") + "  ·  Ver promos ›" : "";
     $("cart-go").textContent = c.boton_enviar;
     renderContact(c);
     renderCats();
@@ -761,13 +757,20 @@ var DEFAULTS = {
     return "tel:+" + d;
   }
   function renderContact(c) {
-    var mail = String(c.ayuda_mail || "").trim(), tel = fmtTel(c), fb = String(c.facebook_url || "").trim();
-    $("h-tel-t").textContent = tel; $("h-tel").href = telHref(c);
-    $("tel-t").textContent = tel; $("tel").href = telHref(c);
+    var mail = String(c.ayuda_mail || "").trim(), ph = String(c.ayuda_telefono || "").trim(), fb = String(c.facebook_url || "").trim(),
+        ig = String(c.instagram_url || "").trim(), wa = digits(c.whatsapp), tel = ph ? fmtTel(c) : "";
+    $("h-tel").hidden = !ph; $("tel").hidden = !ph;
+    if (ph) { $("h-tel-t").textContent = tel; $("h-tel").href = telHref(c); $("tel-t").textContent = tel; $("tel").href = telHref(c); }
     $("h-mail").hidden = !mail; $("mail").hidden = !mail;
     if (mail) { $("h-mail-t").textContent = mail; $("h-mail").href = "mailto:" + mail; $("mail-t").textContent = mail; $("mail").href = "mailto:" + mail; }
     $("fb").hidden = !fb;
     if (fb) { $("fb").href = fb; $("fb-t").textContent = fb.replace(/^https?:\/\/(www\.)?facebook\.com\/?/i, "") || "Facebook"; }
+    $("ig").hidden = !ig;
+    if (ig) { $("ig").href = ig; $("ig-user").textContent = String(c.instagram_usuario || "").trim() || "Instagram"; }
+    $("wa").hidden = !wa; $("wa-ask").hidden = !wa;
+    if (wa) { $("wa").href = "https://wa.me/" + wa; $("wa-ask").href = "https://wa.me/" + wa + "?text=" + encodeURIComponent("¡Hola! Tengo una consulta"); $("wa-num").textContent = "+" + wa.replace(/^(\d{2})(\d)(\d{3})(\d{3})(\d{4})$/, "$1 $2 $3 $4-$5"); }
+    var any = !!(mail || ph || wa); $("help").hidden = !any;
+    $("wa").closest(".fcol").hidden = $("wa").hidden && $("tel").hidden && $("mail").hidden; $("ig").closest(".fcol").hidden = $("ig").hidden && $("fb").hidden;
   }
 
   /* ---------- Buscador y categorías ---------- */
@@ -791,12 +794,11 @@ var DEFAULTS = {
     $("cats-in").innerHTML = h;
   }
   function applyFilter() {
-    document.body.classList.toggle("promomode", !!filt.promos); $("catalogo").classList.toggle("nodisp", !!filt.promos); $("reviews").classList.toggle("nodisp", !!filt.promos);
-    renderCats(); renderGrid(); renderPromos(); refresh();
+        renderCats(); renderGrid(); renderPromos(); refresh();
     if (cookieLoop) cookieLoop.refresh(); if (revLoop) revLoop.refresh();
   }
-  function goPromos() { filt = { q: "", cat: "", promos: true }; $("q").value = ""; applyFilter(); window.scrollTo({ top: 0, behavior: "smooth" }); }
-  $("scale-txt").addEventListener("click", goPromos);
+  function goPromos() { var was = !!(filt.q || filt.cat); filt = { q: "", cat: "" }; $("q").value = ""; if (was) applyFilter(); setTimeout(function () { $("promos").scrollIntoView({ behavior: "smooth", block: "start" }); }, was ? 60 : 0); }
+  $("stripe-promos").addEventListener("click", goPromos);
   $("cats-in").addEventListener("click", function (e) {
     var b = e.target.closest("button[data-cat]"); if (!b) return;
     if (b.getAttribute("data-cat") === "__promos") { goPromos(); return; }
@@ -1005,7 +1007,7 @@ var DEFAULTS = {
   function prodImg(name) { var p = data.productos.filter(function (x) { return x.nombre.toLowerCase() === String(name).toLowerCase(); })[0]; var m = p && p.medios.filter(function (z) { return z.t === "img"; })[0]; return m ? m.src : ""; }
   function renderPromos() {
     var list = comboList(), box = $("promos"), sc = (data.escala || []).slice().sort(function (a, b) { return a.q - b.q; });
-    box.hidden = !filt.promos;
+    box.hidden = !(list.length || sc.length) || !!(filt.q || filt.cat); $("stripe-promos").hidden = !(list.length || sc.length);
     var prices = data.productos.filter(function (p) { return !p.agotada; }).map(function (p) { return p.precio; }), base = prices.length ? Math.min.apply(null, prices) : 0;
     $("tiers").innerHTML = sc.length ? '<div class="tiers-h">Llevando más, pagás menos</div>' + sc.map(function (t) {
       var sv = base * t.q - t.p;

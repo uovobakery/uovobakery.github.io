@@ -160,7 +160,7 @@ a { color: inherit; }
 .card-body { display: grid; gap: 10px; padding: 14px 16px 16px; }
 .card-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
 .card h3 { font-size: 1.25rem; min-width: 0; }
-.price { font-family: var(--font-display); font-weight: 600; color: var(--blue); font-size: 1.2rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.price { text-align: right; font-family: var(--font-display); font-weight: 600; color: var(--blue); font-size: 1.2rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .desc { color: var(--ink-soft); font-size: .95rem; }
 .stepper { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 2px; }
 .stepper .lbl { font-weight: 700; font-size: .9rem; color: var(--ink-soft); }
@@ -285,6 +285,34 @@ footer img { width: 150px; height: auto; border-radius: 12px; display: block; }
 .cartlines .nm { display: grid; min-width: 0; }
 .cartlines .nm small { color: var(--ink-soft); }
 
+
+/* Promos y descuentos */
+.pt2 { display: block; color: #C2200E; font: 700 .82rem var(--font-body); white-space: nowrap; }
+.scale { background: #FFF4CC; border-radius: 12px; padding: 8px 12px; font-weight: 700; font-size: .92rem; color: var(--ink); justify-self: start; }
+.promos, .menu { scroll-margin-top: 96px; }
+.promos { padding-block: 8px 0; }
+.promos h2 { font-size: 1.45rem; color: var(--blue); background: rgba(255, 255, 255, .78); border-radius: 18px; padding: 8px 16px; display: inline-block; margin-bottom: 12px; backdrop-filter: blur(3px); }
+.pgrid { display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding: 4px 2px 10px; }
+.pgrid::-webkit-scrollbar { display: none; }
+.pcard { flex: 0 0 min(340px, 88%); scroll-snap-align: start; display: grid; grid-template-columns: 96px 1fr; gap: 12px; background: rgba(255, 255, 255, .9); border: 2px solid #FFD84D; border-radius: 18px; padding: 10px; position: relative; }
+.pcard.on { border-color: var(--blue); }
+.pmos { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; gap: 2px; border-radius: 12px; overflow: hidden; background: var(--sky); aspect-ratio: 1; }
+.pmos img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pmos.one { grid-template-columns: 1fr; }
+.pbody { display: grid; gap: 4px; min-width: 0; align-content: start; }
+.pbody h3 { font-size: 1.05rem; line-height: 1.2; }
+.pcomp { color: var(--ink-soft); font-size: .85rem; line-height: 1.3; }
+.pprice { font: 600 1.15rem var(--font-display); color: var(--blue); }
+.pprice s { color: var(--ink-soft); font: 600 .85rem var(--font-body); margin-left: 6px; }
+.psave { color: #1B7A3A; font-weight: 800; font-size: .8rem; }
+.pcard .ctrl { justify-self: start; }
+.pcard .ctrl button { width: 34px; height: 34px; font-size: 1.3rem; }
+.pcard .ctrl output { min-width: 28px; font-size: 1.05rem; }
+.pbadge { position: absolute; top: -9px; left: 12px; background: #FFD84D; color: var(--ink); font: 700 .72rem var(--font-display); padding: 2px 10px; border-radius: 999px; }
+.cartlines .disc span:last-child, .lines .disc span:last-child { color: #1B7A3A; font-weight: 800; }
+.cartlines .disc, .lines .disc { display: flex; justify-content: space-between; }
+.ttransf { display: flex; justify-content: space-between; color: #C2200E; font: 700 1rem var(--font-body); }
+
 /* Pie: contacto */
 .fcols { display: grid; gap: 24px; }
 @media (min-width: 700px) { .fcols { grid-template-columns: 1fr 1fr; } }
@@ -353,10 +381,12 @@ footer img { width: 150px; height: auto; border-radius: 12px; display: block; }
   </div></div>
 </section>
 
+<section class="promos wrap" id="promos" hidden aria-labelledby="t-promos"><h2 id="t-promos">Packs y promos</h2><div class="pgrid" id="pgrid"></div></section>
 <main class="menu wrap" id="catalogo">
   <div class="menu-head">
     <h2 id="t-menu">Elegí tus cookies</h2>
     <p id="x-menu">Sumá la cantidad que quieras de cada una. El total se arma solo.</p>
+    <p class="scale" id="scale-txt" hidden></p>
   </div>
   <p class="fstat" id="fstat" hidden></p>
   <div class="cwrap"><button class="cnav l" id="cnl" type="button" aria-label="Anterior" hidden>‹</button><div class="grid" id="grid"><div class="msg">Cargando cookies…</div></div><button class="cnav r" id="cnr" type="button" aria-label="Siguiente" hidden>›</button></div>
@@ -389,6 +419,7 @@ footer img { width: 150px; height: auto; border-radius: 12px; display: block; }
       <ul class="lines cartlines" id="c-lines"></ul>
       <p class="note" id="c-empty" hidden>Todavía no elegiste nada.</p>
       <div class="total"><span>Total</span><span id="c-total">$0</span></div>
+      <div class="ttransf" id="c-transf" hidden></div>
       <p class="note" id="c-note" hidden></p>
       <div class="actions">
         <button class="btn" id="cart-go" type="button">Poner a cocinar</button>
@@ -399,6 +430,7 @@ footer img { width: 150px; height: auto; border-radius: 12px; display: block; }
       <h2 id="m-title">¿Confirmás el envío del pedido?</h2>
       <ul class="lines" id="m-lines"></ul>
       <div class="total"><span>Total</span><span id="m-total"></span></div>
+      <div class="ttransf" id="m-transf" hidden></div>
       <div class="when" id="m-when"></div>
       <div class="who" id="who" hidden>
         <span class="who-t">Pedido a nombre de <b id="who-n"></b><small id="who-e"></small></span>
@@ -481,6 +513,7 @@ var DEFAULTS = {
     pie: "Bahía Blanca · El pago y la entrega se coordinan por WhatsApp.",
     mensaje_inicial: "Hola! Quiero hacer un pedido 🍪",
     pedidos_activos: "SI",
+    descuento_transferencia: "",
     ayuda_mail: "",
     ayuda_telefono: "",
     facebook_url: ""
@@ -528,6 +561,7 @@ var DEFAULTS = {
   }
   var data = null;       // { config, tandas, productos } ya normalizado
   var qty = {};          // nombre de cookie -> cantidad
+  var cq = {};           // nombre de combo -> cantidad
   var cycle = null, closeTxt = "", deliveryTxt = "";
   var orderId = "";
 
@@ -572,7 +606,12 @@ var DEFAULTS = {
     var cartel = String(c.cartel_mas_vendidas || "").trim();
     var off = !cartel || /^(no|ninguno|ninguna|sin)$/i.test(cartel);
     prods.forEach(function (p) { p.top = !off && top.indexOf(p.nombre.toLowerCase()) >= 0; });
-    return { config: c, tandas: tandas, productos: prods, resenas: (raw && raw.resenas) || [] };
+    var pr = (raw && raw.promos) || {};
+    var escala = (pr.escala || []).map(function (e) { return { q: Math.floor(Number(e.q) || 0), p: Number(e.p) || 0 }; }).filter(function (e) { return e.q >= 2 && e.p > 0; });
+    var combos = (pr.combos || []).filter(function (cb) { return cb && cb.nombre && cb.items && cb.items.length && Number(cb.precio) > 0; }).map(function (cb) {
+      return { nombre: String(cb.nombre), precio: Number(cb.precio), items: cb.items.map(function (it) { return { n: String(it.n), c: Math.floor(Number(it.c) || 0) }; }).filter(function (it) { return it.n && it.c > 0; }), foto: String(cb.foto || ""), vence: String(cb.vence || ""), desc: String(cb.desc || "") };
+    });
+    return { config: c, tandas: tandas, productos: prods, resenas: (raw && raw.resenas) || [], escala: escala, combos: combos };
   }
 
   /* ---------- Pintar ---------- */
@@ -637,6 +676,9 @@ var DEFAULTS = {
     $("t-quienes").textContent = c.titulo_quienes;
     $("t-menu").textContent = c.titulo_menu;
     $("x-menu").textContent = c.texto_menu; $("x-menu").hidden = !c.texto_menu;
+    var tiers = (data.escala || []).slice().sort(function (a, b) { return a.q - b.q; });
+    $("scale-txt").hidden = !tiers.length;
+    $("scale-txt").textContent = tiers.length ? "Llevando más pagás menos: " + tiers.map(function (t) { return t.q + " por " + money(t.p); }).join(" · ") : "";
     $("cart-go").textContent = c.boton_enviar;
     renderContact(c);
     renderCats();
@@ -690,11 +732,13 @@ var DEFAULTS = {
     data.productos.forEach(function (p) { if (p.categoria && cats.map(fold).indexOf(fold(p.categoria)) < 0) cats.push(p.categoria); });
     var h = '<button type="button" data-cat="" class="' + (!filt.cat && !filt.q ? "on" : "") + '">Inicio</button>';
     cats.forEach(function (c) { h += '<button type="button" data-cat="' + esc(c) + '" class="' + (fold(filt.cat) === fold(c) ? "on" : "") + '">' + esc(c) + "</button>"; });
+    if (comboList().length) h += '<button type="button" data-cat="__promos">Promos</button>';
     $("cats-in").innerHTML = h;
   }
-  function applyFilter() { renderCats(); renderGrid(); }
+  function applyFilter() { renderCats(); renderGrid(); renderPromos(); refresh(); }
   $("cats-in").addEventListener("click", function (e) {
     var b = e.target.closest("button[data-cat]"); if (!b) return;
+    if (b.getAttribute("data-cat") === "__promos") { filt = { q: "", cat: "" }; $("q").value = ""; applyFilter(); $("promos").scrollIntoView({ behavior: "smooth", block: "start" }); return; }
     filt.cat = b.getAttribute("data-cat"); filt.q = ""; $("q").value = "";
     applyFilter();
     if (!filt.cat) window.scrollTo({ top: 0, behavior: "smooth" }); else $("catalogo").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -789,7 +833,7 @@ var DEFAULTS = {
             '<button type="button" data-i="' + i + '" data-d="1" aria-label="Sumar una ' + esc(p.nombre) + '">+</button></div></div>';
       return '<article class="card' + (p.agotada ? " sold" : "") + '" id="card-' + i + '">' +
         (p.agotada ? '<span class="badge">Agotada</span>' : (p.top ? '<span class="badge hot">★ ' + esc(data.config.cartel_mas_vendidas) + "</span>" : "")) + media +
-        '<div class="card-body"><div class="card-top"><h3>' + esc(p.nombre) + '</h3><span class="price">' + money(p.precio) + "</span></div>" +
+        '<div class="card-body"><div class="card-top"><h3>' + esc(p.nombre) + '</h3><span class="price">' + money(p.precio) + priceTwo(p.precio) + "</span></div>" +
         (p.descripcion ? '<p class="desc">' + esc(p.descripcion) + "</p>" : "") + step + "</div></article>";
     })(p, i); }).join("");
     $("grid").innerHTML = _html;
@@ -798,10 +842,33 @@ var DEFAULTS = {
     refresh();
   }
 
+  function discPct() { var d = Number(String(data.config.descuento_transferencia || "").replace(",", ".").replace(/[^\d.]/g, "")); return d > 0 && d < 100 ? d : 0; }
+  function transf(n) { return Math.round(n * (1 - discPct() / 100)); }
+  function priceHtml(n) { return money(n); }
+  function priceTwo(n) { return discPct() ? '<span class="pt2">' + money(transf(n)) + " con transferencia</span>" : ""; }
+  function escalaPrecio(unit) {
+    var tiers = data.escala || [], n = unit.length, a = unit.slice().sort(function (x, y) { return x - y; }), base = 0, i;
+    for (i = 0; i < n; i++) base += a[i];
+    if (!tiers.length || n < 2) return { total: base, ahorro: 0 };
+    var INF = 1e15, g = [0], m, t;
+    for (m = 1; m <= n; m++) { g[m] = INF; for (t = 0; t < tiers.length; t++) { var q = tiers[t].q; if (q <= m && g[m - q] < INF) g[m] = Math.min(g[m], g[m - q] + tiers[t].p); } }
+    var best = base, pre = 0;
+    for (var sg = 0; sg <= n; sg++) { if (sg > 0) pre += a[sg - 1]; if (g[n - sg] < INF) best = Math.min(best, pre + g[n - sg]); }
+    return { total: best, ahorro: base - best };
+  }
+  function comboOk(cb) {
+    if (cb.vence) { var d = parseDay(cb.vence); if (d < new Date()) return false; }
+    return cb.items.every(function (it) { var p = data.productos.filter(function (x) { return x.nombre.toLowerCase() === it.n.toLowerCase(); })[0]; return p && !p.agotada; });
+  }
+  function comboNormal(cb) { return cb.items.reduce(function (s0, it) { var p = data.productos.filter(function (x) { return x.nombre.toLowerCase() === it.n.toLowerCase(); })[0]; return s0 + (p ? p.precio * it.c : 0); }, 0); }
+  function comboList() { return (data.combos || []).filter(comboOk); }
+  function chosenCombos() { return comboList().filter(function (cb) { return (cq[cb.nombre] || 0) > 0; }); }
   function totals() {
-    var n = 0, t = 0;
-    data.productos.forEach(function (p) { var q = p.agotada ? 0 : (qty[p.nombre] || 0); n += q; t += q * p.precio; });
-    return { n: n, t: t };
+    var unit = [], n = 0, ct = 0;
+    data.productos.forEach(function (p) { var q = p.agotada ? 0 : (qty[p.nombre] || 0); n += q; for (var i = 0; i < q; i++) unit.push(p.precio); });
+    var e = escalaPrecio(unit);
+    chosenCombos().forEach(function (cb) { var q = cq[cb.nombre]; ct += cb.precio * q; cb.items.forEach(function (it) { n += it.c * q; }); });
+    return { n: n, t: e.total + ct, ahorro: e.ahorro, singles: e.total, combos: ct };
   }
 
   var CART_KEY = "uovo-carrito", CART_TTL = 2 * 3600 * 1000;
@@ -809,7 +876,8 @@ var DEFAULTS = {
     try {
       var q = {}, any = false;
       Object.keys(qty).forEach(function (k) { if (qty[k] > 0) { q[k] = qty[k]; any = true; } });
-      if (any) localStorage.setItem(CART_KEY, JSON.stringify({ q: q, t: Date.now() })); else localStorage.removeItem(CART_KEY);
+      var cc = {}; Object.keys(cq).forEach(function (k) { if (cq[k] > 0) { cc[k] = cq[k]; any = true; } });
+      if (any) localStorage.setItem(CART_KEY, JSON.stringify({ q: q, c: cc, t: Date.now() })); else localStorage.removeItem(CART_KEY);
     } catch (e) {}
   }
   function loadCart() {
@@ -817,6 +885,7 @@ var DEFAULTS = {
       var c = JSON.parse(localStorage.getItem(CART_KEY) || "null");
       if (!c || Date.now() - c.t > CART_TTL) { localStorage.removeItem(CART_KEY); return; }
       data.productos.forEach(function (p) { if (c.q[p.nombre] > 0 && !p.agotada && !qty[p.nombre]) qty[p.nombre] = Math.min(99, c.q[p.nombre]); });
+      (data.combos || []).forEach(function (cb) { if (c.c && c.c[cb.nombre] > 0 && !cq[cb.nombre]) cq[cb.nombre] = Math.min(99, c.c[cb.nombre]); });
     } catch (e) {}
   }
 
@@ -832,17 +901,50 @@ var DEFAULTS = {
       if (minus) minus.disabled = q === 0;
     });
     var x = totals();
+    comboList().forEach(function (cb, j) {
+      var o = $("pq-" + j); if (!o) return;
+      var q = cq[cb.nombre] || 0; o.textContent = q;
+      $("pc-" + j).classList.toggle("on", q > 0);
+      var mn = document.querySelector('button[data-pj="' + j + '"][data-d="-1"]'); if (mn) mn.disabled = q === 0;
+    });
     var cn = $("cart-n"), prevN = Number(cn.textContent) || 0;
     cn.textContent = x.n; cn.hidden = x.n === 0;
     if (x.n > prevN) { cn.classList.remove("pop"); void cn.offsetWidth; cn.classList.add("pop"); }
     if (!$("modal").hidden && !$("step-cart").hidden) renderCart();
   }
 
+  function renderPromos() {
+    var list = comboList(), box = $("promos");
+    box.hidden = !list.length || !!(filt.q || filt.cat);
+    $("pgrid").innerHTML = list.map(function (cb, j) {
+      var imgs = [];
+      var custom = cb.foto ? parseMedia(cb.foto) : null;
+      if (custom && custom.t === "img") imgs = [custom.src];
+      else cb.items.forEach(function (it) { var p = data.productos.filter(function (x) { return x.nombre.toLowerCase() === it.n.toLowerCase(); })[0]; var m = p && p.medios.filter(function (z) { return z.t === "img"; })[0]; if (m && imgs.indexOf(m.src) < 0) imgs.push(m.src); });
+      imgs = imgs.slice(0, 4);
+      var mos = '<div class="pmos' + (imgs.length < 2 ? " one" : "") + '">' + imgs.map(function (u) { return '<img src="' + esc(u) + '" alt="" loading="lazy" referrerpolicy="no-referrer">'; }).join("") + "</div>";
+      var comp = cb.items.map(function (it) { return it.c + " " + it.n; }).join(" + ");
+      var norm = comboNormal(cb), save = norm - cb.precio;
+      return '<article class="pcard" id="pc-' + j + '"><span class="pbadge">PACK</span>' + mos + '<div class="pbody"><h3>' + esc(cb.nombre) + '</h3><p class="pcomp">' + esc(cb.desc || comp) + "</p>" +
+        '<div class="pprice">' + money(cb.precio) + (save > 0 ? "<s>" + money(norm) + "</s>" : "") + priceTwo(cb.precio) + "</div>" +
+        (save > 0 ? '<div class="psave">Ahorrás ' + money(save) + "</div>" : "") +
+        '<div class="ctrl"><button type="button" data-pj="' + j + '" data-d="-1" aria-label="Quitar pack">−</button><output id="pq-' + j + '">0</output><button type="button" data-pj="' + j + '" data-d="1" aria-label="Sumar pack">+</button></div></div></article>';
+    }).join("");
+  }
+  $("pgrid").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-pj]"); if (!b) return;
+    var cb = comboList()[Number(b.getAttribute("data-pj"))]; if (!cb) return;
+    cq[cb.nombre] = Math.max(0, Math.min(99, (cq[cb.nombre] || 0) + Number(b.getAttribute("data-d"))));
+    refresh();
+  });
+
   function applyData(raw) {
     data = normalize(raw);
     loadCart();
     renderTop();
     renderGrid();
+    renderPromos();
+    refresh();
     setupCarousels();
     setupGoogle();
     renderReviews();
@@ -927,10 +1029,13 @@ var DEFAULTS = {
   }
   function buildMessage() {
     var lines = chosen().map(function (p) { return qty[p.nombre] + " x " + p.nombre + " - " + money(qty[p.nombre] * p.precio); });
+    var tt = totals();
+    if (tt.ahorro > 0) lines.push("Descuento por cantidad: -" + money(tt.ahorro));
+    chosenCombos().forEach(function (cb) { lines.push(cq[cb.nombre] + " x PACK " + cb.nombre + " (" + cb.items.map(function (it) { return it.c + " " + it.n; }).join(" + ") + ") - " + money(cb.precio * cq[cb.nombre])); });
     return data.config.mensaje_inicial + "\n\n" +
       "Nombre: " + $("name").value.trim() + "\n\n" +
       lines.join("\n") + "\n\n" +
-      "Total: " + money(totals().t) + "\n" +
+      "Total: " + money(tt.t) + (discPct() ? "\nPagando por transferencia: " + money(transf(tt.t)) : "") + "\n" +
       "Entrega: " + deliveryTxt;
   }
   function waUrl() { return "https://wa.me/" + (digits(data.config.whatsapp_pedidos) || digits(data.config.whatsapp)) + "?text=" + encodeURIComponent(buildMessage().replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u200d\ufe0f]/gu, "").replace(/ +\n/g, "\n").replace(/ +$/gm, "")); }
@@ -942,7 +1047,8 @@ var DEFAULTS = {
     try {
       var order = {
         id: orderId, nombre: $("name").value.trim(), email: $("email").value.trim(), telefono: $("phone").value.replace(/[^\d+]/g, ""), entrega: deliveryTxt,
-        items: chosen().map(function (p) { return { nombre: p.nombre, cantidad: qty[p.nombre] }; })
+        items: chosen().map(function (p) { return { nombre: p.nombre, cantidad: qty[p.nombre] }; }),
+        combos: chosenCombos().map(function (cb) { return { nombre: cb.nombre, cantidad: cq[cb.nombre] }; })
       };
       fetch(ENDPOINT, { method: "POST", mode: "no-cors", keepalive: true, body: JSON.stringify(order) }).catch(function () {});
     } catch (err) {}
@@ -1002,9 +1108,8 @@ var DEFAULTS = {
   function openModal() {
     orderId = newId();
     var x = totals();
-    $("m-lines").innerHTML = chosen().map(function (p) {
-      return "<li><span>" + qty[p.nombre] + " × " + esc(p.nombre) + "</span><span>" + money(qty[p.nombre] * p.precio) + "</span></li>";
-    }).join("");
+    $("m-lines").innerHTML = cartLinesHtml(false);
+    setTransf($("m-transf"), x.t);
     $("m-total").textContent = money(x.t);
     $("m-when").textContent = "Entrega: " + deliveryTxt + " (pedidos hasta el " + closeTxt + ")";
     $("name-err").hidden = true; $("email-err").hidden = true;
@@ -1023,15 +1128,26 @@ var DEFAULTS = {
   }
   function closeModal() { $("modal").hidden = true; if (lastFocus && lastFocus.focus) lastFocus.focus(); }
 
-  function renderCart() {
-    var x = totals(), ch = chosen(), ok = ch.length > 0 && cycle && deliveryTxt;
-    $("c-lines").innerHTML = ch.map(function (p) {
+  function cartLinesHtml(ctl) {
+    var h = chosen().map(function (p) {
       var i = data.productos.indexOf(p);
-      return '<li><span class="nm">' + esc(p.nombre) + "<small>" + money(p.precio) + ' c/u</small></span><span class="ctrl"><button type="button" data-ci="' + i + '" data-d="-1" aria-label="Quitar una">−</button><output>' + qty[p.nombre] + '</output><button type="button" data-ci="' + i + '" data-d="1" aria-label="Sumar una">+</button></span><span>' + money(qty[p.nombre] * p.precio) + "</span></li>";
+      return '<li><span class="nm">' + esc(p.nombre) + "<small>" + money(p.precio) + ' c/u</small></span>' + (ctl ? '<span class="ctrl"><button type="button" data-ci="' + i + '" data-d="-1" aria-label="Quitar una">−</button><output>' + qty[p.nombre] + '</output><button type="button" data-ci="' + i + '" data-d="1" aria-label="Sumar una">+</button></span>' : "<span>× " + qty[p.nombre] + "</span>") + "<span>" + money(qty[p.nombre] * p.precio) + "</span></li>";
     }).join("");
-    $("c-empty").hidden = ch.length > 0;
-    $("c-total").textContent = money(x.t);
-    var note = $("c-note"); note.hidden = !(ch.length && !ok); note.textContent = "Por ahora no estamos tomando pedidos.";
+    var x = totals();
+    if (x.ahorro > 0) h += '<li class="disc"><span>Descuento por cantidad</span><span>−' + money(x.ahorro) + "</span></li>";
+    h += chosenCombos().map(function (cb) {
+      var j = comboList().indexOf(cb), comp = cb.items.map(function (it) { return it.c + " " + it.n; }).join(" + ");
+      return '<li><span class="nm">PACK ' + esc(cb.nombre) + "<small>" + esc(comp) + "</small></span>" + (ctl ? '<span class="ctrl"><button type="button" data-cj="' + j + '" data-d="-1" aria-label="Quitar pack">−</button><output>' + cq[cb.nombre] + '</output><button type="button" data-cj="' + j + '" data-d="1" aria-label="Sumar pack">+</button></span>' : "<span>× " + cq[cb.nombre] + "</span>") + "<span>" + money(cb.precio * cq[cb.nombre]) + "</span></li>";
+    }).join("");
+    return h;
+  }
+  function setTransf(el, total) { el.hidden = !discPct() || !total; if (!el.hidden) el.innerHTML = "<span>Pagando por transferencia (−" + discPct() + "%)</span><span>" + money(transf(total)) + "</span>"; }
+  function renderCart() {
+    var x = totals(), ok = x.n > 0 && cycle && deliveryTxt;
+    $("c-lines").innerHTML = cartLinesHtml(true);
+    $("c-empty").hidden = x.n > 0;
+    $("c-total").textContent = money(x.t); setTransf($("c-transf"), x.t);
+    var note = $("c-note"); note.hidden = !(x.n > 0 && !ok); note.textContent = "Por ahora no estamos tomando pedidos.";
     $("cart-go").disabled = !ok;
   }
   function openCart() {
@@ -1040,6 +1156,8 @@ var DEFAULTS = {
     if ($("modal").hidden) { lastFocus = document.activeElement; $("modal").hidden = false; }
   }
   $("c-lines").addEventListener("click", function (e) {
+    var bj = e.target.closest("button[data-cj]");
+    if (bj) { var cb = comboList()[Number(bj.getAttribute("data-cj"))]; cq[cb.nombre] = Math.max(0, Math.min(99, (cq[cb.nombre] || 0) + Number(bj.getAttribute("data-d")))); refresh(); renderCart(); return; }
     var b = e.target.closest("button[data-ci]"); if (!b) return;
     var p = data.productos[Number(b.getAttribute("data-ci"))];
     qty[p.nombre] = Math.max(0, Math.min(99, (qty[p.nombre] || 0) + Number(b.getAttribute("data-d"))));
@@ -1071,7 +1189,7 @@ var DEFAULTS = {
     logOrder();
     $("step-confirm").hidden = true;
     $("step-done").hidden = false;
-    qty = {}; refresh();
+    qty = {}; cq = {}; refresh();
   });
 
   $("copy").addEventListener("click", copyAlias);

@@ -337,7 +337,11 @@ button.scale:hover { background: #FFEBA3; }
 @media (min-width: 980px) { .pgrid { --cw: calc((100% - 48px) / 4); } }
 .promos .cnav { top: 45%; }
 
-.tier { background: #FFF4CC; border: 2px solid #FFD84D; border-radius: 18px; padding: 16px 10px; display: grid; gap: 2px; text-align: center; align-content: center; }
+.tier { background: rgba(255, 255, 255, .92); border: 2px solid #C9D9F5; border-radius: 18px; padding: 18px 10px 14px; display: grid; gap: 2px; text-align: center; align-content: center; position: relative; }
+.tier:hover { border-color: var(--blue); }
+.tier .plus { position: absolute; top: 8px; right: 8px; width: 26px; height: 26px; border-radius: 50%; background: var(--blue); color: #fff; font: 700 1.1rem/26px var(--font-body, inherit); text-align: center; }
+.tier s { font-weight: 800; color: var(--ink); text-decoration-thickness: 2px; }
+.tier .pay { font-weight: 700; color: var(--ink-soft); }
 .tier { align-self: center; }
 .tier b { font: 600 1.35rem var(--font-display); color: var(--blue); }
 .tier span { font-weight: 700; color: var(--ink); }
@@ -345,7 +349,7 @@ button.scale:hover { background: #FFEBA3; }
 .tiers-h { grid-column: 1 / -1; font: 600 1.15rem var(--font-display); color: var(--blue); background: rgba(255, 255, 255, .78); border-radius: 14px; padding: 6px 14px; justify-self: start; }
 .pmos.three img:first-child { grid-row: span 2; }
 .pgrid::-webkit-scrollbar { display: none; }
-.pcard { display: flex; flex-direction: column; gap: 12px; background: rgba(255, 255, 255, .9); border: 2px solid #FFD84D; border-radius: 18px; padding: 12px; position: relative; }
+.pcard { display: flex; flex-direction: column; gap: 12px; background: rgba(255, 255, 255, .9); border: 2px solid #C9D9F5; border-radius: 18px; padding: 12px; position: relative; }
 .pcard.on { border-color: var(--blue); }
 .pmos { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; gap: 2px; border-radius: 12px; overflow: hidden; background: var(--sky); aspect-ratio: 16 / 10; }
 .pmos img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -631,6 +635,7 @@ var DEFAULTS = {
     boton_franja: "Nuestros packs · Llevando más, pagás menos ›",
     texto_elegir_variedades: "Elegir variedades ›",
     texto_ahorras: "Ahorrás",
+    texto_ahorro_total: "Ahorro total",
     etiqueta_promo: "PROMO",
     popup_pack_titulo: "Pack de {n} cookies",
     popup_pack_texto: "Elegí {n} cookies entre las variedades disponibles.",
@@ -1087,9 +1092,9 @@ var DEFAULTS = {
   function updLimits() {
     var c = data.config;
     Array.prototype.forEach.call(document.querySelectorAll("#tgrid button.tier"), function (b) {
-      var q = Number(b.getAttribute("data-tier")), l = limPack(q), left = leftPack(q), em = b.querySelector("em"), li = b.querySelector("i.lim");
-      b.disabled = left === 0; em.textContent = left === 0 ? c.texto_limite_alcanzado : c.texto_elegir_variedades;
-      li.textContent = l ? fill(c.texto_limite_cliente, { lim: l }) : "";
+      var q = Number(b.getAttribute("data-tier")), l = limPack(q), left = leftPack(q), li = b.querySelector("i.lim");
+      b.disabled = left === 0;
+      li.textContent = left === 0 ? c.texto_limite_alcanzado : l ? fill(c.texto_limite_cliente, { lim: l }) : "";
     });
     comboList().forEach(function (cb, j) {
       var card = $("pc-" + j); if (!card) return;
@@ -1123,8 +1128,11 @@ var DEFAULTS = {
     data.productos.forEach(function (p) { var q = p.agotada ? 0 : (qty[p.nombre] || 0); n += q; for (var i = 0; i < q; i++) unit.push(p.precio); });
     var e = escalaPrecio(unit);
     chosenCombos().forEach(function (cb) { var q = cq[cb.nombre]; ct += cb.precio * q; cb.items.forEach(function (it) { n += it.c * q; }); });
-    validPacks().forEach(function (k) { ct += tierFor(k.q).p; n += k.q; });
-    return { n: n, t: e.total + ct, ahorro: e.ahorro, singles: e.total, combos: ct };
+    var as = 0;
+    chosenCombos().forEach(function (cb) { as += Math.max(0, comboNormal(cb) - cb.precio) * cq[cb.nombre]; });
+    var prices = data.productos.filter(function (p) { return !p.agotada; }).map(function (p) { return p.precio; }), base = prices.length ? Math.min.apply(null, prices) : 0;
+    validPacks().forEach(function (k) { var t = tierFor(k.q), norm = 0; Object.keys(k.sel).forEach(function (nm) { var p = prodByName(nm); norm += (p ? p.precio : base) * k.sel[nm]; }); ct += t.p; n += k.q; as += Math.max(0, norm - t.p); });
+    return { n: n, t: e.total + ct, ahorro: e.ahorro, singles: e.total, combos: ct, ahorroTotal: e.ahorro + as };
   }
 
   var CART_KEY = "uovo-carrito", CART_TTL = 2 * 3600 * 1000;
@@ -1202,7 +1210,7 @@ var DEFAULTS = {
     var prices = data.productos.filter(function (p) { return !p.agotada; }).map(function (p) { return p.precio; }), base = prices.length ? Math.min.apply(null, prices) : 0;
     $("tgrid").innerHTML = sc.map(function (t) {
       var sv = base * t.q - t.p;
-      return '<button type="button" class="tier" data-tier="' + t.q + '"><b>' + t.q + ' cookies</b><span>' + money(t.p) + "</span>" + (sv > 0 ? "<small>" + esc(c.texto_ahorras) + " " + money(sv) + "</small>" : "") + "<em>" + esc(c.texto_elegir_variedades) + '</em><i class="lim"></i></button>';
+      return '<button type="button" class="tier" data-tier="' + t.q + '"><span class="plus" aria-hidden="true">+</span><b>' + t.q + ' cookies</b>' + (sv > 0 ? "<s>" + money(base * t.q) + '</s><span class="pay">' + money(t.p) + "</span>" : "<span>" + money(t.p) + "</span>") + '<i class="lim"></i></button>';
     }).join("");
     $("pgrid").innerHTML = list.map(function (cb, j) {
       var imgs = [];
@@ -1509,8 +1517,8 @@ var DEFAULTS = {
     $("c-lines").innerHTML = cartLinesHtml(true);
     $("c-empty").hidden = x.n > 0;
     var ph = promoHint(), pe = $("c-promo"); pe.hidden = !ph; if (ph) pe.innerHTML = "<span>" + esc(ph.txt) + '</span><div class="bar"><i style="width:' + ph.pct + '%"></i></div>';
-    var sm = $("c-sum"); sm.hidden = !(x.n > 0 && x.ahorro > 0);
-    if (!sm.hidden) sm.innerHTML = "<div><span>Subtotal</span><span>" + money(x.t + x.ahorro) + '</span></div><div class="g"><span>Descuento por cantidad</span><span>−' + money(x.ahorro) + "</span></div>";
+    var sm = $("c-sum"); sm.hidden = !(x.n > 0 && x.ahorroTotal > 0);
+    if (!sm.hidden) sm.innerHTML = "<div><span>Subtotal</span><span>" + money(x.t + x.ahorroTotal) + '</span></div><div class="g"><span>' + esc(data.config.texto_ahorro_total) + "</span><span>−" + money(x.ahorroTotal) + "</span></div>";
     $("c-total").textContent = money(x.t); setTransf($("c-transf"), x.t);
     var note = $("c-note"); note.hidden = !(x.n > 0 && !ok); note.textContent = "Por ahora no estamos tomando pedidos.";
     $("cart-go").disabled = !ok;

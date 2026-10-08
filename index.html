@@ -1437,7 +1437,7 @@ var DEFAULTS = {
         google.accounts.id.initialize({ client_id: id, auto_select: true, callback: function (r) {
           try {
             var u = jwtPayload(r.credential);
-            memToken = r.credential; tokExp = (u.exp || 0) * 1000; tokWake(memToken); loadCupones();
+            memToken = r.credential; tokExp = (u.exp || 0) * 1000; tokWake(memToken); loadCupones(); if (ordLogin && $("orders").classList.contains("open")) openOrders();
             var old = profile() || {};
             $("name").value = u.name || u.given_name || ""; $("email").value = u.email || ""; if (old.t) $("phone").value = old.t;
             try { localStorage.setItem("uovo-cliente", JSON.stringify({ n: $("name").value, e: $("email").value, t: $("phone").value, g: 1 })); } catch (err) {}
@@ -1475,10 +1475,15 @@ var DEFAULTS = {
   $("acct-out").addEventListener("click", function () { memToken = ""; tokExp = 0; cupones = []; if (data) refresh(); });
 
   /* Mis pedidos */
-  var ordData = null, ordAsk = "";
+  var ordData = null, ordAsk = "", ordLogin = false;
   function ordEst(est) { return data.config["estado_" + est] || ""; }
+  function needLogin() {
+    ordLogin = true; var box = $("ord-list");
+    box.innerHTML = '<p class="dempty">Para ver tus pedidos, confirmá tu sesión con Google.</p><div id="gbtn2" style="display:flex;justify-content:center;padding:8px 0"></div>';
+    try { google.accounts.id.renderButton($("gbtn2"), { theme: "outline", size: "large", text: "signin_with", shape: "pill", locale: "es" }); } catch (e) {}
+  }
   function renderOrders(msg) {
-    var box = $("ord-list"), c = data.config;
+    var box = $("ord-list"), c = data.config; ordLogin = false;
     if (msg) { box.innerHTML = '<p class="dempty">' + esc(msg) + "</p>"; return; }
     if (!ordData || !ordData.length) { box.innerHTML = '<p class="dempty">' + esc(c.texto_sin_pedidos) + "</p>"; return; }
     box.innerHTML = ordData.map(function (o) {
@@ -1495,9 +1500,9 @@ var DEFAULTS = {
     closeCart(); $("orders").classList.add("open"); $("orders").setAttribute("aria-hidden", "false");
     renderOrders("Cargando…"); ordAsk = "";
     getToken(function (tok) {
-      if (!tok) { renderOrders("No pudimos verificar tu sesión. Cerrá sesión y volvé a ingresar con Google."); return; }
+      if (!tok) { needLogin(); return; }
       fetch(ENDPOINT + "?mis=1&token=" + encodeURIComponent(tok)).then(function (r) { return r.json(); }).then(function (j) {
-        if (!j || j.error) { renderOrders("No pudimos verificar tu sesión. Cerrá sesión y volvé a ingresar con Google."); return; }
+        if (!j || j.error) { memToken = ""; needLogin(); return; }
         ordData = j.pedidos || []; renderOrders();
       }).catch(function () { renderOrders("No pudimos cargar tus pedidos. Probá de nuevo en un rato."); });
     });

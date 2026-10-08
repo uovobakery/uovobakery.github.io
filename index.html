@@ -232,6 +232,11 @@ footer img { width: 150px; height: auto; border-radius: 12px; display: block; }
 .pencil svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .iconbtn { position: absolute; top: 12px; right: 12px; width: 38px; height: 38px; border-radius: 10px; border: 2px solid var(--sky-line); background: var(--paper); color: var(--blue); display: grid; place-items: center; cursor: pointer; padding: 0; }
 .iconbtn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.payrow { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: stretch; }
+.payrow .btn { width: 100%; }
+.payrow:not(:has(.tr:not([hidden]))) { display: none; }
+.payrow .iconbtn { position: static; width: 52px; height: auto; border-radius: 14px; }
+#done-x { font: 600 1.5rem/1 var(--font-display); }
 .iconbtn.ok { background: var(--blue); color: #fff; border-color: var(--blue); }
 .copybox { width: 100%; min-height: 120px; font: inherit; font-size: .88rem; padding: 10px; border: 2px solid var(--sky-line); border-radius: 12px; color: var(--ink); background: var(--paper); }
 
@@ -378,6 +383,9 @@ button.scale:hover { background: #FFEBA3; }
 .dbody { flex: 1; overflow-y: auto; padding: 0 26px 10px; display: flex; flex-direction: column; }
 .dfoot { padding: 18px 26px 24px; border-top: 2px solid var(--sky-line); display: grid; gap: 12px; background: var(--paper); }
 .dfoot .total { border: 0; padding: 0; margin-top: 2px; }
+.aico { width: 1.05em; height: 1.05em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -.16em; margin-right: 4px; }
+#acct-out .aico, #acct-user > .aico:first-child { margin-right: 0; }
+#acct-orders, #acct-out { text-decoration: none !important; }
 .dpromo.cup { background: var(--sky); color: var(--blue); font-weight: 700; }
 .ocard { border: 2px solid #C9D9F5; border-radius: 16px; padding: 14px 16px; margin: 0 0 14px; background: #fff; display: grid; gap: 8px; }
 .ocard .oh { display: flex; justify-content: space-between; gap: 8px; font-size: .85rem; color: var(--ink-soft); }
@@ -429,7 +437,7 @@ button.scale:hover { background: #FFEBA3; }
   <div class="acctbar" id="acct" hidden>
     <span id="acct-msg">Iniciá sesión y completamos tus datos solos</span>
     <div id="gbtn"></div>
-    <span id="acct-user" hidden><span id="acct-name"></span> · <button type="button" id="acct-orders">Mis pedidos</button> · <button type="button" id="acct-out">Salir</button></span>
+    <span id="acct-user" hidden><svg class="aico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg><span id="acct-name"></span> · <button type="button" id="acct-orders"><svg class="aico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2l-2 4v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6l-2-4z"/><path d="M4 6h16"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Mis pedidos</button> · <button type="button" id="acct-out" aria-label="Salir" title="Salir"><svg class="aico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></button></span>
   </div>
   <form class="sform" id="sform" role="search">
     <input id="q" type="search" placeholder="Buscá por nombre o ingrediente…" autocomplete="off" aria-label="Buscar cookies">
@@ -580,19 +588,18 @@ button.scale:hover { background: #FFEBA3; }
       <div class="actions">
         <p class="err" id="lim-err" hidden style="color:var(--err);font-weight:700;font-size:.92rem"></p>
         <a class="btn" id="confirm" href="#" target="_blank" rel="noopener">Confirmar y enviar por WhatsApp</a>
-        <button class="btn ghost tr" type="button" hidden>Quiero transferir</button>
         <button class="btn ghost" id="back" type="button">Volver al pedido</button>
       </div>
       <p class="note">Se abre WhatsApp con tu pedido ya escrito. El pedido queda enviado cuando apretás enviar ahí.</p>
     </div>
     <div class="step" id="step-done" hidden>
-      <button class="iconbtn" id="copy" type="button" aria-label="Copiar alias" title="Copiar alias" hidden><svg viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+      <button class="iconbtn" id="done-x" type="button" aria-label="Cerrar" title="Cerrar">×</button>
       <h2 id="done-title">¡Gracias por tu pedido!</h2>
       <p class="note" id="done-pay"></p>
       <div class="actions">
-        <a class="btn" id="again" href="#" target="_blank" rel="noopener">Abrir WhatsApp de nuevo</a>
+        <div class="payrow" id="payrow"><button class="btn tr" type="button" hidden>Quiero transferir</button><button class="iconbtn" id="copy" type="button" aria-label="Copiar alias" title="Copiar alias" hidden><svg viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></div>
         <div class="pair">
-          <button class="btn ghost tr" type="button" hidden>Quiero transferir</button>
+          <a class="btn ghost" id="again" href="#" target="_blank" rel="noopener">Abrir WhatsApp de nuevo</a>
           <button class="btn ghost" id="close" type="button">Cerrar</button>
         </div>
       </div>
@@ -654,6 +661,9 @@ var DEFAULTS = {
     texto_elegir_variedades: "Elegir variedades ›",
     texto_ahorras: "Ahorrás",
     texto_ahorro_total: "Ahorro total",
+    boton_comprobante: "Enviar comprobante por WhatsApp",
+    texto_comprobante: "Hola! Te envío el comprobante de mi pedido {id}",
+    estado_pago: "Ya recibimos tu pago. ¡Gracias!",
     titulo_mis_pedidos: "Mis pedidos",
     texto_sin_pedidos: "Todavía no hiciste pedidos con esta cuenta.",
     estado_pendiente: "Recibimos tu pedido. Lo estamos revisando.",
@@ -853,7 +863,7 @@ var DEFAULTS = {
     var sc = $("scene"), bg = c.imagen_fondo && !/^\s*(no|ninguna|sin)\s*$/i.test(c.imagen_fondo) ? parseMedia(c.imagen_fondo) : null;
     if (bg && bg.t === "img") { sc.style.backgroundImage = "url(\"" + bg.src + "\")"; sc.classList.remove("noimg"); } else { sc.style.backgroundImage = ""; sc.classList.add("noimg"); }
     Array.prototype.forEach.call(document.querySelectorAll(".tr"), function (b) { b.hidden = !hasAlias; b.textContent = "Quiero transferir"; });
-    $("copy").hidden = !hasAlias;
+    $("copy").hidden = !hasAlias; $("again").textContent = hasAlias ? c.boton_comprobante : "Abrir WhatsApp de nuevo";
   }
 
   function fmtTel(c) {
@@ -1157,6 +1167,7 @@ var DEFAULTS = {
   function validPacks() { return pk.filter(function (k) { return tierFor(k.q); }); }
   function chosenCombos() { return comboList().filter(function (cb) { return (cq[cb.nombre] || 0) > 0; }); }
   var cupones = [], memToken = "", tokExp = 0;
+  try { var _t = JSON.parse(localStorage.getItem("uovo-tok") || "null"); if (_t && _t.t && _t.x - Date.now() > 90000) { memToken = _t.t; tokExp = _t.x; } else localStorage.removeItem("uovo-tok"); } catch (e5) {}
   function cuponActivo(base) {
     var best = null; cupones.forEach(function (c) { if (c.pct > 0 && base > 0 && base >= (c.min || 0) && (!best || c.pct > best.pct)) best = c; }); return best;
   }
@@ -1285,7 +1296,7 @@ var DEFAULTS = {
     renderPromos();
     refresh();
     setupCarousels();
-    setupGoogle();
+    setupGoogle(); loadCupones();
     renderReviews();
   }
   function reviewList() { return (data.resenas || []).filter(function (r) { return r && (r.comentario || r.foto); }); }
@@ -1387,7 +1398,7 @@ var DEFAULTS = {
       "Entrega: " + deliveryTxt;
   }
   function waUrl() { return "https://wa.me/" + (digits(data.config.whatsapp_pedidos) || digits(data.config.whatsapp)) + "?text=" + encodeURIComponent(buildMessage().replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u200d\ufe0f]/gu, "").replace(/ +\n/g, "\n").replace(/ +$/gm, "")); }
-  function syncLinks() { var u = waUrl(); $("confirm").href = u; $("again").href = u; }
+  function syncLinks() { var u = waUrl(); $("confirm").href = u; $("again").href = data.config.alias_transferencia ? "https://wa.me/" + (digits(data.config.whatsapp_pedidos) || digits(data.config.whatsapp)) + "?text=" + encodeURIComponent(fill(data.config.texto_comprobante, { id: orderId })) : u; }
 
   /* Registro silencioso en la planilla: si falla, no frena el envío */
   function logOrder() {
@@ -1437,7 +1448,7 @@ var DEFAULTS = {
         google.accounts.id.initialize({ client_id: id, auto_select: true, callback: function (r) {
           try {
             var u = jwtPayload(r.credential);
-            memToken = r.credential; tokExp = (u.exp || 0) * 1000; tokWake(memToken); loadCupones(); if (ordLogin && $("orders").classList.contains("open")) openOrders();
+            memToken = r.credential; tokExp = (u.exp || 0) * 1000; try { localStorage.setItem("uovo-tok", JSON.stringify({ t: memToken, x: tokExp })); } catch (e4) {} tokWake(memToken); loadCupones(); if (ordLogin && $("orders").classList.contains("open")) openOrders();
             var old = profile() || {};
             $("name").value = u.name || u.given_name || ""; $("email").value = u.email || ""; if (old.t) $("phone").value = old.t;
             try { localStorage.setItem("uovo-cliente", JSON.stringify({ n: $("name").value, e: $("email").value, t: $("phone").value, g: 1 })); } catch (err) {}
@@ -1445,7 +1456,6 @@ var DEFAULTS = {
           } catch (err) {}
         } });
         google.accounts.id.renderButton($("gbtn"), { theme: "outline", size: "medium", text: "signin_with", shape: "pill", locale: "es" });
-        var pf0 = profile(); if (pf0 && pf0.g) { try { google.accounts.id.prompt(); } catch (e3) {} }
       }
       gReady = true;
     }
@@ -1461,10 +1471,7 @@ var DEFAULTS = {
   function tokWake(t) { var w = tokWaiters; tokWaiters = []; w.forEach(function (f) { f(t); }); }
   function getToken(cb) {
     if (memToken && tokExp - Date.now() > 90000) { cb(memToken); return; }
-    var pf = profile(); if (!(pf && pf.g) || !window.google || !google.accounts) { cb(""); return; }
-    tokWaiters.push(cb);
-    try { google.accounts.id.prompt(); } catch (e) {}
-    setTimeout(function () { var i = tokWaiters.indexOf(cb); if (i > -1) { tokWaiters.splice(i, 1); cb(""); } }, 9000);
+    cb("");
   }
   function loadCupones() {
     if (!ENDPOINT || !memToken) return;
@@ -1472,7 +1479,7 @@ var DEFAULTS = {
       cupones = (j && j.cupones) || []; if (data) { refresh(); if ($("drawer").classList.contains("open")) renderCart(); }
     }).catch(function () {});
   }
-  $("acct-out").addEventListener("click", function () { memToken = ""; tokExp = 0; cupones = []; if (data) refresh(); });
+  $("acct-out").addEventListener("click", function () { memToken = ""; tokExp = 0; cupones = []; try { localStorage.removeItem("uovo-tok"); } catch (e) {} if (data) refresh(); });
 
   /* Mis pedidos */
   var ordData = null, ordAsk = "", ordLogin = false;
@@ -1489,7 +1496,7 @@ var DEFAULTS = {
     box.innerHTML = ordData.map(function (o) {
       var bad = o.estado.indexOf("cancelado") === 0, items = String(o.pedido).split(", ").map(function (t) { return "<li>" + esc(t) + "</li>"; }).join("");
       var act = "";
-      if (o.estado === "pendiente") act = ordAsk === o.id ? '<span class="oq">' + esc(c.texto_cancelar_confirmar) + '</span><button type="button" class="danger" data-oc="' + esc(o.id) + '">Sí, cancelar</button><button type="button" data-on="1">No</button>' : '<button type="button" class="danger" data-oa="' + esc(o.id) + '">' + esc(c.boton_cancelar_pedido) + "</button>";
+      if (o.estado === "pendiente" || o.estado === "pago") act = ordAsk === o.id ? '<span class="oq">' + esc(c.texto_cancelar_confirmar) + '</span><button type="button" class="danger" data-oc="' + esc(o.id) + '">Sí, cancelar</button><button type="button" data-on="1">No</button>' : '<button type="button" class="danger" data-oa="' + esc(o.id) + '">' + esc(c.boton_cancelar_pedido) + "</button>";
       else if (o.estado === "cancelado_cocina") act = '<a class="solid" target="_blank" rel="noopener" href="https://wa.me/' + (digits(c.whatsapp_pedidos) || digits(c.whatsapp)) + "?text=" + encodeURIComponent(fill(c.texto_whatsapp_cocina, { id: o.id })) + '">' + esc(c.boton_whatsapp_cocina) + "</a>";
       return '<article class="ocard' + (bad ? " bad" : "") + '"><div class="oh"><b>' + esc(o.fecha) + "</b><span>#" + esc(o.id) + "</span></div><ul>" + items + '</ul><div class="ot"><span>Total</span><span>' + money(o.total) + '</span></div>' +
         (o.entrega ? '<div class="oh"><span>Entrega: ' + esc(o.entrega) + "</span></div>" : "") + '<div class="os">' + esc(ordEst(o.estado)) + "</div>" + (act ? '<div class="oa">' + act + "</div>" : "") + "</article>";
@@ -1690,6 +1697,7 @@ var DEFAULTS = {
   });
 
   $("copy").addEventListener("click", copyAlias);
+  $("done-x").addEventListener("click", function () { $("close").click(); });
   function copyAlias() {
     var a = data.config.alias_transferencia;
     function mark() { $("copy").classList.add("ok"); Array.prototype.forEach.call(document.querySelectorAll(".tr"), function (x) { x.textContent = "Alias copiado: " + a; }); }

@@ -229,8 +229,9 @@ footer img { width: 150px; height: auto; border-radius: 12px; display: block; }
 .copybox { width: 100%; min-height: 120px; font: inherit; font-size: .88rem; padding: 10px; border: 2px solid var(--sky-line); border-radius: 12px; color: var(--ink); background: var(--paper); }
 
 /* Cabecera fija: sesión | buscador | ayuda + horno */
-.shopbar { position: sticky; top: 0; z-index: 30; background: var(--paper); border-bottom: 1px solid var(--sky-line); box-shadow: 0 2px 10px rgba(12, 34, 71, .07); }
-.sb-in { max-width: 1180px; margin-inline: auto; padding: 8px 16px; display: grid; grid-template-columns: 1fr minmax(240px, 520px) 1fr; grid-template-areas: "acct search tools"; align-items: center; gap: 12px; }
+.stick { position: sticky; top: 0; z-index: 30; box-shadow: 0 2px 10px rgba(12, 34, 71, .07); }
+.shopbar { position: relative; background: var(--paper); border-bottom: 1px solid var(--sky-line); box-shadow: 0 2px 10px rgba(12, 34, 71, .07); }
+.sb-in { max-width: none; margin-inline: 0; padding: 8px clamp(14px, 2vw, 28px); display: grid; grid-template-columns: 1fr minmax(240px, 520px) 1fr; grid-template-areas: "acct search tools"; align-items: center; gap: 12px; }
 .acctbar { grid-area: acct; justify-self: start; display: flex; align-items: center; gap: 8px; min-height: 40px; font-size: .85rem; color: var(--ink-soft); min-width: 0; }
 .acctbar #gbtn { display: flex; min-height: 32px; }
 .acctbar #acct-msg { display: none; }
@@ -289,7 +290,7 @@ footer img { width: 150px; height: auto; border-radius: 12px; display: block; }
 /* Promos y descuentos */
 .pt2 { display: block; color: #C2200E; font: 700 .82rem var(--font-body); white-space: nowrap; }
 .scale { background: #FFF4CC; border-radius: 12px; padding: 8px 12px; font-weight: 700; font-size: .92rem; color: var(--ink); justify-self: start; }
-.promos, .menu { scroll-margin-top: 96px; }
+.promos, .menu { scroll-margin-top: 130px; }
 .promos { padding-block: 8px 0; }
 .promos h2 { font-size: 1.45rem; color: var(--blue); background: rgba(255, 255, 255, .78); border-radius: 18px; padding: 8px 16px; display: inline-block; margin-bottom: 12px; backdrop-filter: blur(3px); }
 .pgrid { display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding: 4px 2px 10px; }
@@ -313,6 +314,15 @@ footer img { width: 150px; height: auto; border-radius: 12px; display: block; }
 .cartlines .disc, .lines .disc { display: flex; justify-content: space-between; }
 .ttransf { display: flex; justify-content: space-between; color: #C2200E; font: 700 1rem var(--font-body); }
 
+
+/* Panel lateral del pedido */
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(340px, 86vw); z-index: 45; background: var(--paper); box-shadow: -6px 0 28px rgba(12, 34, 71, .22); border-left: 2px solid var(--sky-line); padding: 18px 16px; overflow-y: auto; transform: translateX(105%); visibility: hidden; transition: transform .28s ease, visibility 0s .28s; }
+.drawer.open { transform: none; visibility: visible; transition: transform .28s ease; }
+.drawer .step { display: grid; gap: 14px; align-content: start; }
+.dh { display: flex; align-items: center; justify-content: space-between; }
+.dx { width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--sky); color: var(--blue); font: 600 1.5rem/1 var(--font-display); cursor: pointer; }
+#cart-go:disabled { background: var(--blue); opacity: .35; }
+
 /* Pie: contacto */
 .fcols { display: grid; gap: 24px; }
 @media (min-width: 700px) { .fcols { grid-template-columns: 1fr 1fr; } }
@@ -324,6 +334,7 @@ footer img { width: 150px; height: auto; border-radius: 12px; display: block; }
 
 <div class="topbar" id="topbar" hidden></div>
 
+<div class="stick">
 <div class="shopbar">
  <div class="sb-in">
   <div class="acctbar" id="acct" hidden>
@@ -350,6 +361,7 @@ footer img { width: 150px; height: auto; border-radius: 12px; display: block; }
  </div>
 </div>
 <nav class="cats" aria-label="Categorías"><div class="cats-in" id="cats-in"></div></nav>
+</div>
 
 <div class="top">
 <div class="pt" id="pt" aria-hidden="true"></div><div class="pt-tex" aria-hidden="true"></div>
@@ -412,10 +424,9 @@ footer img { width: 150px; height: auto; border-radius: 12px; display: block; }
   </div>
 </footer>
 
-<div class="backdrop" id="modal" hidden>
-  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="m-title">
-    <div class="step" id="step-cart" hidden>
-      <h2>Tu pedido</h2>
+<aside class="drawer" id="drawer" aria-hidden="true" aria-label="Tu pedido">
+    <div class="step" id="step-cart">
+      <div class="dh"><h2>Tu pedido</h2><button type="button" class="dx" id="cart-x" aria-label="Cerrar">×</button></div>
       <ul class="lines cartlines" id="c-lines"></ul>
       <p class="note" id="c-empty" hidden>Todavía no elegiste nada.</p>
       <div class="total"><span>Total</span><span id="c-total">$0</span></div>
@@ -426,6 +437,10 @@ footer img { width: 150px; height: auto; border-radius: 12px; display: block; }
         <button class="btn ghost" id="cart-close" type="button">Seguir eligiendo</button>
       </div>
     </div>
+</aside>
+
+<div class="backdrop" id="modal" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="m-title">
     <div class="step" id="step-confirm" hidden>
       <h2 id="m-title">¿Confirmás el envío del pedido?</h2>
       <ul class="lines" id="m-lines"></ul>
@@ -910,7 +925,7 @@ var DEFAULTS = {
     var cn = $("cart-n"), prevN = Number(cn.textContent) || 0;
     cn.textContent = x.n; cn.hidden = x.n === 0;
     if (x.n > prevN) { cn.classList.remove("pop"); void cn.offsetWidth; cn.classList.add("pop"); }
-    if (!$("modal").hidden && !$("step-cart").hidden) renderCart();
+    if ($("drawer").classList.contains("open")) renderCart();
   }
 
   function renderPromos() {
@@ -1120,7 +1135,7 @@ var DEFAULTS = {
     showWho(!!(s && s.n && s.t && s.e));
     Array.prototype.forEach.call(document.querySelectorAll(".tr"), function (b) { b.textContent = "Quiero transferir"; });
     $("copy").classList.remove("ok");
-    $("step-cart").hidden = true; $("step-confirm").hidden = false; $("step-done").hidden = true; $("copybox").hidden = true;
+    closeCart(); $("step-confirm").hidden = false; $("step-done").hidden = true; $("copybox").hidden = true;
     syncLinks();
     lastFocus = document.activeElement;
     $("modal").hidden = false;
@@ -1152,9 +1167,9 @@ var DEFAULTS = {
   }
   function openCart() {
     renderCart();
-    $("step-cart").hidden = false; $("step-confirm").hidden = true; $("step-done").hidden = true;
-    if ($("modal").hidden) { lastFocus = document.activeElement; $("modal").hidden = false; }
+    $("drawer").classList.add("open"); $("drawer").setAttribute("aria-hidden", "false");
   }
+  function closeCart() { $("drawer").classList.remove("open"); $("drawer").setAttribute("aria-hidden", "true"); }
   $("c-lines").addEventListener("click", function (e) {
     var bj = e.target.closest("button[data-cj]");
     if (bj) { var cb = comboList()[Number(bj.getAttribute("data-cj"))]; cq[cb.nombre] = Math.max(0, Math.min(99, (cq[cb.nombre] || 0) + Number(bj.getAttribute("data-d")))); refresh(); renderCart(); return; }
@@ -1163,16 +1178,17 @@ var DEFAULTS = {
     qty[p.nombre] = Math.max(0, Math.min(99, (qty[p.nombre] || 0) + Number(b.getAttribute("data-d"))));
     refresh(); renderCart();
   });
-  $("cart-btn").addEventListener("click", openCart);
+  $("cart-btn").addEventListener("click", function () { if ($("drawer").classList.contains("open")) closeCart(); else openCart(); });
+  $("cart-x").addEventListener("click", closeCart);
   $("cart-go").addEventListener("click", openModal);
-  $("cart-close").addEventListener("click", closeModal);
-  $("back").addEventListener("click", openCart);
+  $("cart-close").addEventListener("click", closeCart);
+  $("back").addEventListener("click", function () { closeModal(); openCart(); });
   var hp = $("help");
   $("help-btn").addEventListener("click", function () { var o = hp.classList.toggle("open"); this.setAttribute("aria-expanded", o); });
   document.addEventListener("click", function (e) { if (!hp.contains(e.target)) { hp.classList.remove("open"); } });
   $("close").addEventListener("click", closeModal);
   $("modal").addEventListener("click", function (e) { if (e.target === $("modal")) closeModal(); });
-  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !$("modal").hidden) closeModal(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") { if (!$("modal").hidden) closeModal(); else closeCart(); } });
   $("name").addEventListener("input", function () { $("name-err").hidden = true; syncLinks(); });
   $("phone").addEventListener("input", function () { $("phone-err").hidden = true; });
   $("email").addEventListener("input", function () { $("email-err").hidden = true; syncLinks(); });

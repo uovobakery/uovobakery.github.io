@@ -276,6 +276,18 @@ footer img { width: 150px; height: auto; border-radius: 12px; display: block; }
 .sform input { width: 100%; font: inherit; font-size: .95rem; padding: 10px 44px 10px 16px; border: 2px solid var(--sky-line); border-radius: 999px; background: var(--paper); color: var(--ink); }
 .sform input:focus { border-color: var(--blue); outline: none; }
 .sform button { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 36px; height: 36px; border: 0; background: none; color: var(--blue); cursor: pointer; display: grid; place-items: center; padding: 0; }
+.sres { position: absolute; left: 0; right: 0; top: calc(100% + 6px); background: var(--paper); border: 1px solid var(--sky-line); border-radius: 16px; box-shadow: 0 12px 32px rgba(0,0,0,.16); z-index: 60; overflow: hidden auto; max-height: 60vh; }
+.sres[hidden] { display: none; }
+.sr { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--sky-line); }
+.sr:last-child { border-bottom: 0; }
+.sr-t { flex: 1; min-width: 0; }
+.sr-t b { display: block; font-size: .92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sr-t span { display: block; font-size: .78rem; opacity: .7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sr-c { display: flex; align-items: center; gap: 6px; font-size: .8rem; flex: none; }
+.sform .sr-c button { position: static; transform: none; width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--blue); background: #fff; color: var(--blue); font: 700 1.1rem/1 var(--font-display, inherit); cursor: pointer; display: grid; place-items: center; padding: 0; }
+.sform .sr-c button.plus { background: var(--blue); color: #fff; }
+.sr-c output { min-width: 18px; text-align: center; font-weight: 700; }
+.sr-none { padding: 12px 16px; font-size: .88rem; opacity: .7; }
 .sform svg, .tool svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .tools { grid-area: tools; justify-self: end; display: flex; align-items: flex-start; gap: 18px; }
 .tool { position: relative; display: grid; justify-items: center; gap: 1px; background: none; border: 0; padding: 2px 4px; color: var(--ink-soft); font: 600 .7rem var(--font-body); cursor: pointer; text-decoration: none; }
@@ -462,6 +474,7 @@ button.scale:hover { background: #FFEBA3; }
   <form class="sform" id="sform" role="search">
     <input id="q" type="search" placeholder="Buscá por nombre o ingrediente…" autocomplete="off" aria-label="Buscar cookies">
     <button type="submit" aria-label="Buscar"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></button>
+    <div class="sres" id="sres" hidden></div>
   </form>
   <div class="tools">
     <div class="help" id="help">
@@ -997,12 +1010,33 @@ var DEFAULTS = {
     spyOn = !filt.cat ? "" : "cat"; spyLock = Date.now() + 1000; paintCats();
     if (!filt.cat) smoothTo(0); else smoothTo($("catalogo"));
   });
-  var _qt = null;
-  $("q").addEventListener("input", function () {
-    filt.q = this.value; if (filt.q) { filt.cat = ""; filt.promos = false; }
-    clearTimeout(_qt); _qt = setTimeout(applyFilter, 120);
+  function paintSres() {
+    var box = $("sres"), q = $("q").value.trim();
+    if (!q || !data) { box.hidden = true; box.innerHTML = ""; return; }
+    var toks = fold(q).split(/\s+/).filter(Boolean), rows = [];
+    data.productos.forEach(function (p, i) {
+      var hay = fold([p.nombre, p.descripcion, p.ingredientes, p.categoria].join(" "));
+      if (toks.every(function (t) { return hay.indexOf(t) >= 0; })) rows.push(i);
+    });
+    box.innerHTML = rows.length ? rows.slice(0, 8).map(function (i) {
+      var p = data.productos[i], n = qty[p.nombre] || 0;
+      return '<div class="sr"><div class="sr-t"><b>' + esc(p.nombre) + '</b><span>' + esc(p.descripcion) + '</span></div>' +
+        (p.agotada ? '<span class="sr-c">Agotada</span>' : '<div class="sr-c">' + (n ? '<button type="button" data-si="' + i + '" data-d="-1" aria-label="Quitar una">−</button><output>' + n + '</output>' : '') +
+          '<button type="button" class="plus" data-si="' + i + '" data-d="1" aria-label="Agregar a mi horno">+</button></div>') + '</div>';
+    }).join("") : '<div class="sr-none">Sin resultados</div>';
+    box.hidden = false;
+  }
+  $("q").addEventListener("input", paintSres);
+  $("q").addEventListener("focus", paintSres);
+  $("q").addEventListener("keydown", function (e) { if (e.key === "Escape") { $("sres").hidden = true; $("q").blur(); } });
+  $("sres").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-si]"); if (!b) return;
+    var p = data.productos[Number(b.getAttribute("data-si"))];
+    qty[p.nombre] = Math.max(0, Math.min(99, (qty[p.nombre] || 0) + Number(b.getAttribute("data-d"))));
+    refresh(); paintSres();
   });
-  $("sform").addEventListener("submit", function (e) { e.preventDefault(); smoothTo($("catalogo")); $("q").blur(); });
+  document.addEventListener("click", function (e) { if (!e.target.closest("#sform")) $("sres").hidden = true; });
+  $("sform").addEventListener("submit", function (e) { e.preventDefault(); });
   $("fstat").addEventListener("click", function (e) { if (e.target.closest("button")) { filt = { q: "", cat: "" }; $("q").value = ""; applyFilter(); } });
 
   /* Carrusel infinito con deslizamiento suave */

@@ -972,6 +972,8 @@ var DEFAULTS = {
   $("cats-in").addEventListener("click", function (e) {
     var b = e.target.closest("button[data-cat]"); if (!b) return;
     var bc = b.getAttribute("data-cat"); if (bc === "__promos" || bc === "__packs" || bc === "__resenas") { goTo(bc === "__resenas" ? "reviews" : bc.slice(2)); return; }
+    var ncat = $("cats-in").querySelectorAll('button[data-cat]:not([data-cat=""]):not([data-cat^="__"])').length;
+    if (b.getAttribute("data-cat") && ncat === 1) { var was1 = !!(filt.q || filt.cat); filt = { q: "", cat: "" }; $("q").value = ""; if (was1) applyFilter(); spyOn = "cat"; spyLock = Date.now() + 1000; paintCats(); setTimeout(function () { smoothTo($("catalogo")); }, was1 ? 60 : 0); return; }
     filt.promos = false; filt.cat = b.getAttribute("data-cat"); filt.q = ""; $("q").value = "";
     applyFilter();
     spyOn = !filt.cat ? "" : "cat"; spyLock = Date.now() + 1000; paintCats();
@@ -1257,7 +1259,7 @@ var DEFAULTS = {
   function fill(t, o) { return String(t || "").replace(/\{(\w+)\}/g, function (m, k) { return o[k] != null ? o[k] : m; }); }
   function prodImg(name) { var p = data.productos.filter(function (x) { return x.nombre.toLowerCase() === String(name).toLowerCase(); })[0]; var m = p && p.medios.filter(function (z) { return z.t === "img"; })[0]; return m ? m.src : ""; }
   function renderPromos() {
-    var list = comboList(), sc = (data.escala || []).slice().sort(function (a, b) { return a.q - b.q; }), c = data.config, flt = !!(filt.q || filt.cat);
+    var list = comboList(), sc = (data.escala || []).slice().sort(function (a, b) { return a.q - b.q; }), c = data.config, flt = !!filt.q;
     $("packs").hidden = !sc.length || flt; $("promos").hidden = !list.length || flt;
     $("stripe-promos").hidden = !(sc.length || list.length) || !c.boton_franja;
     var prices = data.productos.filter(function (p) { return !p.agotada; }).map(function (p) { return p.precio; }), base = prices.length ? Math.min.apply(null, prices) : 0;

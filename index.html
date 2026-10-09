@@ -119,14 +119,19 @@ a { color: inherit; }
 .rsum { display: flex; align-items: center; justify-content: space-between; gap: 14px 24px; flex-wrap: wrap; background: rgba(255, 255, 255, .85); border-radius: 18px; padding: 16px 22px; margin-bottom: 18px; max-width: 640px; backdrop-filter: blur(3px); }
 .rsum[hidden] { display: none; }
 .rbars { flex: 1 1 140px; display: grid; gap: 5px; min-width: 130px; }
-.rbars div { display: flex; align-items: center; gap: 10px; font-size: .85rem; color: #1a2540; }
+.rbars button { all: unset; box-sizing: border-box; cursor: pointer; border-radius: 8px; padding: 2px 4px; margin: 0 -4px; display: flex; align-items: center; gap: 10px; font-size: .85rem; color: #1a2540; }
+.rbars button:hover, .rbars button.on { background: #EAF1FD; } .rbars button.on b { color: var(--blue); } .rbars button[disabled] { cursor: default; opacity: .55; background: none; } .rbars button:focus-visible { outline: 2px solid var(--blue); }
+.rbars .rall { all: unset; cursor: pointer; display: block; padding: 0; margin: 4px 0 0; margin-top: 4px; font-size: .8rem; color: var(--blue); font-weight: 600; text-decoration: underline; }
 .rbars b { width: .8em; text-align: right; font-weight: 600; }
 .rbars i { flex: 1; height: 8px; border-radius: 99px; background: #E3E8F2; overflow: hidden; display: block; }
 .rbars i u { display: block; height: 100%; background: var(--blue); border-radius: 99px; width: var(--w, 0%); }
 .rbig { text-align: center; line-height: 1.1; }
 .rbig strong { display: block; font-size: 3rem; font-weight: 500; color: #1a2540; }
 .rbig .hat { width: 1.25rem; height: 1.25rem; }
-.rbig span.n { display: block; margin-top: 4px; font-size: .85rem; color: #5b6477; text-decoration: underline; }
+.bighat { position: relative; display: block; width: 3.4rem; height: 3.4rem; margin: 6px auto 0; line-height: 0; }
+.bighat .hat { position: absolute; inset: 0; width: 100%; height: 100%; }
+.bighat .b { color: #C3CBDA; }
+.bighat .f { color: var(--blue); clip-path: inset(calc(100% - var(--p, 0%)) 0 0 0); }
 .rcard p { white-space: pre-line; }
 .rcard b { color: var(--blue); }
 
@@ -1319,6 +1324,8 @@ var DEFAULTS = {
     renderReviews();
   }
   function reviewList() { return (data.resenas || []).filter(function (r) { return r && (r.comentario || r.foto); }); }
+  var revStar = 0;
+  document.addEventListener("click", function (e) { var b = e.target.closest && e.target.closest("#rsum button[data-star]"); if (!b || b.disabled) return; var k = Number(b.getAttribute("data-star")); revStar = (k === revStar) ? 0 : k; renderReviews(); if (revLoop && revLoop.refresh) revLoop.refresh(); });
   function renderReviews() {
     var list = reviewList(), box = $("reviews");
     box.hidden = !list.length;
@@ -1328,12 +1335,12 @@ var DEFAULTS = {
     if (rated.length) {
       var cnt = [0, 0, 0, 0, 0, 0]; rated.forEach(function (r) { cnt[Math.max(1, Math.min(5, Math.round(Number(r.estrellas))))]++; });
       var m = rated.reduce(function (a, r) { return a + Math.min(5, Number(r.estrellas)); }, 0) / rated.length, bars = "";
-      for (var k = 5; k >= 1; k--) bars += "<div><b>" + k + '</b><i><u style="--w:' + Math.round(cnt[k] / rated.length * 100) + '%"></u></i></div>';
-      sm.innerHTML = '<div class="rbars" aria-hidden="true">' + bars + '</div><div class="rbig" aria-label="Promedio ' + m.toFixed(1) + ' de 5"><strong>' + m.toFixed(1).replace(".", ",") + '</strong><span class="hats" style="--p:' + Math.round(m / 5 * 100) + '%"><span class="hb">' + hatRow() + '</span><span class="hf">' + hatRow() + '</span></span><span class="n">' + rated.length + (rated.length === 1 ? " reseña" : " reseñas") + "</span></div>";
+      for (var k = 5; k >= 1; k--) bars += '<button type="button" data-star="' + k + '"' + (cnt[k] ? "" : " disabled") + (revStar === k ? ' class="on"' : "") + ' aria-label="' + k + ' de 5"><b>' + k + '</b><i><u style="--w:' + Math.round(cnt[k] / rated.length * 100) + '%"></u></i></button>';
+      sm.innerHTML = '<div class="rbars">' + bars + (revStar ? '<button type="button" class="rall" data-star="0">Ver todas</button>' : "") + '</div><div class="rbig" aria-label="Promedio ' + m.toFixed(1) + ' de 5"><strong>' + m.toFixed(1).replace(".", ",") + '</strong><span class="bighat" style="--p:' + Math.round(m / 5 * 100) + '%"><svg class="hat b" aria-hidden="true"><use href="#hat"/></svg><svg class="hat f" aria-hidden="true"><use href="#hat"/></svg></span></div>';
       sm.hidden = false;
     } else sm.hidden = true;
     revSize();
-    $("rgrid").innerHTML = list.map(function (r) {
+    $("rgrid").innerHTML = list.filter(function (r) { return !revStar || Math.max(1, Math.min(5, Math.round(Number(r.estrellas) || 0))) === revStar && Number(r.estrellas) > 0; }).map(function (r) {
       var n = Math.max(0, Math.min(5, Math.round(Number(r.estrellas) || 0))), s = "";
       for (var i = 1; i <= 5; i++) s += '<svg class="hat' + (i <= n ? "" : " off") + '" aria-hidden="true"><use href="#hat"/></svg>';
       return '<article class="rcard">' + (r.foto ? '<img src="' + esc(r.foto) + '" alt="Foto de ' + esc(r.nombre || "cliente") + '" loading="lazy" referrerpolicy="no-referrer">' : "") +

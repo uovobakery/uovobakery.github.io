@@ -176,7 +176,7 @@ button { cursor:pointer; }
   var ENDPOINT = "https://script.google.com/macros/s/AKfycbwRgztSNbcqRVjj6Kji1BbUCoZxAdQlYLYPxf5-266YiG16hzG9J4II1L7qhxlENjmZNA/exec";
   var DEMO = /[?&]demo=1/.test(location.search);
   var $ = function (id) { return document.getElementById(id); };
-  var st = { token: "", me: null, v: "inicio", fil: "pend", q: "", pedidos: [], productos: [], accesos: [], packs: [], recetas: [], fin: null, cfg: [], insumos: [], ppro: [], rd: null, pd: null, prov: null, pvt: "a", edit: 0, newp: false, cq: "", loaded: {}, rvs: [], rv: null, npm: ["pedidos", "productos", "packs", "recetas", "proveedores", "textos", "finanzas", "resenas"] };
+  var st = { token: "", me: null, v: "inicio", fil: "pend", q: "", pedidos: [], productos: [], accesos: [], packs: [], recetas: [], fin: null, cfg: [], insumos: [], ppro: [], rd: null, pd: null, prov: null, pvt: "a", edit: 0, newp: false, cq: "", loaded: {}, rvs: [], rv: null, pvq: "", pvx: 0, pvnew: false, npm: ["pedidos", "productos", "packs", "recetas", "proveedores", "textos", "finanzas", "resenas"] };
   function store(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
   function load(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
@@ -645,22 +645,25 @@ button { cursor:pointer; }
   /* ---------- Proveedores ---------- */
   function renderProv() {
     if (!st.prov) return BACK + '<div class="empty">Cargando…</div>';
-    var L = st.prov[st.pvt] || [];
-    var h = BACK + '<div class="chips"><button class="chip' + (st.pvt === "a" ? " on" : "") + '" data-pvt="a">Insumos</button><button class="chip' + (st.pvt === "p" ? " on" : "") + '" data-pvt="p">Packaging</button></div><div class="help">Cargá tu última compra: proveedor, cantidad y cuánto pagaste en total. El costo por unidad se calcula solo y alimenta las recetas.</div>';
+    var q = nrm(st.pvq), L = (st.prov[st.pvt] || []).filter(function (x) { return !q || nrm(x.ins).indexOf(q) >= 0 || nrm(x.prov).indexOf(q) >= 0; });
+    var h = BACK + '<div style="display:flex;gap:8px;margin-bottom:10px"><input class="search" id="pvq" type="search" placeholder="Buscar insumo o proveedor…" value="' + esc(st.pvq) + '" style="margin:0;flex:1"><button class="btn" id="pv-plus" aria-label="Agregar insumo" style="width:52px;padding:0;font-size:1.5rem">＋</button></div>';
+    h += '<div class="chips"><button class="chip' + (st.pvt === "a" ? " on" : "") + '" data-pvt="a">Insumos</button><button class="chip' + (st.pvt === "p" ? " on" : "") + '" data-pvt="p">Packaging</button></div>';
+    if (st.pvnew) h += '<div class="card" id="pv-new"><div class="nm" style="margin-bottom:6px">Nuevo ' + (st.pvt === "a" ? "insumo" : "packaging") + '</div><div class="add"><input class="inp" id="ai-n" placeholder="Nombre" value="' + esc(st.pvq) + '"><input class="inp" id="ai-u" list="pv-units" placeholder="Unidad (g, kg, ml, l, unidad)" value="' + (st.pvt === "a" ? "g" : "unidad") + '"><datalist id="pv-units"><option value="g"><option value="kg"><option value="ml"><option value="l"><option value="unidad"></datalist><div style="display:flex;gap:8px"><button class="btn" id="ai-ok">Agregar</button><button class="sm" id="ai-x">Cancelar</button></div></div></div>';
+    if (!L.length) h += '<div class="empty">' + (q ? "No hay resultados. Tocá ＋ para agregarlo." : "Sin elementos.") + "</div>";
     h += L.map(function (x) {
-      return '<article class="card" data-r="' + x.r + '" data-ins="' + esc(x.ins) + '"><div class="row"><div><div class="nm">' + esc(x.ins) + '</div><div class="meta">Unidad: ' + esc(x.uni) + (x.fecha ? " · última compra " + esc(x.fecha) : "") + '</div></div><div class="tot">' + (x.costo ? "$" + (Math.round(x.costo * 100) / 100).toLocaleString("es-AR") : "—") + '<div class="meta" style="text-align:right">por ' + esc(x.uni) + "</div></div></div>" +
-        '<div class="add" style="margin-top:10px"><input class="inp" data-pv="prov" placeholder="Proveedor" value="' + esc(x.prov) + '"><div style="display:flex;gap:8px"><input class="inp" data-pv="cant" type="number" inputmode="decimal" placeholder="Cantidad (' + esc(x.uni) + ')" value="' + (x.cant || "") + '"><input class="inp" data-pv="precio" type="number" inputmode="decimal" placeholder="Precio total $" value="' + (x.precio || "") + '"></div></div></article>';
+      var open = st.pvx === x.r, c = x.costo ? "$" + (Math.round(x.costo * 100) / 100).toLocaleString("es-AR") + " / " + esc(x.uni) : "sin precio";
+      var b = '<article class="card" data-r="' + x.r + '" data-ins="' + esc(x.ins) + '"><button class="row" data-pvx="' + x.r + '" style="width:100%;border:0;background:none;padding:0;text-align:left;align-items:center"><div style="min-width:0"><div class="nm">' + esc(x.ins) + '</div><div class="meta">' + (x.prov ? esc(x.prov) + " · " : "") + c + '</div></div><span style="color:var(--soft);font-size:1.1rem">' + (open ? "▴" : "▾") + "</span></button>";
+      if (open) b += '<div class="add" style="margin-top:10px"><div class="meta" style="margin-bottom:-4px">Unidad en que cargás recetas (ej. g, ml, unidad)</div><input class="inp" data-pv="uni" list="pv-units" value="' + esc(x.uni) + '" placeholder="Unidad"><input class="inp" data-pv="prov" placeholder="Proveedor" value="' + esc(x.prov) + '"><div style="display:flex;gap:8px"><input class="inp" data-pv="cant" type="text" inputmode="decimal" placeholder="Cantidad (podés escribir 1 kg)" value="' + (x.cant ? esc(String(x.cant).replace(".", ",")) + "" : "") + '"><input class="inp" data-pv="precio" type="text" inputmode="decimal" placeholder="Precio total $" value="' + (x.precio || "") + '"></div><div class="meta">Cantidad guardada en <b>' + esc(x.uni) + '</b>. Si escribís «1 kg» o «2 l» lo convierto solo. ' + (x.fecha ? "Última compra: " + esc(x.fecha) + "." : "") + "</div></div>";
+      return b + "</article>";
     }).join("");
-    h += '<div class="card"><div class="nm" style="margin-bottom:6px">Agregar ' + (st.pvt === "a" ? "insumo" : "packaging") + '</div><div class="add"><input class="inp" id="ai-n" placeholder="Nombre"><input class="inp" id="ai-u" placeholder="Unidad (g, ml, unidad)" value="' + (st.pvt === "a" ? "g" : "unidad") + '"><button class="btn" id="ai-ok">Agregar</button></div></div>';
     return h;
   }
-
   function render(keepScroll) {
     var y = window.scrollY, V = { inicio: renderInicio, pedidos: renderPedidos, productos: renderProductos, mas: renderMas, packs: renderPacks, recetas: renderRecetas, finanzas: renderFinanzas, textos: renderTextos, proveedores: renderProv, accesos: function () { return BACK + renderAccesos(); }, voz: renderVozCfg, resenas: renderResenas };
     var h = V[st.v]();
     var act = document.activeElement, id = act && act.id, pos = act && act.selectionStart;
     $("view").innerHTML = h;
-    if (id === "pq" || id === "cq") { var e = $(id); e.focus(); try { e.setSelectionRange(pos, pos); } catch (x) {} }
+    if (id === "pq" || id === "cq" || id === "pvq") { var e = $(id); e.focus(); try { e.setSelectionRange(pos, pos); } catch (x) {} }
     if (keepScroll) window.scrollTo(0, y);
     if (!keepScroll) maybeTour();
   }
@@ -686,9 +689,10 @@ button { cursor:pointer; }
       ["[data-edit]", "Editar", "Cambiá descripción, categoría e ingredientes. Se guarda al salir del campo."]],
     textos: [["#cq", "Buscador", "Escribí una palabra para encontrar el texto que querés cambiar."],
       [".card", "Editá y listo", "Cambiá el texto y salí del campo: se guarda y se ve en la tienda."]],
-    proveedores: [[".chips", "Insumos y packaging", "Cambiá entre ingredientes y packaging."],
-      [".card", "Tu última compra", "Cargá proveedor, cantidad y precio total. El costo por unidad se calcula solo."],
-      ["#ai-ok", "Agregar", "¿Falta un insumo? Sumalo acá."]],
+    proveedores: [["#pvq", "Buscador", "Escribí una palabra y te salta el insumo. Tocalo para cargar proveedor, cantidad y precio."],
+      ["#pv-plus", "Agregar insumo", "El ＋ crea un insumo o packaging nuevo sin bajar por la lista."],
+      [".chips", "Insumos y packaging", "Cambiá entre ingredientes y packaging."],
+      [".card", "Tu última compra", "Tocá un insumo para abrirlo. Escribí «1 kg» o «500 g» y el precio total: el costo por unidad se calcula solo. También podés cambiar la unidad."]],
     voz: [["#vz-key", "Clave de IA", "Pegá acá tu clave de Anthropic (una sola vez). Queda guardada en tu Apps Script, no en este teléfono."],
       [".help", "Cómo se usa", "Tocá el micrófono azul, dictá lo que querés y confirmá antes de aplicar."]],
     resenas: [["#rvnew", "Nueva reseña", "Cargá el nombre, la puntuación, el comentario y, si querés, una foto."],
@@ -790,6 +794,16 @@ button { cursor:pointer; }
     { t: "Salir de la app", k: "salir cerrar sesion logout desloguear cuenta", go: "", p: ["Tocá ⎋ arriba a la derecha."] },
     { t: "Dictar órdenes por voz", k: "voz dictar ordenes ia clave api asistente comandos", go: "voz", p: ["Es opcional y necesita una clave de API de Anthropic (con costo mínimo por uso).", "Si no la cargás, el micrófono funciona igual como ayuda."] }
   ];
+
+  var NAVS = [["inicio", /\binicio\b|\bhome\b|pantalla principal/], ["pedidos", /pedido/], ["productos", /producto|galletit|\bcookies?\b/], ["finanzas", /finanza|ganancia|\bplata\b/], ["mas", /\bmas\b|\bmenu\b/], ["packs", /\bpacks?\b|combo|promo/], ["recetas", /receta/], ["textos", /texto|\bfrases?\b/], ["proveedores", /prov[a-z]*|insumo|packaging|compras?\b/], ["resenas", /rese[nñ]a|opini/], ["accesos", /acceso|permiso/], ["voz", /\bvoz\b|\bclave\b/]];
+  var NAVV = /\b(lleva\w*|ir|ve|vaya|voy|anda\w*|abri\w*|abrir|entra\w*|mostra\w*|ver|vamos|cambia\w*|pasa\w*|quiero ir|dirigi\w*)\b/;
+  var NAMES = { inicio: "Inicio", pedidos: "Pedidos", productos: "Productos", finanzas: "Finanzas", mas: "Más", packs: "Packs y combos", recetas: "Recetas", textos: "Textos", proveedores: "Proveedores e insumos", resenas: "Reseñas", accesos: "Accesos", voz: "Asistente de voz" };
+  function navIntent(tx) {
+    var n = nrm(tx); if (!NAVV.test(n) || /^(como|donde|que|para que|cuando)\b/.test(n)) return "";
+    if (/\bfoto|imagen|video/.test(n)) return "fotos";
+    var best = "", bi = 1e9; NAVS.forEach(function (x) { var m = n.match(x[1]); if (m && m.index < bi) { bi = m.index; best = x[0]; } });
+    return best;
+  }
   function helpFind(tx) {
     var SW = " como una uno unos unas que para quiero quiere hago hacer hace puedo puede donde con los las del por ver tengo necesito saber cuando este esta eso esto mas muy sin sobre ", w = nrm(tx).split(" ").filter(function (x) { return x.length > 2 && SW.indexOf(" " + x + " ") < 0; }), best = [];
     KB.forEach(function (e) {
@@ -813,6 +827,26 @@ button { cursor:pointer; }
   }
   function helpCard(e) {
     return '<div class="va ok" style="display:block"><b>' + esc(e.t) + "</b><ol style=\"margin:8px 0 0;padding-left:20px;line-height:1.5\">" + e.p.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ol></div>" + (e.go ? '<div class="vzr"><button class="btn" data-vz="goto" data-v="' + e.go + '">Llevame ahí</button></div>' : "");
+  }
+
+
+  function parseAR(x) {
+    var t = String(x == null ? "" : x).replace(/[$\s]/g, ""); if (!t) return NaN;
+    if (t.indexOf(".") >= 0 && t.indexOf(",") >= 0) t = t.replace(/\./g, "").replace(",", ".");
+    else if (t.indexOf(",") >= 0) t = t.replace(",", ".");
+    else if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, "");
+    return Number(t);
+  }
+  var UF = { g: ["g", 1], gr: ["g", 1], gramo: ["g", 1], gramos: ["g", 1], kg: ["g", 1000], kilo: ["g", 1000], kilos: ["g", 1000], kilogramo: ["g", 1000], kilogramos: ["g", 1000],
+    ml: ["ml", 1], cc: ["ml", 1], l: ["ml", 1000], lt: ["ml", 1000], litro: ["ml", 1000], litros: ["ml", 1000],
+    u: ["u", 1], un: ["u", 1], unidad: ["u", 1], unidades: ["u", 1], docena: ["u", 12], docenas: ["u", 12] };
+  /* "1 kg" -> {n:1000, txt:"1 kg"} expresado en la unidad base del insumo */
+  function parseQty(txt, base) {
+    var m = nrm(txt).match(/^([\d.,]+)\s*([a-z]*)$/); if (!m) return null;
+    var n = parseAR(m[1]); if (!(n > 0)) return null;
+    var b = UF[nrm(base)] || null, f = m[2] ? UF[m[2]] : null;
+    if (f && b && f[0] === b[0]) return { n: Math.round(n * f[1] / b[1] * 1e6) / 1e6, conv: m[2] && f[1] !== b[1] ? m[1] + " " + m[2] : "" };
+    return { n: n, conv: "" };
   }
 
   var VC = {};
@@ -874,6 +908,8 @@ button { cursor:pointer; }
   function vzGo() {
     var t = $("vz-t"), res = $("vz-res"); if (!t || VZ.busy) return;
     var tx = t.value.trim(); if (!tx) return;
+    var nv = navIntent(tx);
+    if (nv) { if (nv === "fotos") { vzClose(); goto("productos"); toast("Tocá el clip 📎 de la cookie para sus fotos"); return; } if (!allowed(nv)) { $("vz-res").innerHTML = '<div class="va er">No tenés acceso a esa sección.</div>'; return; } vzClose(); goto(nv); toast("Abriendo " + NAMES[nv]); return; }
     if (!st.vz || /\?|^\s*(como|cómo|donde|dónde|que|qué|para qu|cuando|cuándo|ayuda|puedo|se puede)/i.test(tx)) { VZ.prev = ""; helpShow(tx); return; }
     var full = (VZ.prev ? VZ.prev + ". " : "") + tx;
     VZ.busy = true; res.innerHTML = '<div class="empty" style="padding:14px">Pensando…</div>';
@@ -999,7 +1035,7 @@ button { cursor:pointer; }
 
   /* ---------- Eventos ---------- */
   var armTimer = null;
-  $("view").addEventListener("input", function (e) { if (e.target.id === "pq") { st.q = e.target.value; render(); } if (e.target.id === "cq") { st.cq = e.target.value; render(true); } });
+  $("view").addEventListener("input", function (e) { if (e.target.id === "pq") { st.q = e.target.value; render(); } if (e.target.id === "cq") { st.cq = e.target.value; render(true); } if (e.target.id === "pvq") { st.pvq = e.target.value; render(true); } });
   $("view").addEventListener("change", function (e) {
     var c = e.target.closest(".card"); if (!c && !e.target.closest("#pk-ed")) return;
     var tg = e.target;
@@ -1011,7 +1047,12 @@ button { cursor:pointer; }
     if (st.pd && tg.matches("[data-kin]")) { st.pd.items[Number(tg.getAttribute("data-kin"))].n = tg.value; return; }
     if (st.pd && tg.matches("[data-kic]")) { st.pd.items[Number(tg.getAttribute("data-kic"))].c = Number(tg.value) || 0; return; }
     if (e.target.matches("[data-cfg]")) { var kk = c.getAttribute("data-k"), rr = Number(c.getAttribute("data-r")), it = st.cfg.filter(function (x) { return x.r === rr; })[0]; if (!it || it.v === e.target.value) return; var ov = it.v; it.v = e.target.value; (DEMO ? Promise.resolve({ ok: true }) : api("setConfig", { r: rr, k: kk, valor: it.v })).then(function (j) { if (j && j.ok) toast("Guardado ✓"); else { it.v = ov; toast(j && j.msg || "No se pudo guardar"); render(true); } }).catch(function () { it.v = ov; toast("No se pudo guardar"); }); return; }
-    if (e.target.matches("[data-pv]")) { var ins = c.getAttribute("data-ins"), campo = e.target.getAttribute("data-pv"); api("setProveedor", { t: st.pvt, r: Number(c.getAttribute("data-r")), ins: ins, campo: campo, valor: e.target.value }).then(function (j) { if (j && j.ok) { st.prov = j.proveedores; render(true); toast("Guardado ✓"); } else { toast(j && j.msg || "No se pudo guardar"); render(true); } }).catch(function () {}); return; }
+    if (e.target.matches("[data-pv]")) { var ins = c.getAttribute("data-ins"), campo = e.target.getAttribute("data-pv"), rowr = Number(c.getAttribute("data-r")), rawv = e.target.value, vv = rawv, row = (st.prov[st.pvt] || []).filter(function (z) { return z.r === rowr; })[0] || {}, note = "";
+      if (campo === "cant") { var pq = parseQty(rawv, row.uni); if (!pq) { toast("Cantidad inválida"); render(true); return; } vv = String(pq.n); if (pq.conv) note = pq.conv + " = " + pq.n + " " + row.uni; }
+      else if (campo === "precio") { var pm = parseAR(rawv); if (!(pm > 0)) { toast("Precio inválido"); render(true); return; } vv = String(pm); }
+      else if (campo === "uni" && !String(rawv).trim()) { render(true); return; }
+      if (campo === "uni" && rawv.trim() === row.uni) return;
+      (DEMO ? Promise.resolve({ ok: true, proveedores: st.prov }) : api("setProveedor", { t: st.pvt, r: rowr, ins: ins, campo: campo, valor: vv })).then(function (j) { if (j && j.ok) { if (DEMO) { row[campo === "cant" ? "cant" : campo === "precio" ? "precio" : campo === "uni" ? "uni" : "prov"] = campo === "prov" || campo === "uni" ? rawv.trim() : Number(vv); } else st.prov = j.proveedores; render(true); toast(campo === "uni" ? "Unidad cambiada: revisá las cantidades de tus recetas" : note ? "Guardado ✓ (" + note + ")" : "Guardado ✓"); } else { toast(j && j.msg || "No se pudo guardar"); render(true); } }).catch(function () {}); return; }
     if (e.target.matches("[data-f2]")) { var pr2 = st.productos.filter(function (x) { return x.r === Number(c.getAttribute("data-r")); })[0]; if (!pr2) return; var cp = {}; cp[e.target.getAttribute("data-f2")] = e.target.value; pr2[e.target.getAttribute("data-f2")] = e.target.value; (DEMO ? Promise.resolve({ ok: true }) : api("saveProducto", { r: pr2.r, nombre: pr2.nombre, campos: cp })).then(function (j) { if (j && j.ok) toast("Guardado ✓"); else toast(j && j.msg || "No se pudo guardar"); }).catch(function () { toast("No se pudo guardar"); }); return; }
     if (e.target.matches("[data-pkpr]")) { var pv = Number(e.target.value); if (!(pv >= 0)) { toast("Precio inválido"); render(true); return; } patchPack(Number(c.getAttribute("data-r")), "pr", pv); return; }
     if (!e.target.matches("[data-pr]")) return;
@@ -1031,7 +1072,7 @@ button { cursor:pointer; }
     }
     if (t.closest("#ai-ok")) {
       var ain = $("ai-n").value.trim(); if (!ain) { toast("Falta el nombre"); return; }
-      api("addInsumo", { t: st.pvt, nombre: ain, unidad: $("ai-u").value }).then(function (j) { if (j && j.ok) { st.prov = j.proveedores; render(true); toast("Agregado ✓"); } else toast(j && j.msg || "No se pudo"); }); return;
+      api("addInsumo", { t: st.pvt, nombre: ain, unidad: $("ai-u").value }).then(function (j) { if (j && j.ok) { st.prov = j.proveedores; st.pvnew = false; st.pvq = ""; render(true); toast("Agregado ✓"); } else toast(j && j.msg || "No se pudo"); }); return;
     }
     var kn = t.closest("[data-knew]"); if (kn) { st.pd = { r: 0, orig: "", tipo: kn.getAttribute("data-knew"), nombre: "", q: 3, precio: 0, lim: 0, vence: "", texto: "", items: [{ n: "", c: 1 }], vars: [] }; render(true); return; }
     if (t.closest("[data-kedit]")) { var kp = st.packs.filter(function (x) { return x.r === Number(t.closest(".card").getAttribute("data-r")); })[0]; st.pd = st.pd && st.pd.r === kp.r ? null : { r: kp.r, orig: kp.nombre, tipo: kp.tipo, nombre: kp.nombre, q: kp.q, precio: kp.precio, lim: kp.lim, vence: kp.vence, texto: kp.texto, items: kp.items.map(function (i) { return { n: i.n, c: i.c }; }), vars: kp.vars.slice() }; render(true); return; }
@@ -1069,6 +1110,9 @@ button { cursor:pointer; }
         return;
       }
     }
+    var px = t.closest("[data-pvx]"); if (px) { var pr1 = Number(px.getAttribute("data-pvx")); st.pvx = st.pvx === pr1 ? 0 : pr1; render(true); return; }
+    if (t.closest("#pv-plus")) { st.pvnew = !st.pvnew; render(true); var an = $("ai-n"); if (an) an.focus(); return; }
+    if (t.closest("#ai-x")) { st.pvnew = false; render(true); return; }
     var pt = t.closest("[data-pvt]"); if (pt) { st.pvt = pt.getAttribute("data-pvt"); render(true); return; }
     var fc = t.closest("[data-fc]"); if (fc) { st.fc = Number(fc.getAttribute("data-fc")); render(true); return; }
     var yr = t.closest("[data-yr]"); if (yr) { var ny = Number(st.fin.anio) + Number(yr.getAttribute("data-yr")); api("setAnio", { valor: ny }).then(function (j) { if (j && j.ok) { st.fin = j; render(true); } else toast(j && j.msg || "No se pudo"); }); return; }

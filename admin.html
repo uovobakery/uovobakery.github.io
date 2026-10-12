@@ -808,7 +808,7 @@ button { cursor:pointer; }
     var SW = " como una uno unos unas que para quiero quiere hago hacer hace puedo puede donde con los las del por ver tengo necesito saber cuando este esta eso esto mas muy sin sobre ", w = nrm(tx).split(" ").filter(function (x) { return x.length > 2 && SW.indexOf(" " + x + " ") < 0; }), best = [];
     KB.forEach(function (e) {
       var kw = e._k || (e._k = (nrm(e.k) + " " + nrm(e.t)).split(" ").filter(function (x) { return SW.indexOf(" " + x + " ") < 0; })), sc = 0;
-      w.forEach(function (x) { for (var i = 0; i < kw.length; i++) { if (kw[i] === x) { sc += 2; return; } if (x.length > 4 && kw[i].length > 4 && (kw[i].indexOf(x.slice(0, 5)) === 0)) { sc += 1; return; } } });
+      w.forEach(function (x) { for (var i = 0; i < kw.length; i++) { if (kw[i] === x) { sc += 2; return; } if (x.length > 4 && kw[i].length > 4 && kw[i].slice(0, 4) === x.slice(0, 4)) { sc += 1.5; return; } } });
       if (sc) best.push([sc, e]);
     });
     best.sort(function (a, b) { return b[0] - a[0]; });

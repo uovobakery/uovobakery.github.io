@@ -787,7 +787,7 @@ button { cursor:pointer; }
     { t: "Ver cuánto gané (Finanzas)", k: "finanzas ganancia gane ganado ventas resultado plata mes anio costos balance", go: "finanzas", p: ["Tocá Finanzas abajo.", "Elegí el año y el mes (o el total).", "Arriba ves lo que te quedó y abajo a dónde fue la plata."] },
     { t: "Cambiar textos de la tienda", k: "texto textos cambiar frase titulo descripcion pagina web tienda quienes somos whatsapp", go: "textos", p: ["Tocá Más → Textos de la página.", "Buscá el texto con el buscador.", "Cambialo y salí del campo: se guarda y se ve en la tienda."] },
     { t: "Dar acceso a otra persona", k: "acceso accesos compartir persona usuario mail dar invitar socio empleado", go: "accesos", p: ["Tocá Más → Accesos (solo el dueño lo ve).", "Escribí el mail de Google de la persona.", "Marcá qué secciones puede usar y tocá Dar acceso. Entra con esa cuenta."] },
-    { t: "Quitar o pausar un acceso", k: "quitar sacar pausar acceso accesos bloquear persona", go: "accesos", p: ["Tocá Más → Accesos.", "Usá el interruptor para pausar, o Quitar acceso para borrarlo."] },
+    { t: "Quitar o pausar un acceso", k: "quitar sacar saco quito borrar borro eliminar elimino pausar pauso acceso accesos bloquear persona", go: "accesos", p: ["Tocá Más → Accesos.", "Usá el interruptor para pausar, o Quitar acceso para borrarlo."] },
     { t: "Ver la guía de una pantalla", k: "guia ayuda tutorial varita wizard explicar pantalla", go: "", p: ["Tocá la varita ✨ arriba a la derecha.", "Te marca cada parte de la pantalla actual con una explicación."] },
     { t: "Actualizar los datos", k: "actualizar refrescar recargar nuevos pedidos no aparece", go: "", p: ["Tocá ↻ arriba a la derecha para traer los datos más nuevos."] },
     { t: "Instalar la app en el celular", k: "instalar celular icono pantalla inicio app descargar", go: "", p: ["Abrí esta página en Chrome (Android) o Safari (iPhone).", "Android: menú ⋮ → Instalar app. iPhone: Compartir → Agregar a pantalla de inicio."] },
@@ -816,11 +816,11 @@ button { cursor:pointer; }
   }
   function helpShow(tx) {
     var res = $("vz-res"), b = helpFind(tx), h = "";
-    if (!b.length || b[0][0] < 2) {
+    if (!b.length || b[0][0] < 1.5) {
       h = '<div class="vq">No estoy seguro de qué necesitás. ¿Es alguno de estos temas?</div><div class="chips" style="flex-wrap:wrap">' + KB.slice(0, 12).map(function (e) { return '<button class="chip" data-vz="topic" data-i="' + KB.indexOf(e) + '">' + esc(e.t) + "</button>"; }).join("") + "</div>";
     } else {
       h = helpCard(b[0][1]);
-      var o = b.slice(1, 4).filter(function (x) { return x[0] >= 2; });
+      var o = b.slice(1, 4).filter(function (x) { return x[0] >= 1.5; });
       if (o.length) h += '<div class="meta" style="margin:8px 0 4px">También podría ser:</div><div class="chips" style="flex-wrap:wrap">' + o.map(function (x) { return '<button class="chip" data-vz="topic" data-i="' + KB.indexOf(x[1]) + '">' + esc(x[1].t) + "</button>"; }).join("") + "</div>";
     }
     res.innerHTML = h;

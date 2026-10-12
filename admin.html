@@ -107,6 +107,20 @@ button { cursor:pointer; }
 .tour .trow button{flex:1;padding:11px;border-radius:12px;border:1px solid #0F59C4;background:#fff;color:#0F59C4;font:inherit;font-weight:700}
 .tour .trow button.pri{background:#0F59C4;color:#fff}
 .tour .skip{display:block;margin:8px auto 0;border:0;background:none;color:#777;font:inherit;font-size:.82rem}
+.fotos{position:fixed;inset:0;z-index:40;background:#f5f8fd;display:flex;flex-direction:column}
+.fotos header{background:#0F59C4;color:#fff;padding:14px 16px;display:flex;align-items:center;gap:10px}
+.fotos header h2{margin:0;font-size:1.05rem;flex:1}
+.fotos .bd{flex:1;overflow:auto;padding:14px;max-width:640px;width:100%;margin:0 auto}
+.fi{display:flex;gap:10px;align-items:center;background:#fff;border:1px solid #e3eaf6;border-radius:14px;padding:8px;margin-bottom:8px}
+.fi img,.fi .vt{width:64px;height:64px;border-radius:10px;object-fit:cover;background:#e8f0fd;display:grid;place-items:center;font-size:1.4rem;flex:none}
+.fi .tx{flex:1;min-width:0;font-size:.85rem}.fi .tx b{display:block}
+.fi button{border:0;background:#eef3fb;color:#0F59C4;width:34px;height:34px;border-radius:50%;font-size:1rem}
+.fi button.x{color:#b3261e}
+.addf{display:block;text-align:center;background:#0F59C4;color:#fff;border-radius:14px;padding:14px;font-weight:700;margin-bottom:12px}
+.addf.dis{opacity:.5;pointer-events:none}
+.modal{position:fixed;inset:0;z-index:60;background:rgba(10,20,40,.6);display:grid;place-items:center;padding:20px}
+.modal .box{background:#fff;border-radius:20px;padding:22px;max-width:380px}
+.modal h3{margin:0 0 8px;color:#0F59C4}.modal p{margin:0 0 14px;line-height:1.45}
 </style>
 </head>
 <body>
@@ -185,7 +199,7 @@ button { cursor:pointer; }
       if (op === "config") return res({ ok: true, config: d.cfg });
       if (op === "proveedores" || op === "setProveedor" || op === "addInsumo") return res({ ok: true, proveedores: d.prov });
       if (op === "addProducto") return res({ ok: true, catalogo: d.productos });
-      if (op === "saveProducto" || op === "setConfig" || op === "setFotos") return res({ ok: true });
+      if (op === "saveProducto" || op === "setConfig" || op === "setFotos" || op === "setPackFoto") return res({ ok: true });
       if (op === "recetas2" || op === "saveReceta" || op === "delReceta") return res({ ok: true, recetas: d.recetas.map(function (x) { x.y = x.q; x.items = [{ n: "Harina 0000", q: 184.6, u: "g" }, { n: "Manteca", q: 114.4, u: "g" }]; return x; }), insumos: [{ n: "Harina 0000", u: "g" }, { n: "Manteca", u: "g" }, { n: "Azúcar", u: "g" }] });
       if (op === "packs2" || op === "savePack" || op === "delPack" || op === "setPack2") return res({ ok: true, productos: ["Red Velvet", "Chocomarsh", "Trichoc"], packs: d.packs.map(function (p) { p.texto = ""; p.vence = ""; p.items = p.tipo === "Combo" ? [{ n: "Red Velvet", c: 1 }, { n: "Chocomarsh", c: 1 }] : []; p.vars = ["Red Velvet"]; return p; }) });
       if (op === "packs") return res({ ok: true, packs: d.packs });
@@ -213,7 +227,7 @@ button { cursor:pointer; }
   function signedOut(msg) { st.token = ""; st.me = null; store("uovo_adm_tok", null); showLogin(msg); try { if (window.google && google.accounts) google.accounts.id.disableAutoSelect(); } catch (e) {} }
   function enter(me) {
     st.me = me; $("login").hidden = true; $("app").hidden = false; $("who").textContent = me.email + " · " + (me.rol || "");
-    $("demobar").hidden = !DEMO;
+    $("demobar").hidden = !DEMO; setTimeout(driveWelcome, 1500);
     goto(st.v === "accesos" && me.rol !== "Dueño" ? "mas" : st.v);
   }
   function onCred(resp) {
@@ -394,6 +408,7 @@ button { cursor:pointer; }
       h += '<div class="meta">Cookies que valen para este pack (si no marcás ninguna, valen todas):</div><div class="chips" style="flex-wrap:wrap">' + st.ppro.map(function (n) { return '<button class="chip' + (d.vars.indexOf(n) >= 0 ? " on" : "") + '" data-kv="' + esc(n) + '">' + esc(n) + "</button>"; }).join("") + "</div>";
     }
     h += '<input class="inp" data-kf="precio" type="number" inputmode="numeric" placeholder="Precio" value="' + (d.precio || "") + '"><input class="inp" data-kf="lim" type="number" inputmode="numeric" placeholder="Límite por pedido (opcional)" value="' + (d.lim || "") + '"><div class="meta">Vence (opcional)</div><input class="inp" data-kf="vence" type="date" value="' + esc(d.vence) + '"><textarea class="inp" rows="2" data-kf="texto" placeholder="Texto o descripción (opcional)">' + esc(d.texto) + '</textarea>';
+    if (c) h += d.r ? '<button class="sm" data-kfoto="1">📎 Foto del combo</button>' : '<div class="meta">Guardá el combo y después podés agregarle una foto con 📎.</div>';
     h += '<div style="display:flex;gap:8px"><button class="btn" data-ksave="1">Guardar</button><button class="sm" data-kcancel="1">Cancelar</button>' + (d.r ? '<button class="sm red" data-kdel="1">Eliminar</button>' : "") + "</div></div>";
     return h;
   }
@@ -446,6 +461,140 @@ button { cursor:pointer; }
     detalle.forEach(function (d) { var v = val(d[0]); if (v !== "") h += '<div class="frow' + (/Resultado/.test(d[1]) ? " t" : "") + '"><span>' + d[1] + '</span><span class="' + (neg(v) ? "rd" : "") + '">' + esc(v) + "</span></div>"; });
     return h + "</div>";
   }
+
+  /* ---------- Drive (fotos y videos) ---------- */
+  var DRV = { tok: "", exp: 0 };
+  function driveToken(force) {
+    return new Promise(function (res, rej) {
+      if (DEMO) return res("demo");
+      if (DRV.tok && Date.now() < DRV.exp - 60000 && !force) return res(DRV.tok);
+      if (!window.google || !google.accounts || !google.accounts.oauth2) return rej(new Error("No cargó Google. Reintentá."));
+      var tc = google.accounts.oauth2.initTokenClient({
+        client_id: clientId, scope: "https://www.googleapis.com/auth/drive.file", hint: st.me && st.me.email,
+        callback: function (r) { if (r.error) { rej(new Error(r.error)); return; } DRV.tok = r.access_token; DRV.exp = Date.now() + (Number(r.expires_in) || 3600) * 1000; store("uovo_adm_drive", "1"); res(DRV.tok); },
+        error_callback: function (e) { rej(new Error(e && e.type || "popup")); }
+      });
+      tc.requestAccessToken({ prompt: load("uovo_adm_drive") ? "" : "consent" });
+    });
+  }
+  function dj(url, method, body) {
+    return fetch(url, { method: method || "GET", headers: { Authorization: "Bearer " + DRV.tok, "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined }).then(function (r) { return r.json().then(function (j) { if (!r.ok) { var e = new Error(j && j.error && j.error.message || "drive " + r.status); e.status = r.status; throw e; } return j; }); });
+  }
+  function driveFolder() {
+    var key = "uovo_adm_fold_" + (st.me && st.me.email || ""), id = load(key);
+    if (id) return Promise.resolve(id);
+    return dj("https://www.googleapis.com/drive/v3/files?fields=id", "POST", { name: "Uovo - fotos y videos", mimeType: "application/vnd.google-apps.folder" }).then(function (j) { store(key, j.id); return j.id; });
+  }
+  function shrink(file) {
+    return new Promise(function (res) {
+      if (!/^image\//.test(file.type) || /gif|svg/.test(file.type)) return res(file);
+      var img = new Image(), u = URL.createObjectURL(file);
+      img.onload = function () {
+        var sc = Math.min(1, 1800 / Math.max(img.width, img.height)), c = document.createElement("canvas"); c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        c.toBlob(function (b) { URL.revokeObjectURL(u); res(b ? new File([b], (file.name || "foto").replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" }) : file); }, "image/jpeg", 0.86);
+      };
+      img.onerror = function () { res(file); }; img.src = u;
+    });
+  }
+  function driveUpload(file, folder) {
+    var type = file.type || "application/octet-stream", meta = { name: file.name || "archivo-" + Date.now(), parents: [folder] }, p;
+    if (file.size <= 5 * 1024 * 1024) {
+      var bd = "uovoB" + Date.now(), body = new Blob(["--" + bd + "\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n" + JSON.stringify(meta) + "\r\n--" + bd + "\r\nContent-Type: " + type + "\r\n\r\n", file, "\r\n--" + bd + "--"]);
+      p = fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id", { method: "POST", headers: { Authorization: "Bearer " + DRV.tok, "Content-Type": "multipart/related; boundary=" + bd }, body: body }).then(function (r) { return r.json().then(function (j) { if (!r.ok) { var e = new Error(j && j.error && j.error.message || "drive " + r.status); e.status = r.status; throw e; } return j; }); });
+    } else {
+      p = fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id", { method: "POST", headers: { Authorization: "Bearer " + DRV.tok, "Content-Type": "application/json; charset=UTF-8", "X-Upload-Content-Type": type }, body: JSON.stringify(meta) }).then(function (r) {
+        if (!r.ok) { var e = new Error("drive " + r.status); e.status = r.status; throw e; }
+        var loc = r.headers.get("Location"); if (!loc) throw new Error("El video es muy grande para subir desde acá (máx. 5 MB).");
+        return fetch(loc, { method: "PUT", headers: { "Content-Type": type }, body: file }).then(function (x) { return x.json(); });
+      });
+    }
+    return p.then(function (j) { if (!j.id) throw new Error("No se pudo subir"); return dj("https://www.googleapis.com/drive/v3/files/" + j.id + "/permissions", "POST", { role: "reader", type: "anyone" }).then(function () { return j.id; }); });
+  }
+  function parseM(line) {
+    var raw = String(line).trim(); if (!raw) return null;
+    var vid = /^video:\s*/i.test(raw), u = raw.replace(/^video:\s*/i, ""), m = u.match(/drive\.google\.com\/file\/d\/([\w-]+)/) || u.match(/[?&]id=([\w-]+)/), id = m ? m[1] : "";
+    var yt = u.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{6,})/);
+    if (yt) vid = true;
+    if (/\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(u)) vid = true;
+    var th = yt ? "https://img.youtube.com/vi/" + yt[1] + "/mqdefault.jpg" : id ? (vid ? "https://drive.google.com/thumbnail?id=" + id + "&sz=w300" : "https://lh3.googleusercontent.com/d/" + id + "=w300") : (vid ? "" : u);
+    return { raw: raw, vid: vid, th: th };
+  }
+  function fotoLine(id, vid) { return (vid ? "video: " : "") + "https://drive.google.com/file/d/" + id + "/view"; }
+  var FO = null;
+  function openFotos(kind, ref) {
+    if (FO) return;
+    var list = String(ref.fotos || "").split(/\r?\n/).map(parseM).filter(Boolean);
+    FO = { kind: kind, ref: ref, list: list, single: kind === "pack", msg: "", busy: false, el: document.createElement("div") };
+    FO.el.className = "fotos"; document.body.appendChild(FO.el);
+    paintF();
+    driveToken().catch(function (e) { FO.msg = "Tocá “Permitir Drive” para poder subir archivos."; FO.need = true; paintF(); });
+  }
+  function closeFotos() { if (FO) { FO.el.remove(); FO = null; } if (st.v === "productos" || st.v === "packs") render(true); }
+  function paintF() {
+    if (!FO) return;
+    var f = FO, n = f.list.length;
+    var h = '<header><h2>' + esc(f.ref.nombre || "Fotos") + '</h2><button class="ibtn" data-fx="close" aria-label="Cerrar">✕</button></header><div class="bd">';
+    h += '<div class="help">' + (f.single ? "Foto del combo. Se sube a tu Drive y se publica sola." : "Ordená como quieras: la <b>1ª</b> es la principal y la <b>2ª</b> es la que se ve al pasar el mouse. Se suben a <b>tu</b> Drive y se publican solas.") + "</div>";
+    if (f.need) h += '<button class="addf" data-fx="conn">Permitir Drive</button>';
+    else h += '<label class="addf' + (f.busy ? " dis" : "") + '">＋ Agregar ' + (f.single ? "foto" : "fotos o videos") + '<input type="file" id="fo-in" accept="image/*' + (f.single ? "" : ",video/*") + '"' + (f.single ? "" : " multiple") + ' hidden></label>';
+    if (f.msg) h += '<div class="meta" style="margin-bottom:10px">' + esc(f.msg) + "</div>";
+    h += f.list.map(function (m, i) {
+      return '<div class="fi" data-i="' + i + '">' + (m.th ? '<img src="' + esc(m.th) + '" alt="" onerror="this.outerHTML=\'<div class=vt>' + (m.vid ? "🎬" : "🖼️") + '</div>\'">' : '<div class="vt">' + (m.vid ? "🎬" : "🖼️") + "</div>") +
+        '<div class="tx"><b>' + (i === 0 ? "★ Principal" : i === 1 && !f.single ? "↺ Al pasar el mouse" : "Foto " + (i + 1)) + "</b>" + (m.vid ? "Video" : "Imagen") + "</div>" +
+        (i > 0 ? '<button data-fx="up" aria-label="Subir">↑</button>' : "") + (i < n - 1 ? '<button data-fx="dn" aria-label="Bajar">↓</button>' : "") + '<button class="x" data-fx="rm" aria-label="Quitar">✕</button></div>';
+    }).join("") || '<div class="empty">Todavía no hay archivos.</div>';
+    h += "</div>";
+    f.el.innerHTML = h;
+  }
+  function saveF() {
+    var f = FO; if (!f) return Promise.resolve();
+    var val = f.list.map(function (m) { return m.raw; }).join("\n"); f.ref.fotos = val;
+    if (DEMO) return Promise.resolve();
+    var p = f.kind === "prod" ? api("setFotos", { r: f.ref.r, nombre: f.ref.nombre, valor: val }) : api("setPackFoto", { r: f.ref.r, orig: f.ref.nombre, valor: val });
+    return p.then(function (j) { if (!j || !j.ok) toast(j && j.msg || "No se pudo guardar"); else toast("Guardado ✓"); });
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-fx]"); if (!b || !FO) return;
+    var a = b.getAttribute("data-fx"), row = b.closest(".fi"), i = row ? Number(row.getAttribute("data-i")) : -1, L = FO.list;
+    if (a === "close") { closeFotos(); return; }
+    if (a === "conn") { driveToken(true).then(function () { FO.need = false; FO.msg = ""; paintF(); }).catch(function (er) { FO.msg = "No se pudo conectar: " + er.message; paintF(); }); return; }
+    if (a === "up" && i > 0) { var t = L[i]; L[i] = L[i - 1]; L[i - 1] = t; }
+    if (a === "dn" && i < L.length - 1) { var t2 = L[i]; L[i] = L[i + 1]; L[i + 1] = t2; }
+    if (a === "rm") { L.splice(i, 1); }
+    paintF(); saveF();
+  });
+  document.addEventListener("change", function (e) {
+    if (!FO || e.target.id !== "fo-in") return;
+    var files = Array.prototype.slice.call(e.target.files || []); if (!files.length) return;
+    FO.busy = true; FO.msg = "Preparando…"; paintF();
+    var done = 0, fail = "";
+    var chain = (DEMO ? Promise.resolve("demo") : driveToken().then(driveFolder));
+    chain.then(function (folder) {
+      return files.reduce(function (pr, file) {
+        return pr.then(function () {
+          FO.msg = "Subiendo " + (done + 1) + " de " + files.length + "…"; paintF();
+          if (DEMO) { FO.list.push({ raw: "demo", vid: /^video/.test(file.type), th: "" }); done++; return; }
+          return shrink(file).then(function (f2) { return driveUpload(f2, folder); }).then(function (id) {
+            var vid = /^video\//.test(file.type); if (FO.single) FO.list = []; FO.list.push(parseM(fotoLine(id, vid))); done++;
+          }).catch(function (er) { fail = er.message; if (er.status === 404) store("uovo_adm_fold_" + (st.me && st.me.email || ""), null); });
+        });
+      }, Promise.resolve());
+    }).catch(function (er) { fail = er.message; if (/popup|access_denied|error/i.test(fail)) { FO.need = true; } }).then(function () {
+      if (!FO) return; FO.busy = false; FO.msg = fail ? "Algo falló: " + fail : (done + (done === 1 ? " archivo subido ✓" : " archivos subidos ✓")); paintF(); if (done) saveF();
+    });
+  });
+  function driveWelcome() {
+    if (DEMO || load("uovo_adm_drive") || document.querySelector(".modal")) return;
+    var m = document.createElement("div"); m.className = "modal";
+    m.innerHTML = '<div class="box"><h3>Conectá tu Google Drive</h3><p>Para subir fotos y videos de los productos necesitamos tu permiso. Los archivos se guardan en <b>tu</b> Drive (carpeta “Uovo - fotos y videos”) y se publican solos. Solo se pide esta vez.</p><button class="btn" id="dw-ok">Permitir</button><button class="skip" id="dw-no" style="display:block;margin:10px auto 0;border:0;background:none;color:#777">Más tarde</button></div>';
+    document.body.appendChild(m);
+    m.addEventListener("click", function (e) {
+      if (e.target.id === "dw-no") { m.remove(); return; }
+      if (e.target.id === "dw-ok") driveToken().then(function () { m.remove(); toast("Drive conectado ✓"); }).catch(function (er) { m.querySelector("p").textContent = "No se pudo conectar (" + er.message + "). Podés reintentar o hacerlo más tarde."; });
+    });
+  }
+
   /* ---------- Textos ---------- */
   function human(k) { k = String(k).replace(/_/g, " "); return k.charAt(0).toUpperCase() + k.slice(1); }
   function renderTextos() {
@@ -596,6 +745,7 @@ button { cursor:pointer; }
     }
     var kn = t.closest("[data-knew]"); if (kn) { st.pd = { r: 0, orig: "", tipo: kn.getAttribute("data-knew"), nombre: "", q: 3, precio: 0, lim: 0, vence: "", texto: "", items: [{ n: "", c: 1 }], vars: [] }; render(true); return; }
     if (t.closest("[data-kedit]")) { var kp = st.packs.filter(function (x) { return x.r === Number(t.closest(".card").getAttribute("data-r")); })[0]; st.pd = st.pd && st.pd.r === kp.r ? null : { r: kp.r, orig: kp.nombre, tipo: kp.tipo, nombre: kp.nombre, q: kp.q, precio: kp.precio, lim: kp.lim, vence: kp.vence, texto: kp.texto, items: kp.items.map(function (i) { return { n: i.n, c: i.c }; }), vars: kp.vars.slice() }; render(true); return; }
+    if (st.pd && t.closest("[data-kfoto]")) { var kp3 = st.packs.filter(function (x) { return x.r === st.pd.r; })[0]; if (kp3) openFotos("pack", { r: kp3.r, nombre: kp3.nombre, fotos: kp3.foto || "" }); return; }
     if (st.pd) {
       var kv = t.closest("[data-kv]"); if (kv) { var vn = kv.getAttribute("data-kv"), ix = st.pd.vars.indexOf(vn); if (ix >= 0) st.pd.vars.splice(ix, 1); else st.pd.vars.push(vn); render(true); return; }
       if (t.closest("[data-kiadd]")) { st.pd.items.push({ n: "", c: 1 }); render(true); return; }
@@ -654,7 +804,7 @@ button { cursor:pointer; }
       if (cc) { if (cc.classList.contains("arm")) { patchPedido(r, "cc", true); } else { cc.classList.add("arm"); cc.textContent = "¿Seguro? Tocá de nuevo"; clearTimeout(armTimer); armTimer = setTimeout(function () { cc.classList.remove("arm"); cc.textContent = "Cancelar pedido"; }, 3000); } }
     } else if (st.v === "productos") {
       if (t.closest("[data-edit]")) { st.edit = st.edit === r ? 0 : r; render(true); return; }
-      if (t.closest("[data-clip]")) { toast("Las fotos llegan en el próximo paso 📎"); return; }
+      if (t.closest("[data-clip]")) { var cp2 = st.productos.filter(function (x) { return x.r === r; })[0]; openFotos("prod", cp2); return; }
       var sw = t.closest("[data-sw]"); if (!sw) return;
       var pr = st.productos.filter(function (x) { return x.r === r; })[0], k = sw.getAttribute("data-sw");
       patchProducto(r, k, !pr[k]);

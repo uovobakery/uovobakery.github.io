@@ -1433,6 +1433,19 @@ var DEFAULTS = {
       tr.scrollBy({ left: Number(nv.getAttribute("data-nav")) * tr.clientWidth, behavior: "smooth" });
     }
   });
+  /* Hover (solo mouse): muestra la 2.ª foto; al salir vuelve a la principal */
+  if (window.matchMedia && matchMedia("(hover: hover)").matches) {
+    var hvT = null;
+    $("grid").addEventListener("mouseover", function (e) {
+      var m = e.target.closest && e.target.closest(".media"); if (!m || m.contains(e.relatedTarget) || e.target.closest(".nav")) return;
+      var tr = m.querySelector(".track"), sl = tr && tr.children[1]; if (!sl || !sl.querySelector("img") || tr.scrollLeft > 4) return;
+      m._hv = 1; tr.style.scrollSnapType = "none"; tr.scrollTo({ left: tr.clientWidth, behavior: "instant" });
+    });
+    $("grid").addEventListener("mouseout", function (e) {
+      var m = e.target.closest && e.target.closest(".media"); if (!m || !m._hv || m.contains(e.relatedTarget)) return;
+      m._hv = 0; var tr = m.querySelector(".track"); tr.scrollTo({ left: 0, behavior: "instant" }); tr.style.scrollSnapType = "";
+    });
+  }
   $("grid").addEventListener("scroll", function (e) {
     var tr = e.target;
     if (!tr.classList || !tr.classList.contains("track")) return;

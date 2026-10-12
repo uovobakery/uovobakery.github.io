@@ -775,9 +775,9 @@ button { cursor:pointer; }
     { t: "Dictar órdenes por voz", k: "voz dictar ordenes ia clave api asistente comandos", go: "voz", p: ["Es opcional y necesita una clave de API de Anthropic (con costo mínimo por uso).", "Si no la cargás, el micrófono funciona igual como ayuda."] }
   ];
   function helpFind(tx) {
-    var w = nrm(tx).split(" ").filter(function (x) { return x.length > 2; }), best = [];
+    var SW = " como una uno unos unas que para quiero quiere hago hacer hace puedo puede donde con los las del por ver tengo necesito saber cuando este esta eso esto mas muy sin sobre ", w = nrm(tx).split(" ").filter(function (x) { return x.length > 2 && SW.indexOf(" " + x + " ") < 0; }), best = [];
     KB.forEach(function (e) {
-      var kw = e._k || (e._k = (nrm(e.k) + " " + nrm(e.t)).split(" ")), sc = 0;
+      var kw = e._k || (e._k = (nrm(e.k) + " " + nrm(e.t)).split(" ").filter(function (x) { return SW.indexOf(" " + x + " ") < 0; })), sc = 0;
       w.forEach(function (x) { for (var i = 0; i < kw.length; i++) { if (kw[i] === x) { sc += 2; return; } if (x.length > 4 && kw[i].length > 4 && (kw[i].indexOf(x.slice(0, 5)) === 0)) { sc += 1; return; } } });
       if (sc) best.push([sc, e]);
     });

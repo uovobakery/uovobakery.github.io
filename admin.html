@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Uovo Admin</title>
+<meta name="theme-color" content="#0F59C4">
+<meta name="robots" content="noindex,nofollow">
+<link rel="manifest" href="admin.webmanifest">
+<link rel="apple-touch-icon" href="admin-icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Uovo Admin">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;600;700;800&display=swap">
+<style>
+:root { --blue:#0F59C4; --blue-deep:#0B3F91; --sky:#EAF2FD; --line:#D5E2F7; --ink:#0C2247; --soft:#5A6B8C; --ok:#1B7A3A; --err:#B3261E; --warn:#B26A00; --paper:#fff; --bg:#F5F8FD;
+  --fd:"Fredoka","Trebuchet MS",system-ui,sans-serif; --fb:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif; color-scheme:light; }
+* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.45 var(--fb); }
+body { min-height:100vh; padding-bottom:calc(76px + env(safe-area-inset-bottom)); }
+button,input { font:inherit; color:inherit; }
+button { cursor:pointer; }
+[hidden] { display:none !important; }
+.top { position:sticky; top:0; z-index:20; background:var(--blue); color:#fff; padding:calc(10px + env(safe-area-inset-top)) 16px 10px; display:flex; align-items:center; gap:10px; }
+.top h1 { font:600 1.15rem var(--fd); margin:0; flex:1; }
+.top small { opacity:.85; font-size:.75rem; display:block; font-weight:600; }
+.ibtn { border:0; background:rgba(255,255,255,.18); color:#fff; width:40px; height:40px; border-radius:50%; font-size:1.2rem; display:grid; place-items:center; }
+.wrap { max-width:720px; margin:0 auto; padding:12px 14px 20px; }
+.nav { position:fixed; left:0; right:0; bottom:0; z-index:20; background:#fff; border-top:1px solid var(--line); display:flex; padding-bottom:env(safe-area-inset-bottom); }
+.nav button { flex:1; border:0; background:none; padding:10px 4px 9px; display:grid; gap:2px; justify-items:center; font-size:.72rem; font-weight:700; color:var(--soft); }
+.nav button svg { width:24px; height:24px; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+.nav button.on { color:var(--blue); }
+.chips { display:flex; gap:8px; overflow-x:auto; padding:2px 0 10px; scrollbar-width:none; }
+.chips::-webkit-scrollbar { display:none; }
+.chip { flex:none; border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:7px 13px; font-weight:700; font-size:.85rem; color:var(--soft); }
+.chip b { font-weight:800; margin-left:4px; }
+.chip.on { background:var(--blue); border-color:var(--blue); color:#fff; }
+.search { width:100%; border:1.5px solid var(--line); border-radius:12px; padding:11px 14px; background:#fff; margin-bottom:10px; }
+.search:focus,.inp:focus { outline:2px solid #6FA4F2; border-color:var(--blue); }
+.card { background:#fff; border:1px solid var(--line); border-radius:16px; padding:14px; margin-bottom:12px; box-shadow:0 1px 3px rgba(12,34,71,.05); }
+.card.dim { opacity:.62; }
+.row { display:flex; align-items:flex-start; gap:10px; justify-content:space-between; }
+.nm { font:600 1.05rem var(--fd); }
+.id { color:var(--soft); font-size:.75rem; font-weight:700; }
+.tot { font:600 1.1rem var(--fd); color:var(--blue); white-space:nowrap; }
+.meta { color:var(--soft); font-size:.82rem; margin-top:2px; }
+.items { margin:8px 0; padding:9px 11px; background:var(--sky); border-radius:10px; font-size:.9rem; white-space:pre-wrap; word-break:break-word; }
+.note { font-size:.82rem; color:var(--warn); font-weight:700; margin-bottom:8px; }
+.tgl { display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
+.tg { flex:1 1 90px; border:2px solid var(--line); background:#fff; border-radius:12px; padding:10px 6px; font-weight:800; font-size:.88rem; color:var(--soft); display:flex; align-items:center; justify-content:center; gap:6px; }
+.tg.on { background:var(--ok); border-color:var(--ok); color:#fff; }
+.tg:disabled { opacity:.5; }
+.acts { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+.sm { border:1.5px solid var(--line); background:#fff; border-radius:10px; padding:7px 12px; font-weight:700; font-size:.82rem; color:var(--blue); text-decoration:none; display:inline-block; }
+.sm.red { color:var(--err); border-color:#F0C2BE; }
+.sm.red.arm { background:var(--err); color:#fff; border-color:var(--err); }
+.badge { display:inline-block; font-size:.72rem; font-weight:800; padding:2px 9px; border-radius:999px; background:#FDE7E5; color:var(--err); }
+.badge.g { background:#E3F4E8; color:var(--ok); } .badge.b { background:var(--sky); color:var(--blue); } .badge.o { background:#FFF1D6; color:var(--warn); }
+.inp { border:1.5px solid var(--line); border-radius:10px; padding:9px 11px; background:#fff; width:100%; }
+.pr { display:flex; align-items:center; gap:6px; }
+.pr span { font-weight:800; color:var(--soft); }
+.pr .inp { width:110px; font-weight:700; }
+.sw { display:flex; align-items:center; gap:8px; font-weight:700; font-size:.85rem; color:var(--soft); }
+.sw i { width:44px; height:26px; border-radius:999px; background:#C5D0E3; position:relative; transition:.15s; flex:none; }
+.sw i::after { content:""; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; transition:.15s; }
+.sw.on i { background:var(--ok); } .sw.on i::after { left:21px; }
+.sw.warn.on i { background:var(--err); }
+.help { background:var(--sky); border-radius:12px; padding:11px 13px; font-size:.86rem; color:var(--ink); margin-bottom:12px; }
+.empty { text-align:center; color:var(--soft); padding:34px 10px; }
+.login { min-height:100vh; display:grid; place-content:center; justify-items:center; gap:18px; text-align:center; padding:24px; }
+.login img { width:150px; }
+.login h2 { font:600 1.3rem var(--fd); margin:0; }
+.login p { color:var(--soft); margin:0; max-width:300px; }
+.err { color:var(--err); font-weight:700; max-width:320px; }
+.toast { position:fixed; left:50%; bottom:calc(88px + env(safe-area-inset-bottom)); transform:translateX(-50%); background:var(--ink); color:#fff; padding:10px 16px; border-radius:12px; font-weight:700; font-size:.88rem; z-index:50; max-width:90vw; }
+.demo { background:#FFF1D6; color:var(--warn); text-align:center; font-weight:800; font-size:.78rem; padding:4px; }
+.add { display:grid; gap:8px; margin-top:6px; }
+.btn { border:0; background:var(--blue); color:#fff; border-radius:12px; padding:12px; font-weight:800; }
+.btn:disabled { opacity:.5; }
+</style>
+</head>
+<body>
+<div id="login" class="login" hidden>
+  <img src="img/logo.png" alt="Uovo">
+  <h2>Administración</h2>
+  <p>Ingresá con tu cuenta de Google. Solo entran las cuentas autorizadas.</p>
+  <div id="gbtn"></div>
+  <div id="lerr" class="err" hidden></div>
+</div>
+
+<div id="app" hidden>
+  <div id="demobar" class="demo" hidden>MODO DEMO · datos de ejemplo, no se guarda nada</div>
+  <header class="top">
+    <h1>Uovo Admin<small id="who"></small></h1>
+    <button class="ibtn" id="refresh" aria-label="Actualizar">↻</button>
+    <button class="ibtn" id="logout" aria-label="Salir">⎋</button>
+  </header>
+  <main class="wrap" id="view"></main>
+  <nav class="nav" id="nav">
+    <button data-v="pedidos" class="on"><svg viewBox="0 0 24 24"><path d="M6 3h12l2 4v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7z"/><path d="M4 7h16M9 11a3 3 0 0 0 6 0"/></svg>Pedidos</button>
+    <button data-v="productos"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 9h.01M15 8h.01M10 14h.01M15 14h.01M12 11h.01"/></svg>Productos</button>
+    <button data-v="accesos" id="nav-acc" hidden><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M17 5.5a3 3 0 0 1 0 6M18.5 14.5A6 6 0 0 1 21.5 20"/></svg>Accesos</button>
+  </nav>
+</div>
+<div id="toast" class="toast" hidden></div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+(function () {
+  var ENDPOINT = "https://script.google.com/macros/s/AKfycbwRgztSNbcqRVjj6Kji1BbUCoZxAdQlYLYPxf5-266YiG16hzG9J4II1L7qhxlENjmZNA/exec";
+  var DEMO = /[?&]demo=1/.test(location.search);
+  var $ = function (id) { return document.getElementById(id); };
+  var st = { token: "", me: null, v: "pedidos", fil: "pend", q: "", pedidos: [], productos: [], accesos: [], loaded: {} };
+  function store(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
+  function load(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function money(n) { return "$" + Math.round(Number(n) || 0).toLocaleString("es-AR"); }
+  var tt = null;
+  function toast(m) { var t = $("toast"); t.textContent = m; t.hidden = false; clearTimeout(tt); tt = setTimeout(function () { t.hidden = true; }, 2800); }
+
+  /* ---------- Demo ---------- */
+  var demo = {
+    pedidos: [
+      { r: 5, id: "U-A1B2", fecha: "12/10/2026 09:14", nombre: "Lucía Pérez", tel: "2915551234", mail: "lucia@mail.com", pedido: "2 x Red Velvet, 1 x Chocomarsh", cant: 3, total: 7500, entrega: "viernes, 30 de octubre", pago: "Transferencia", ap: false, he: false, en: false, notas: "", cc: false, cl: false, cupon: "", estado: "pendiente" },
+      { r: 4, id: "U-C3D4", fecha: "11/10/2026 19:13", nombre: "Mariano Gil", tel: "2914391046", mail: "m@mail.com", pedido: "PACK 3 cookies $6000 (1 Red Velvet + 2 Chocomarsh)", cant: 3, total: 6000, entrega: "viernes, 30 de octubre", pago: "Efectivo", ap: true, he: false, en: false, notas: "Retira en persona", cc: false, cl: false, cupon: "", estado: "aprobado" },
+      { r: 3, id: "U-E5F6", fecha: "10/10/2026 21:02", nombre: "Sofi R.", tel: "2916660000", mail: "s@mail.com", pedido: "4 x Trichoc", cant: 4, total: 9000, entrega: "viernes, 30 de octubre", pago: "Pago full", ap: true, he: true, en: false, notas: "", cc: false, cl: false, cupon: "", estado: "hecho" },
+      { r: 2, id: "U-G7H8", fecha: "09/10/2026 12:40", nombre: "Pedro", tel: "2917770000", mail: "p@mail.com", pedido: "1 x Limón & Choco Blanco", cant: 1, total: 2500, entrega: "viernes, 30 de octubre", pago: "", ap: false, he: false, en: false, notas: "", cc: false, cl: true, cupon: "", estado: "cancelado" }
+    ],
+    productos: [
+      { r: 2, vi: true, nombre: "Red Velvet", precio: 2500, ag: false, costo: 165.6, cat: "Clásicas" },
+      { r: 3, vi: true, nombre: "Chocomarsh", precio: 2500, ag: false, costo: null, cat: "Clásicas" },
+      { r: 4, vi: true, nombre: "Trichoc", precio: 2500, ag: true, costo: 210, cat: "Clásicas" }
+    ],
+    accesos: [{ r: 2, email: "fakundo713@gmail.com", nota: "Dueña/o", permisos: "Dueño", activo: true }]
+  };
+  function api(op, extra) {
+    if (DEMO) return new Promise(function (res) { setTimeout(function () {
+      var d = JSON.parse(JSON.stringify(demo));
+      if (op === "me") return res({ ok: true, email: "demo@uovo.com", nombre: "Demo", rol: "Dueño" });
+      if (op === "pedidos") return res({ ok: true, pedidos: d.pedidos });
+      if (op === "productos") return res({ ok: true, productos: d.productos });
+      if (op === "accesos") return res({ ok: true, accesos: d.accesos });
+      if (op === "setPedido") { var p = demo.pedidos.filter(function (x) { return x.r === extra.r; })[0]; p[extra.campo] = extra.valor; return res({ ok: true, p: p }); }
+      res({ ok: true, accesos: d.accesos });
+    }, 150); });
+    var body = { admin: 1, token: st.token, op: op };
+    for (var k in extra) body[k] = extra[k];
+    return fetch(ENDPOINT, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) }).then(function (r) { return r.json(); }).then(function (j) {
+      if (j && j.error === "auth") { signedOut("Tu sesión venció. Volvé a ingresar."); throw new Error("auth"); }
+      if (j && j.error === "denied") { signedOut(j.email ? "La cuenta " + j.email + " no tiene acceso." : (j.msg || "Sin permiso.")); throw new Error("denied"); }
+      return j;
+    });
+  }
+
+  /* ---------- Sesión ---------- */
+  var clientId = "";
+  function showLogin(msg) {
+    $("app").hidden = true; $("login").hidden = false;
+    var e = $("lerr"); e.hidden = !msg; e.textContent = msg || "";
+  }
+  function signedOut(msg) { st.token = ""; st.me = null; store("uovo_adm_tok", null); showLogin(msg); try { if (window.google && google.accounts) google.accounts.id.disableAutoSelect(); } catch (e) {} }
+  function enter(me) {
+    st.me = me; $("login").hidden = true; $("app").hidden = false; $("who").textContent = me.email;
+    $("nav-acc").hidden = me.rol !== "Dueño"; $("demobar").hidden = !DEMO;
+    goto(st.v === "accesos" && me.rol !== "Dueño" ? "pedidos" : st.v);
+  }
+  function onCred(resp) {
+    st.token = resp.credential; store("uovo_adm_tok", st.token);
+    api("me").then(function (j) { if (j && j.ok) enter(j); else showLogin("No se pudo ingresar."); }).catch(function () {});
+  }
+  function initGoogle() {
+    if (!window.google || !google.accounts) { setTimeout(initGoogle, 300); return; }
+    google.accounts.id.initialize({ client_id: clientId, callback: onCred, auto_select: true, cancel_on_tap_outside: false });
+    google.accounts.id.renderButton($("gbtn"), { theme: "filled_blue", size: "large", shape: "pill", text: "signin_with", locale: "es" });
+  }
+  function boot() {
+    if (DEMO) { st.token = "demo"; api("me").then(enter); return; }
+    var tok = load("uovo_adm_tok");
+    fetch(ENDPOINT).then(function (r) { return r.json(); }).then(function (j) {
+      clientId = String(j && j.config && j.config.google_client_id || "").trim();
+      if (!clientId) { showLogin("Falta configurar el ID de cliente de Google en la hoja Config."); return; }
+      if (tok) { st.token = tok; api("me").then(function (m) { if (m && m.ok) enter(m); else showLogin(); }).catch(function () { showLogin(); initGoogle(); }); }
+      else { showLogin(); }
+      initGoogle();
+    }).catch(function () { showLogin("No se pudo conectar. Revisá tu conexión."); });
+  }
+
+  /* ---------- Navegación ---------- */
+  function goto(v) {
+    st.v = v;
+    Array.prototype.forEach.call($("nav").querySelectorAll("button"), function (b) { b.classList.toggle("on", b.getAttribute("data-v") === v); });
+    if (!st.loaded[v]) { $("view").innerHTML = '<div class="empty">Cargando…</div>'; fetchView(v); } else render();
+    window.scrollTo(0, 0);
+  }
+  function fetchView(v) {
+    api(v).then(function (j) {
+      if (!j || !j.ok) { $("view").innerHTML = '<div class="empty">No se pudo cargar. ' + esc(j && j.msg || "") + "</div>"; return; }
+      st[v] = j[v]; st.loaded[v] = true; if (st.v === v) render();
+    }).catch(function () { if (st.v === v) $("view").innerHTML = '<div class="empty">No se pudo cargar.</div>'; });
+  }
+  $("nav").addEventListener("click", function (e) { var b = e.target.closest("button[data-v]"); if (b) goto(b.getAttribute("data-v")); });
+  $("refresh").addEventListener("click", function () { st.loaded = {}; goto(st.v); });
+  $("logout").addEventListener("click", function () { signedOut(""); });
+
+  /* ---------- Pedidos ---------- */
+  function estadoDe(p) { if (p.cc || p.cl) return "canc"; if (p.en) return "ent"; if (p.he) return "list"; if (p.ap) return "coc"; return "pend"; }
+  var FILS = [["pend", "Pendientes"], ["coc", "A cocinar"], ["list", "Listos"], ["ent", "Entregados"], ["canc", "Cancelados"], ["todos", "Todos"]];
+  function waLink(t) { var d = String(t || "").replace(/\D/g, ""); if (!d) return ""; if (d.indexOf("54") !== 0) d = "549" + d.replace(/^0+/, ""); return "https://wa.me/" + d; }
+  function renderPedidos() {
+    var cnt = {}; st.pedidos.forEach(function (p) { var e = estadoDe(p); cnt[e] = (cnt[e] || 0) + 1; });
+    var q = st.q.trim().toLowerCase();
+    var list = st.pedidos.filter(function (p) {
+      if (st.fil !== "todos" && estadoDe(p) !== st.fil) return false;
+      return !q || (p.nombre + " " + p.id + " " + p.pedido + " " + p.tel).toLowerCase().indexOf(q) >= 0;
+    });
+    var h = '<input class="search" id="pq" type="search" placeholder="Buscar por nombre, código o pedido…" value="' + esc(st.q) + '">' +
+      '<div class="chips">' + FILS.map(function (f) { var n = f[0] === "todos" ? st.pedidos.length : (cnt[f[0]] || 0); return '<button class="chip' + (st.fil === f[0] ? " on" : "") + '" data-f="' + f[0] + '">' + f[1] + "<b>" + n + "</b></button>"; }).join("") + "</div>";
+    if (!list.length) h += '<div class="empty">No hay pedidos en esta vista.</div>';
+    h += list.map(function (p) {
+      var c = p.cc || p.cl, wa = waLink(p.tel);
+      return '<article class="card' + (c ? " dim" : "") + '" data-r="' + p.r + '"><div class="row"><div><div class="nm">' + esc(p.nombre) + '</div><div class="id">' + esc(p.id) + " · " + esc(p.fecha) + '</div></div><div class="tot">' + money(p.total) + "</div></div>" +
+        '<div class="items">' + esc(p.pedido) + "</div>" +
+        '<div class="meta">Entrega: ' + esc(p.entrega || "—") + (p.pago ? " · " + esc(p.pago) : "") + (p.cupon ? " · Cupón " + esc(p.cupon) : "") + "</div>" +
+        (p.notas ? '<div class="note" style="margin-top:6px">📝 ' + esc(p.notas) + "</div>" : "") +
+        (c ? '<div style="margin-top:8px"><span class="badge">' + (p.cl ? "Cancelado por el cliente" : "Cancelado por nosotros") + "</span></div>" :
+          '<div class="tgl"><button class="tg' + (p.ap ? " on" : "") + '" data-t="ap">' + (p.ap ? "✓ " : "") + 'Aprobado</button><button class="tg' + (p.he ? " on" : "") + '" data-t="he">' + (p.he ? "✓ " : "") + 'Hecho</button><button class="tg' + (p.en ? " on" : "") + '" data-t="en">' + (p.en ? "✓ " : "") + "Entregado</button></div>") +
+        '<div class="acts">' + (wa ? '<a class="sm" target="_blank" rel="noopener" href="' + wa + '">WhatsApp</a>' : "") +
+        '<button class="sm" data-note="1">Nota</button>' +
+        (p.cl ? "" : (p.cc ? '<button class="sm" data-t="cc" data-v="0">Reactivar</button>' : '<button class="sm red" data-cc="1">Cancelar pedido</button>')) + "</div></article>";
+    }).join("");
+    return h;
+  }
+  function patchPedido(r, campo, valor, undo) {
+    var p = st.pedidos.filter(function (x) { return x.r === r; })[0]; if (!p) return;
+    var old = p[campo]; p[campo] = valor; render(true);
+    api("setPedido", { r: r, id: p.id, campo: campo, valor: valor }).then(function (j) {
+      if (!j || !j.ok) { p[campo] = old; render(true); toast(j && j.msg || "No se pudo guardar"); return; }
+      for (var k in j.p) p[k] = j.p[k]; render(true);
+    }).catch(function () { p[campo] = old; render(true); toast("No se pudo guardar"); });
+  }
+
+  /* ---------- Productos ---------- */
+  function renderProductos() {
+    if (!st.productos.length) return '<div class="empty">No hay productos.</div>';
+    return '<div class="help">Tocá los interruptores o cambiá el precio. Los cambios se ven en la tienda al instante.</div>' + st.productos.map(function (p) {
+      var mg = p.costo != null && p.precio > 0 ? Math.round((p.precio - p.costo) / p.precio * 100) : null;
+      return '<article class="card" data-r="' + p.r + '"><div class="row"><div><div class="nm">' + esc(p.nombre) + '</div><div class="meta">' + esc(p.cat || "Sin categoría") + (p.costo != null ? " · costo " + money(p.costo) + (mg != null ? " · margen " + mg + "%" : "") : " · falta receta") + "</div></div>" +
+        '<div class="pr"><span>$</span><input class="inp" type="number" inputmode="numeric" min="0" step="50" value="' + p.precio + '" data-pr="1"></div></div>' +
+        '<div class="row" style="margin-top:12px;align-items:center"><button class="sw warn' + (p.ag ? " on" : "") + '" data-sw="ag" style="border:0;background:none;padding:0"><i></i>Agotada</button><button class="sw' + (p.vi ? " on" : "") + '" data-sw="vi" style="border:0;background:none;padding:0"><i></i>Visible</button></div></article>';
+    }).join("");
+  }
+  function patchProducto(r, campo, valor) {
+    var p = st.productos.filter(function (x) { return x.r === r; })[0]; if (!p) return;
+    var key = campo === "ag" ? "ag" : campo === "vi" ? "vi" : "precio", old = p[key]; p[key] = valor; if (campo !== "pr") render(true);
+    (DEMO ? Promise.resolve({ ok: true }) : api("setProducto", { r: r, nombre: p.nombre, campo: campo, valor: valor })).then(function (j) {
+      if (!j || !j.ok) { p[key] = old; render(true); toast(j && j.msg || "No se pudo guardar"); } else if (campo === "pr") toast("Precio guardado");
+    }).catch(function () { p[key] = old; render(true); toast("No se pudo guardar"); });
+  }
+
+  /* ---------- Accesos ---------- */
+  function renderAccesos() {
+    var h = '<div class="help"><b>Compartir acceso:</b> escribí el mail de Google de la persona. Va a poder entrar a esta app con ese mail y usar <b>todas</b> las funciones. Podés pausar o quitar el acceso cuando quieras.</div>' +
+      st.accesos.map(function (a) {
+        var yo = a.permisos === "Dueño";
+        return '<article class="card" data-r="' + a.r + '"><div class="row"><div><div class="nm" style="word-break:break-all">' + esc(a.email) + '</div><div class="meta">' + esc(a.nota || "") + ' <span class="badge ' + (yo ? "b" : "g") + '">' + esc(a.permisos) + "</span></div></div>" +
+          (yo ? "" : '<button class="sw' + (a.activo ? " on" : "") + '" data-ac="1" style="border:0;background:none;padding:0"><i></i>' + (a.activo ? "Activo" : "Pausado") + "</button>") + "</div>" +
+          (yo ? "" : '<div class="acts"><button class="sm red" data-del="1">Quitar acceso</button></div>') + "</article>";
+      }).join("") +
+      '<div class="card"><div class="nm" style="margin-bottom:6px">Dar acceso a otra persona</div><div class="add"><input class="inp" id="a-mail" type="email" inputmode="email" placeholder="mail@gmail.com" autocomplete="off"><input class="inp" id="a-nota" type="text" placeholder="Nombre o nota (opcional)"><button class="btn" id="a-add">Dar acceso total</button></div></div>';
+    return h;
+  }
+
+  function render(keepScroll) {
+    var y = window.scrollY, h = st.v === "pedidos" ? renderPedidos() : st.v === "productos" ? renderProductos() : renderAccesos();
+    var act = document.activeElement, id = act && act.id, pos = act && act.selectionStart;
+    $("view").innerHTML = h;
+    if (id === "pq") { var e = $("pq"); e.focus(); try { e.setSelectionRange(pos, pos); } catch (x) {} }
+    if (keepScroll) window.scrollTo(0, y);
+  }
+
+  /* ---------- Eventos ---------- */
+  var armTimer = null;
+  $("view").addEventListener("input", function (e) { if (e.target.id === "pq") { st.q = e.target.value; render(); } });
+  $("view").addEventListener("change", function (e) {
+    var c = e.target.closest(".card"); if (!c || !e.target.matches("[data-pr]")) return;
+    var v = Number(e.target.value); if (!(v >= 0)) { toast("Precio inválido"); render(true); return; }
+    patchProducto(Number(c.getAttribute("data-r")), "pr", v);
+  });
+  $("view").addEventListener("click", function (e) {
+    var t = e.target;
+    var f = t.closest("[data-f]"); if (f) { st.fil = f.getAttribute("data-f"); render(); return; }
+    if (t.closest("#a-add")) {
+      var em = $("a-mail").value.trim(), nt = $("a-nota").value.trim(); if (!em) return;
+      t.closest("#a-add").disabled = true;
+      api("addAcceso", { email: em, nota: nt }).then(function (j) { if (j && j.ok) { st.accesos = j.accesos; render(); toast("Acceso otorgado a " + em); } else { toast(j && j.msg || "No se pudo"); render(); } }).catch(function () { render(); });
+      return;
+    }
+    var card = t.closest(".card"); if (!card) return; var r = Number(card.getAttribute("data-r"));
+    if (st.v === "pedidos") {
+      var tg = t.closest("[data-t]");
+      if (tg) {
+        var p = st.pedidos.filter(function (x) { return x.r === r; })[0], c = tg.getAttribute("data-t");
+        if (c === "cc") patchPedido(r, "cc", false); else patchPedido(r, c, !p[c]);
+        return;
+      }
+      if (t.closest("[data-note]")) {
+        var pp = st.pedidos.filter(function (x) { return x.r === r; })[0], n = prompt("Nota del pedido:", pp.notas || "");
+        if (n !== null) patchPedido(r, "notas", n); return;
+      }
+      var cc = t.closest("[data-cc]");
+      if (cc) { if (cc.classList.contains("arm")) { patchPedido(r, "cc", true); } else { cc.classList.add("arm"); cc.textContent = "¿Seguro? Tocá de nuevo"; clearTimeout(armTimer); armTimer = setTimeout(function () { cc.classList.remove("arm"); cc.textContent = "Cancelar pedido"; }, 3000); } }
+    } else if (st.v === "productos") {
+      var sw = t.closest("[data-sw]"); if (!sw) return;
+      var pr = st.productos.filter(function (x) { return x.r === r; })[0], k = sw.getAttribute("data-sw");
+      patchProducto(r, k, !pr[k]);
+    } else if (st.v === "accesos") {
+      if (t.closest("[data-ac]")) {
+        var a = st.accesos.filter(function (x) { return x.r === r; })[0];
+        api("setAcceso", { r: r, activo: !a.activo }).then(function (j) { if (j && j.ok) { st.accesos = j.accesos; render(true); } });
+      } else {
+        var d = t.closest("[data-del]"); if (!d) return;
+        if (d.classList.contains("arm")) api("delAcceso", { r: r }).then(function (j) { if (j && j.ok) { st.accesos = j.accesos; render(true); toast("Acceso quitado"); } });
+        else { d.classList.add("arm"); d.textContent = "¿Seguro? Tocá de nuevo"; clearTimeout(armTimer); armTimer = setTimeout(function () { d.classList.remove("arm"); d.textContent = "Quitar acceso"; }, 3000); }
+      }
+    }
+  });
+
+  if ("serviceWorker" in navigator && !DEMO) navigator.serviceWorker.register("admin-sw.js").catch(function () {});
+  boot();
+})();
+</script>
+</body>
+</html>

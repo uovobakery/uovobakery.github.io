@@ -176,15 +176,15 @@ button { cursor:pointer; }
   var ENDPOINT = "https://script.google.com/macros/s/AKfycbwRgztSNbcqRVjj6Kji1BbUCoZxAdQlYLYPxf5-266YiG16hzG9J4II1L7qhxlENjmZNA/exec";
   var DEMO = /[?&]demo=1/.test(location.search);
   var $ = function (id) { return document.getElementById(id); };
-  var st = { token: "", me: null, v: "inicio", fil: "pend", q: "", pedidos: [], productos: [], accesos: [], packs: [], recetas: [], fin: null, cfg: [], insumos: [], ppro: [], rd: null, pd: null, prov: null, pvt: "a", edit: 0, newp: false, cq: "", loaded: {}, npm: ["pedidos", "productos", "packs", "recetas", "proveedores", "textos", "finanzas"] };
+  var st = { token: "", me: null, v: "inicio", fil: "pend", q: "", pedidos: [], productos: [], accesos: [], packs: [], recetas: [], fin: null, cfg: [], insumos: [], ppro: [], rd: null, pd: null, prov: null, pvt: "a", edit: 0, newp: false, cq: "", loaded: {}, rvs: [], rv: null, npm: ["pedidos", "productos", "packs", "recetas", "proveedores", "textos", "finanzas", "resenas"] };
   function store(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
   function load(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function money(n) { return "$" + Math.round(Number(n) || 0).toLocaleString("es-AR"); }
-  var AREAS = [["pedidos", "Pedidos"], ["productos", "Productos"], ["packs", "Packs"], ["recetas", "Recetas"], ["proveedores", "Insumos"], ["textos", "Textos"], ["finanzas", "Finanzas"]];
+  var AREAS = [["pedidos", "Pedidos"], ["productos", "Productos"], ["packs", "Packs"], ["recetas", "Recetas"], ["proveedores", "Insumos"], ["textos", "Textos"], ["finanzas", "Finanzas"], ["resenas", "Reseñas"]];
   function can(a) { var r = st.me && st.me.rol; if (!r) return false; if (r === "Dueño" || r === "Total") return true; return String(r).toLowerCase().split(/[,;\s]+/).indexOf(a) >= 0; }
   function permList(p) { if (!p || p === "Dueño" || p === "Total") return AREAS.map(function (x) { return x[0]; }); return String(p).toLowerCase().split(/[,;\s]+/); }
-  var VAREA = { inicio: "pedidos", pedidos: "pedidos", productos: "productos", finanzas: "finanzas", packs: "packs", recetas: "recetas", proveedores: "proveedores", textos: "textos" };
+  var VAREA = { inicio: "pedidos", pedidos: "pedidos", productos: "productos", finanzas: "finanzas", packs: "packs", recetas: "recetas", proveedores: "proveedores", textos: "textos", resenas: "resenas" };
   function allowed(v) { if (v === "mas") return true; if (v === "accesos" || v === "voz") return !!(st.me && st.me.rol === "Dueño"); return can(VAREA[v]); }
   function firstView() { var o = ["inicio", "pedidos", "productos", "finanzas", "mas"]; for (var i = 0; i < o.length; i++) if (allowed(o[i])) return o[i]; return "mas"; }
   function applyPerms() { Array.prototype.forEach.call($("nav").querySelectorAll("button"), function (b) { b.hidden = !allowed(b.getAttribute("data-v")); }); }
@@ -232,6 +232,7 @@ button { cursor:pointer; }
       if (op === "recetas") return res({ ok: true, recetas: d.recetas });
       if (op === "finanzas" || op === "setAnio") return res(d.fin);
       if (op === "setPack") return res({ ok: true });
+      if (op === "resenas" || op === "saveResena" || op === "setResena" || op === "delResena") return res({ ok: true, resenas: [{ r: 2, vi: true, nombre: "Lucía", est: 5, com: "Las mejores cookies que probé, la Red Velvet es increíble.", foto: "" }, { r: 3, vi: false, nombre: "Pedro", est: 4, com: "Muy ricas, llegaron perfectas.", foto: "" }] });
       if (op === "setPermisos") return res({ ok: true, accesos: d.accesos });
       if (op === "vozEstado") return res({ ok: true, clave: true });
       if (op === "setVozKey") return res({ ok: true });
@@ -282,7 +283,7 @@ button { cursor:pointer; }
   }
 
   /* ---------- Navegación ---------- */
-  var SUB = ["packs", "recetas", "textos", "proveedores", "accesos", "voz"];
+  var SUB = ["packs", "recetas", "textos", "proveedores", "accesos", "voz", "resenas"];
   function goto(v) {
     if (!allowed(v)) v = firstView();
     st.v = v; var nk = SUB.indexOf(v) >= 0 ? "mas" : v;
@@ -297,12 +298,12 @@ button { cursor:pointer; }
   function fetchView(v) {
     if (v === "textos") { fetchTextos(); return; }
     if (v === "voz") { api("vozEstado").then(function (j) { st.vz = !!(j && j.clave); st.loaded.voz = true; if (st.v === "voz") render(); }).catch(function () {}); return; }
-    var op = v === "inicio" ? "pedidos" : v === "productos" ? "catalogo" : v === "recetas" ? "recetas2" : v === "packs" ? "packs2" : v;
+    var op = v === "inicio" ? "pedidos" : v === "resenas" ? "resenas" : v === "productos" ? "catalogo" : v === "recetas" ? "recetas2" : v === "packs" ? "packs2" : v;
     if ((v === "recetas" || v === "packs") && !st.loaded.productos) api("catalogo").then(function (j) { if (j && j.ok) { st.productos = j.catalogo; st.loaded.productos = true; } }).catch(function () {});
     if (v === "inicio" && !st.loaded.productos) api("catalogo").then(function (j) { if (j && j.ok) { st.productos = j.catalogo; st.loaded.productos = true; if (st.v === "inicio") render(true); } }).catch(function () {});
     api(op).then(function (j) {
       if (!j || !j.ok) { $("view").innerHTML = '<div class="empty">No se pudo cargar. ' + esc(j && j.msg || "") + "</div>"; return; }
-      if (op === "finanzas") st.fin = j; else if (op === "catalogo") st.productos = j.catalogo; else if (op === "proveedores") st.prov = j.proveedores; else if (op === "config") st.cfg = j.config; else if (op === "recetas2") { st.recetas = j.recetas; st.insumos = j.insumos; } else if (op === "packs2") { st.packs = j.packs; st.ppro = j.productos; } else st[op] = j[op];
+      if (op === "finanzas") st.fin = j; else if (op === "catalogo") st.productos = j.catalogo; else if (op === "proveedores") st.prov = j.proveedores; else if (op === "config") st.cfg = j.config; else if (op === "recetas2") { st.recetas = j.recetas; st.insumos = j.insumos; } else if (op === "packs2") { st.packs = j.packs; st.ppro = j.productos; } else if (op === "resenas") { st.rvs = j.resenas; } else st[op] = j[op];
       st.loaded[v] = true; if (op === "pedidos") { st.loaded.pedidos = true; st.loaded.inicio = true; }
       if (st.v === v) render();
     }).catch(function () { if (st.v === v) $("view").innerHTML = '<div class="empty">No se pudo cargar.</div>'; });
@@ -410,7 +411,7 @@ button { cursor:pointer; }
   }
   /* ---------- Más ---------- */
   function renderMas() {
-    var it = [["textos", "✏️", "Textos de la página", "Cambiá todos los textos de la tienda"], ["proveedores", "🧾", "Proveedores e insumos", "Precios de lo que comprás"], ["recetas", "🧁", "Recetas", "Costo de cada masa y de cada cookie"], ["packs", "🎁", "Packs y combos", "Activá, pausá y cambiá precios"]].filter(function (x) { return allowed(x[0]); });
+    var it = [["textos", "✏️", "Textos de la página", "Cambiá todos los textos de la tienda"], ["proveedores", "🧾", "Proveedores e insumos", "Precios de lo que comprás"], ["recetas", "🧁", "Recetas", "Costo de cada masa y de cada cookie"], ["packs", "🎁", "Packs y combos", "Activá, pausá y cambiá precios"], ["resenas", "⭐", "Reseñas", "Lo que dicen tus clientes"]].filter(function (x) { return allowed(x[0]); });
     if (st.me && st.me.rol === "Dueño") { it.push(["voz", "🎙️", "Asistente de voz", "Dictá lo que querés hacer"]); it.push(["accesos", "🔑", "Accesos", "Quién puede entrar a esta app"]); }
     return '<div class="menu">' + it.map(function (x) { return '<button class="mi" data-go="' + x[0] + '"><i>' + x[1] + "</i><div><b>" + x[2] + "</b><span>" + x[3] + "</span></div></button>"; }).join("") + "</div>";
   }
@@ -557,17 +558,17 @@ button { cursor:pointer; }
   function openFotos(kind, ref) {
     if (FO) return;
     var list = String(ref.fotos || "").split(/\r?\n/).map(parseM).filter(Boolean);
-    FO = { kind: kind, ref: ref, list: list, single: kind === "pack", msg: "", busy: false, el: document.createElement("div") };
+    FO = { kind: kind, ref: ref, list: list, single: kind !== "prod", msg: "", busy: false, el: document.createElement("div") };
     FO.el.className = "fotos"; document.body.appendChild(FO.el);
     paintF();
     driveToken().catch(function (e) { FO.msg = "Tocá “Permitir Drive” para poder subir archivos."; FO.need = true; paintF(); });
   }
-  function closeFotos() { if (FO) { FO.el.remove(); FO = null; } if (st.v === "productos" || st.v === "packs") render(true); }
+  function closeFotos() { if (FO) { FO.el.remove(); FO = null; } if (st.v === "productos" || st.v === "packs" || st.v === "resenas") render(true); }
   function paintF() {
     if (!FO) return;
     var f = FO, n = f.list.length;
     var h = '<header><h2>' + esc(f.ref.nombre || "Fotos") + '</h2><button class="ibtn" data-fx="close" aria-label="Cerrar">✕</button></header><div class="bd">';
-    h += '<div class="help">' + (f.single ? "Foto del combo. Se sube a tu Drive y se publica sola." : "Ordená como quieras: la <b>1ª</b> es la principal y la <b>2ª</b> es la que se ve al pasar el mouse. Se suben a <b>tu</b> Drive y se publican solas.") + "</div>";
+    h += '<div class="help">' + (f.single ? "Foto de la reseña (por ejemplo, una captura). Se sube a tu Drive y se publica sola." : "Ordená como quieras: la <b>1ª</b> es la principal y la <b>2ª</b> es la que se ve al pasar el mouse. Se suben a <b>tu</b> Drive y se publican solas.") + "</div>";
     if (f.need) h += '<button class="addf" data-fx="conn">Permitir Drive</button>';
     else h += '<label class="addf' + (f.busy ? " dis" : "") + '">＋ Agregar ' + (f.single ? "foto" : "fotos o videos") + '<input type="file" id="fo-in" accept="image/*' + (f.single ? "" : ",video/*") + '"' + (f.single ? "" : " multiple") + ' hidden></label>';
     if (f.msg) h += '<div class="meta" style="margin-bottom:10px">' + esc(f.msg) + "</div>";
@@ -582,6 +583,7 @@ button { cursor:pointer; }
   function saveF() {
     var f = FO; if (!f) return Promise.resolve();
     var val = f.list.map(function (m) { return m.raw; }).join("\n"); f.ref.fotos = val;
+    if (f.kind === "resena") { if (st.rv) st.rv.foto = val; return Promise.resolve(); }
     if (DEMO) return Promise.resolve();
     var p = f.kind === "prod" ? api("setFotos", { r: f.ref.r, nombre: f.ref.nombre, valor: val }) : api("setPackFoto", { r: f.ref.r, orig: f.ref.nombre, valor: val });
     return p.then(function (j) { if (!j || !j.ok) toast(j && j.msg || "No se pudo guardar"); else toast("Guardado ✓"); });
@@ -654,7 +656,7 @@ button { cursor:pointer; }
   }
 
   function render(keepScroll) {
-    var y = window.scrollY, V = { inicio: renderInicio, pedidos: renderPedidos, productos: renderProductos, mas: renderMas, packs: renderPacks, recetas: renderRecetas, finanzas: renderFinanzas, textos: renderTextos, proveedores: renderProv, accesos: function () { return BACK + renderAccesos(); }, voz: renderVozCfg };
+    var y = window.scrollY, V = { inicio: renderInicio, pedidos: renderPedidos, productos: renderProductos, mas: renderMas, packs: renderPacks, recetas: renderRecetas, finanzas: renderFinanzas, textos: renderTextos, proveedores: renderProv, accesos: function () { return BACK + renderAccesos(); }, voz: renderVozCfg, resenas: renderResenas };
     var h = V[st.v]();
     var act = document.activeElement, id = act && act.id, pos = act && act.selectionStart;
     $("view").innerHTML = h;
@@ -689,6 +691,9 @@ button { cursor:pointer; }
       ["#ai-ok", "Agregar", "¿Falta un insumo? Sumalo acá."]],
     voz: [["#vz-key", "Clave de IA", "Pegá acá tu clave de Anthropic (una sola vez). Queda guardada en tu Apps Script, no en este teléfono."],
       [".help", "Cómo se usa", "Tocá el micrófono azul, dictá lo que querés y confirmá antes de aplicar."]],
+    resenas: [["#rvnew", "Nueva reseña", "Cargá el nombre, la puntuación, el comentario y, si querés, una foto."],
+      ["[data-rvvi]", "Visible u oculta", "Mostrá u ocultá la reseña en la tienda sin borrarla."],
+      ["[data-rvedit]", "Editar", "Cambiá puntuación, comentario o foto. También podés eliminarla."]],
     mas: [[".menu", "Más funciones", "Entrá a cada una. Arriba a la izquierda, ‹ Más te devuelve acá."]],
     finanzas: [["#fin-year", "Año", "Cambiá de año con las flechas."],
       ["#fin-mes", "Mes", "Elegí un mes o el total del año."],
@@ -774,6 +779,7 @@ button { cursor:pointer; }
     { t: "Cargar o editar una receta", k: "receta recetas masa insumos cantidades costo cookie", go: "recetas", p: ["Tocá Más → Recetas.", "＋ Nueva receta, o Editar en una existente.", "Elegí el producto, cuántas cookies salen de una masa y los insumos con la cantidad total de esa masa.", "Guardá: el costo por cookie se calcula solo."] },
     { t: "Cargar una compra de insumos (precio de la harina, etc.)", k: "insumo insumos compra compre proveedor harina manteca precio kilo packaging cantidad", go: "proveedores", p: ["Tocá Más → Proveedores e insumos.", "Buscá el insumo (Insumos o Packaging).", "Cargá proveedor, cantidad comprada y precio total pagado. El costo por unidad se calcula solo.", "Ejemplo: 1 kg = 1000 g a $1800."] },
     { t: "Agregar un insumo nuevo", k: "agregar nuevo insumo ingrediente packaging sumar", go: "proveedores", p: ["Tocá Más → Proveedores e insumos.", "Abajo, en 'Agregar insumo', escribí nombre y unidad (g, ml, unidad).", "Tocá Agregar y cargale la compra."] },
+    { t: "Cargar o sacar una reseña", k: "reseña reseñas resena resenas opinion opiniones comentario puntuacion estrellas cliente testimonio google", go: "resenas", p: ["Tocá Más → Reseñas.", "＋ Nueva reseña: nombre, puntuación (1 a 5), comentario y foto opcional.", "Con el interruptor Visible/Oculta la mostrás o sacás de la tienda.", "Para borrarla del todo: Editar → Eliminar."] },
     { t: "Ver cuánto gané (Finanzas)", k: "finanzas ganancia gane ganado ventas resultado plata mes anio costos balance", go: "finanzas", p: ["Tocá Finanzas abajo.", "Elegí el año y el mes (o el total).", "Arriba ves lo que te quedó y abajo a dónde fue la plata."] },
     { t: "Cambiar textos de la tienda", k: "texto textos cambiar frase titulo descripcion pagina web tienda quienes somos whatsapp", go: "textos", p: ["Tocá Más → Textos de la página.", "Buscá el texto con el buscador.", "Cambialo y salí del campo: se guarda y se ve en la tienda."] },
     { t: "Dar acceso a otra persona", k: "acceso accesos compartir persona usuario mail dar invitar socio empleado", go: "accesos", p: ["Tocá Más → Accesos (solo el dueño lo ve).", "Escribí el mail de Google de la persona.", "Marcá qué secciones puede usar y tocá Dar acceso. Entra con esa cuenta."] },
@@ -934,6 +940,61 @@ button { cursor:pointer; }
     if (!e.target.closest || !e.target.closest("#vz-save")) return;
     var k = $("vz-key").value.trim(); if (!/^sk-ant-/.test(k)) { toast("La clave debe empezar con sk-ant-"); return; }
     api("setVozKey", { valor: k }).then(function (j) { if (j && j.ok) { st.vz = true; $("vz-key").value = ""; render(true); toast("Clave guardada ✓"); } else toast(j && j.msg || "No se pudo guardar"); }).catch(function () { toast("No se pudo guardar"); });
+  });
+
+
+  /* ---------- Reseñas ---------- */
+  function stars(n) { var h = ""; for (var i = 1; i <= 5; i++) h += i <= n ? "★" : "☆"; return h; }
+  function rvTh(raw) { var m = raw ? parseM(raw) : null; return m ? m.th : ""; }
+  function renderResenas() {
+    var h = BACK + '<button class="btn" data-rvnew="1" id="rvnew" style="margin-bottom:12px">＋ Nueva reseña</button>';
+    if (st.rv && !st.rv.r) h += '<div class="card" id="rv-ed">' + editorRv() + "</div>";
+    var L = st.rvs, vis = L.filter(function (x) { return x.vi; }), rated = vis.filter(function (x) { return x.est > 0; });
+    if (rated.length) { var avg = rated.reduce(function (a, x) { return a + x.est; }, 0) / rated.length; h += '<div class="card" style="text-align:center"><div class="tot" style="font-size:1.6rem">' + avg.toFixed(1).replace(".", ",") + ' <span style="color:#E8A400">★</span></div><div class="meta">' + vis.length + " visibles en la tienda · " + L.length + " cargadas</div></div>"; }
+    if (!L.length && !st.rv) h += '<div class="empty">Todavía no cargaste reseñas.</div>';
+    h += L.map(function (x) {
+      var ed = st.rv && st.rv.r === x.r, th = rvTh(x.foto);
+      return '<article class="card' + (x.vi ? "" : " dim") + '" data-r="' + x.r + '" data-rn="' + esc(x.nombre) + '"><div class="row"><div style="display:flex;gap:10px;min-width:0">' + (th ? '<img src="' + esc(th) + '" alt="" style="width:52px;height:52px;border-radius:10px;object-fit:cover;flex:none" referrerpolicy="no-referrer">' : "") + '<div style="min-width:0"><div class="nm">' + esc(x.nombre || "Sin nombre") + '</div><div style="color:#E8A400;letter-spacing:1px">' + stars(x.est) + '</div></div></div></div>' +
+        (x.com ? '<div class="items" style="margin-top:6px">' + esc(x.com.length > 160 ? x.com.slice(0, 160) + "…" : x.com) + "</div>" : "") +
+        '<div class="row" style="margin-top:10px;align-items:center"><button class="sw' + (x.vi ? " on" : "") + '" data-rvvi="1" style="border:0;background:none;padding:0"><i></i>' + (x.vi ? "Visible" : "Oculta") + '</button><button class="sm" data-rvedit="1">' + (ed ? "Cerrar" : "Editar") + "</button></div>" + (ed ? editorRv() : "") + "</article>";
+    }).join("");
+    h += '<div class="help" style="margin-top:12px">⭐ <b>Próximamente:</b> traer automáticamente las reseñas de Google de tu negocio.</div>';
+    return h;
+  }
+  function editorRv() {
+    var d = st.rv, th = rvTh(d.foto);
+    var h = '<div class="add" style="margin-top:10px"><input class="inp" data-rvf="nombre" placeholder="Nombre de la persona" value="' + esc(d.nombre) + '">';
+    h += '<div class="meta">Puntuación:</div><div class="chips" id="rv-st">' + [1, 2, 3, 4, 5].map(function (n) { return '<button class="chip' + (d.est === n ? " on" : "") + '" data-rvs="' + n + '">' + n + " ★</button>"; }).join("") + "</div>";
+    h += '<textarea class="inp" rows="4" data-rvf="com" placeholder="Comentario">' + esc(d.com) + "</textarea>";
+    h += '<div class="row" style="align-items:center;gap:10px">' + (th ? '<img src="' + esc(th) + '" alt="" style="width:64px;height:64px;border-radius:10px;object-fit:cover" referrerpolicy="no-referrer">' : "") + '<button class="sm" data-rvfoto="1">📎 ' + (d.foto ? "Cambiar foto" : "Agregar foto") + "</button>" + (d.foto ? '<button class="sm red" data-rvnofoto="1">Quitar foto</button>' : "") + "</div>";
+    h += '<button class="sw' + (d.vi ? " on" : "") + '" data-rvdvi="1" style="border:0;background:none;padding:0"><i></i>' + (d.vi ? "Visible en la tienda" : "Oculta") + "</button>";
+    h += '<div style="display:flex;gap:8px;margin-top:6px"><button class="btn" data-rvsave="1">Guardar</button><button class="sm" data-rvcancel="1">Cancelar</button>' + (d.r ? '<button class="sm red" data-rvdel="1">Eliminar</button>' : "") + "</div></div>";
+    return h;
+  }
+  function rvApi(op, extra, okMsg) {
+    return (DEMO ? Promise.resolve({ ok: true, resenas: st.rvs }) : api(op, extra)).then(function (j) { if (j && j.ok) { st.rvs = j.resenas; st.rv = null; render(true); toast(okMsg); } else { toast(j && j.msg || "No se pudo guardar"); render(true); } }).catch(function () { render(true); });
+  }
+  document.addEventListener("click", function (e) {
+    var t = e.target; if (!t.closest || st.v !== "resenas") return;
+    var q = function (s) { return t.closest(s); };
+    if (q("[data-rvnew]")) { st.rv = { r: 0, orig: "", nombre: "", est: 5, com: "", foto: "", vi: true }; render(true); return; }
+    var card = q(".card[data-rn]"), x = card && st.rvs.filter(function (z) { return z.r === Number(card.getAttribute("data-r")); })[0];
+    if (q("[data-rvedit]") && x) { st.rv = st.rv && st.rv.r === x.r ? null : { r: x.r, orig: x.nombre, nombre: x.nombre, est: x.est, com: x.com, foto: x.foto, vi: x.vi }; render(true); return; }
+    if (q("[data-rvvi]") && x) { var nv = !x.vi; x.vi = nv; render(true); (DEMO ? Promise.resolve({ ok: true }) : api("setResena", { r: x.r, orig: x.nombre, vi: nv })).then(function (j) { if (!j || !j.ok) { x.vi = !nv; render(true); toast(j && j.msg || "No se pudo"); } }).catch(function () { x.vi = !nv; render(true); }); return; }
+    if (!st.rv) return;
+    if (q("[data-rvs]")) { st.rv.est = Number(q("[data-rvs]").getAttribute("data-rvs")); Array.prototype.forEach.call($("rv-st") ? $("rv-st").children : (document.querySelectorAll("#rv-st")[0] || { children: [] }).children, function (b) { b.classList.toggle("on", Number(b.getAttribute("data-rvs")) === st.rv.est); }); return; }
+    if (q("[data-rvdvi]")) { st.rv.vi = !st.rv.vi; render(true); return; }
+    if (q("[data-rvfoto]")) { openFotos("resena", { r: st.rv.r, nombre: st.rv.nombre, fotos: st.rv.foto || "" }); return; }
+    if (q("[data-rvnofoto]")) { st.rv.foto = ""; render(true); return; }
+    if (q("[data-rvcancel]")) { st.rv = null; render(true); return; }
+    if (q("[data-rvsave]")) { var d = st.rv; if (!d.com.trim() && !d.foto) { toast("Poné un comentario o una foto"); return; } q("[data-rvsave]").disabled = true; rvApi("saveResena", { r: d.r, orig: d.orig, nombre: d.nombre, est: d.est, com: d.com, foto: d.foto, vi: d.vi }, "Guardado ✓"); return; }
+    var dl = q("[data-rvdel]"); if (dl) {
+      if (dl.classList.contains("arm")) { rvApi("delResena", { r: st.rv.r, orig: st.rv.orig }, "Eliminada"); }
+      else { dl.classList.add("arm"); dl.textContent = "¿Seguro? Tocá de nuevo"; clearTimeout(armTimer); armTimer = setTimeout(function () { dl.classList.remove("arm"); dl.textContent = "Eliminar"; }, 3000); }
+    }
+  });
+  document.addEventListener("input", function (e) {
+    var el = e.target; if (!st.rv || !el.matches || !el.matches("[data-rvf]")) return; st.rv[el.getAttribute("data-rvf")] = el.value;
   });
 
   /* ---------- Eventos ---------- */

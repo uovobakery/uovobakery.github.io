@@ -224,6 +224,7 @@ button { cursor:pointer; }
       if (op === "catalogo") return res({ ok: true, catalogo: d.productos.map(function (p) { p.desc = "Masa suave con cacao y vainilla."; p.fotos = ""; p.ing = "cacao, vainilla"; return p; }) });
       if (op === "config") return res({ ok: true, config: d.cfg });
       if (op === "proveedores" || op === "setProveedor" || op === "addInsumo") return res({ ok: true, proveedores: d.prov });
+      if (op === "usos" || op === "setUso") { d.usos = d.usos || []; if (op === "setUso") { var ue = d.usos.filter(function (z) { return z.ins === extra.ins; })[0]; if (!ue) { ue = { ins: extra.ins }; d.usos.push(ue); } ue.nombre = extra.nombre; ue.base = extra.base; ue.usos = JSON.parse(extra.usos); } return res({ ok: true, usos: d.usos }); }
       if (op === "addProducto") return res({ ok: true, catalogo: d.productos });
       if (op === "saveProducto" || op === "setConfig" || op === "setFotos" || op === "setPackFoto") return res({ ok: true });
       if (op === "recetas2" || op === "saveReceta" || op === "delReceta") return res({ ok: true, recetas: d.recetas.map(function (x) { x.y = x.q; x.items = [{ n: "Harina 0000", q: 184.6, u: "g" }, { n: "Manteca", q: 114.4, u: "g" }]; return x; }), insumos: [{ n: "Harina 0000", u: "g" }, { n: "Manteca", u: "g" }, { n: "Azúcar", u: "g" }] });
@@ -686,7 +687,28 @@ button { cursor:pointer; }
     return h;
   }
   /* ---------- Proveedores ---------- */
+  function usoOf(ins) { var a = st.us || []; for (var i = 0; i < a.length; i++) if (nrm(a[i].ins) === nrm(ins)) return a[i]; return null; }
+  function num(v) { var n = parseFloat(String(v).replace(",", ".")); return isFinite(n) ? n : 0; }
+  function fm(n) { return (Math.round(n * 100) / 100).toLocaleString("es-AR"); }
+  function usosHtml(x) {
+    var u = usoOf(x.ins) || { nombre: "", base: 0, usos: [] }, nm = u.nombre || "uso", cu = x.costo * u.base, big = /^(g|ml)$/i.test(x.uni) ? 1000 : 1;
+    var h = '<div class="nm" style="margin-top:14px">Equivalencias y usos</div><div class="meta">Para saber cuánto te cuesta cada vez que lo usás (una hoja, un sticker, 40 cm de film…).</div><div class="add">' +
+      '<input class="inp" data-ux="nombre" placeholder="Unidad de uso (ej. hoja, sticker, cm de film)" value="' + esc(u.nombre) + '">' +
+      '<div style="display:flex;gap:8px"><input class="inp" data-ux="eq" inputmode="decimal" placeholder="1 ' + esc(nm) + ' pesa/equivale (' + esc(x.uni) + ')" value="' + (u.base ? esc(String(Math.round(u.base * 1000) / 1000).replace(".", ",")) : "") + '"><input class="inp" data-ux="por" inputmode="decimal" placeholder="o cuántos entran en ' + (big > 1 ? "1 kg/l" : "1 " + esc(x.uni)) + '"></div></div>';
+    if (u.base && x.costo) h += '<div class="meta" style="margin-top:6px">1 ' + esc(nm) + " ≈ $" + fm(cu) + "</div>";
+    else if (u.base) h += '<div class="meta" style="margin-top:6px">Cargá la compra para ver el costo por ' + esc(nm) + ".</div>";
+    h += (u.usos || []).map(function (z, i) { return '<div class="frow"><span>' + esc(z.d) + " · " + fm(z.c) + " " + esc(nm) + '</span><span>' + (cu ? "$" + fm(cu * z.c) : "") + ' <button class="sm red" data-udel="' + i + '" style="margin-left:6px">✕</button></span></div>'; }).join("");
+    h += '<div class="add" style="margin-top:8px"><div style="display:flex;gap:8px"><input class="inp" id="ux-d" placeholder="Dónde se usa (ej. caja chica)"><input class="inp" id="ux-c" inputmode="decimal" placeholder="Cuántos" style="max-width:100px"></div><button class="sm" data-uadd="1">Agregar uso</button></div>';
+    var tot = (u.usos || []).reduce(function (a, z) { return a + z.c; }, 0); if (cu && tot) h += '<div class="frow t"><span>Costo si usás todo en 1 pedido</span><span>$' + fm(cu * tot) + "</span></div>";
+    return h;
+  }
+  function saveUso(ins, fn) {
+    var u = usoOf(ins); if (!u) { u = { ins: ins, nombre: "", base: 0, usos: [] }; }
+    fn(u);
+    (api("setUso", { ins: ins, nombre: u.nombre, base: u.base, usos: JSON.stringify(u.usos || []) })).then(function (j) { if (j && j.ok) { st.us = j.usos; render(true); toast("Guardado ✓"); } else toast(j && j.msg || "No se pudo guardar"); }).catch(function () { toast("No se pudo guardar"); });
+  }
   function renderProv() {
+    if (st.us == null && !st.usf) { st.usf = 1; api("usos").then(function (j) { st.us = j && j.ok ? j.usos : []; if (st.v === "proveedores") render(true); }).catch(function () { st.us = []; }); }
     if (!st.prov) return BACK + '<div class="empty">Cargando…</div>';
     var q = nrm(st.pvq), L = (st.prov[st.pvt] || []).filter(function (x) { return !q || nrm(x.ins).indexOf(q) >= 0 || nrm(x.prov).indexOf(q) >= 0; });
     var h = BACK + '<div style="display:flex;gap:8px;margin-bottom:10px"><input class="search" id="pvq" type="search" placeholder="Buscar insumo o proveedor…" value="' + esc(st.pvq) + '" style="margin:0;flex:1"><button class="btn" id="pv-plus" aria-label="Agregar insumo" style="width:52px;padding:0;font-size:1.5rem">＋</button></div>';
@@ -696,7 +718,7 @@ button { cursor:pointer; }
     h += L.map(function (x) {
       var open = st.pvx === x.r, c = x.costo ? "$" + (Math.round(x.costo * 100) / 100).toLocaleString("es-AR") + " / " + esc(x.uni) : "sin precio";
       var b = '<article class="card" data-r="' + x.r + '" data-ins="' + esc(x.ins) + '"><button class="row" data-pvx="' + x.r + '" style="width:100%;border:0;background:none;padding:0;text-align:left;align-items:center"><div style="min-width:0"><div class="nm">' + esc(x.ins) + '</div><div class="meta">' + (x.prov ? esc(x.prov) + " · " : "") + c + '</div></div><span style="color:var(--soft);font-size:1.1rem">' + (open ? "▴" : "▾") + "</span></button>";
-      if (open) b += '<div class="add" style="margin-top:10px"><div class="meta" style="margin-bottom:-4px">Unidad en que cargás recetas (ej. g, ml, unidad)</div><input class="inp" data-pv="uni" list="pv-units" value="' + esc(x.uni) + '" placeholder="Unidad"><input class="inp" data-pv="prov" placeholder="Proveedor" value="' + esc(x.prov) + '"><div style="display:flex;gap:8px"><input class="inp" data-pv="cant" type="text" inputmode="decimal" placeholder="Cantidad (podés escribir 1 kg)" value="' + (x.cant ? esc(String(x.cant).replace(".", ",")) + "" : "") + '"><input class="inp" data-pv="precio" type="text" inputmode="decimal" placeholder="Precio total $" value="' + (x.precio || "") + '"></div><div class="meta">Cantidad guardada en <b>' + esc(x.uni) + '</b>. Si escribís «1 kg» o «2 l» lo convierto solo. ' + (x.fecha ? "Última compra: " + esc(x.fecha) + "." : "") + "</div></div>";
+      if (open) b += '<div class="add" style="margin-top:10px"><div class="meta" style="margin-bottom:-4px">Unidad en que cargás recetas (ej. g, ml, unidad)</div><input class="inp" data-pv="uni" list="pv-units" value="' + esc(x.uni) + '" placeholder="Unidad"><input class="inp" data-pv="prov" placeholder="Proveedor" value="' + esc(x.prov) + '"><div style="display:flex;gap:8px"><input class="inp" data-pv="cant" type="text" inputmode="decimal" placeholder="Cantidad (podés escribir 1 kg)" value="' + (x.cant ? esc(String(x.cant).replace(".", ",")) + "" : "") + '"><input class="inp" data-pv="precio" type="text" inputmode="decimal" placeholder="Precio total $" value="' + (x.precio || "") + '"></div><div class="meta">Cantidad guardada en <b>' + esc(x.uni) + '</b>. Si escribís «1 kg» o «2 l» lo convierto solo. ' + (x.fecha ? "Última compra: " + esc(x.fecha) + "." : "") + "</div>" + usosHtml(x) + "</div>";
       return b + "</article>";
     }).join("");
     return h;
@@ -1080,6 +1102,16 @@ button { cursor:pointer; }
   var armTimer = null;
   $("view").addEventListener("input", function (e) { if (e.target.id === "pq") { st.q = e.target.value; render(); } if (e.target.id === "cq") { st.cq = e.target.value; render(true); } if (e.target.id === "pvq") { st.pvq = e.target.value; render(true); } });
   $("view").addEventListener("change", function (e) {
+    var ux = e.target.getAttribute && e.target.getAttribute("data-ux");
+    if (ux) {
+      var uc = e.target.closest("[data-ins]"), uin = uc && uc.getAttribute("data-ins"), up = st.prov[st.pvt].filter(function (z) { return z.ins === uin; })[0]; if (!uin || !up) return;
+      var val = e.target.value;
+      saveUso(uin, function (u) {
+        if (ux === "nombre") u.nombre = val.trim();
+        else if (ux === "eq") u.base = num(val);
+        else if (ux === "por") { var n = num(val); u.base = n > 0 ? (/^(g|ml)$/i.test(up.uni) ? 1000 : 1) / n : 0; }
+      }); return;
+    }
     if (e.target.id === "fin-d" || e.target.id === "fin-h") { if (e.target.value) { if (e.target.id === "fin-d") st.fd = e.target.value; else st.fh = e.target.value; st.fp = ""; render(true); } return; }
     var c = e.target.closest(".card"); if (!c && !e.target.closest("#pk-ed")) return;
     var tg = e.target;
@@ -1160,6 +1192,13 @@ button { cursor:pointer; }
     if (t.closest("#pv-plus")) { st.pvnew = !st.pvnew; render(true); var an = $("ai-n"); if (an) an.focus(); return; }
     if (t.closest("#ai-x")) { st.pvnew = false; render(true); return; }
     var pt = t.closest("[data-pvt]"); if (pt) { st.pvt = pt.getAttribute("data-pvt"); render(true); return; }
+    var uad = t.closest("[data-uadd]"), udl = t.closest("[data-udel]");
+    if (uad || udl) {
+      var cc = t.closest("[data-ins]"), ui = cc && cc.getAttribute("data-ins"); if (ui) {
+        if (uad) { var dd = (cc.querySelector("#ux-d").value || "").trim(), qq = num(cc.querySelector("#ux-c").value); if (!dd || !(qq > 0)) { toast("Poné dónde se usa y cuántos"); return; } saveUso(ui, function (u) { u.usos = (u.usos || []).concat([{ d: dd, c: qq }]); }); }
+        else { var ix = Number(udl.getAttribute("data-udel")); saveUso(ui, function (u) { u.usos.splice(ix, 1); }); }
+      } return;
+    }
     var fm = t.closest("[data-fm]"); if (fm) { st.fm = fm.getAttribute("data-fm"); render(true); return; }
     var fpre = t.closest("[data-fpre]"); if (fpre) { var pk = fpre.getAttribute("data-fpre"); if (pk === "hoy") { finPreset("7"); st.fd = st.fh; st.fp = "hoy"; } else finPreset(pk); render(true); return; }
     var fc = t.closest("[data-fc]"); if (fc) { st.fc = Number(fc.getAttribute("data-fc")); render(true); return; }

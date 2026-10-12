@@ -176,11 +176,18 @@ button { cursor:pointer; }
   var ENDPOINT = "https://script.google.com/macros/s/AKfycbwRgztSNbcqRVjj6Kji1BbUCoZxAdQlYLYPxf5-266YiG16hzG9J4II1L7qhxlENjmZNA/exec";
   var DEMO = /[?&]demo=1/.test(location.search);
   var $ = function (id) { return document.getElementById(id); };
-  var st = { token: "", me: null, v: "inicio", fil: "pend", q: "", pedidos: [], productos: [], accesos: [], packs: [], recetas: [], fin: null, cfg: [], insumos: [], ppro: [], rd: null, pd: null, prov: null, pvt: "a", edit: 0, newp: false, cq: "", loaded: {} };
+  var st = { token: "", me: null, v: "inicio", fil: "pend", q: "", pedidos: [], productos: [], accesos: [], packs: [], recetas: [], fin: null, cfg: [], insumos: [], ppro: [], rd: null, pd: null, prov: null, pvt: "a", edit: 0, newp: false, cq: "", loaded: {}, npm: ["pedidos", "productos", "packs", "recetas", "proveedores", "textos", "finanzas"] };
   function store(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
   function load(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function money(n) { return "$" + Math.round(Number(n) || 0).toLocaleString("es-AR"); }
+  var AREAS = [["pedidos", "Pedidos"], ["productos", "Productos"], ["packs", "Packs"], ["recetas", "Recetas"], ["proveedores", "Insumos"], ["textos", "Textos"], ["finanzas", "Finanzas"]];
+  function can(a) { var r = st.me && st.me.rol; if (!r) return false; if (r === "Dueño" || r === "Total") return true; return String(r).toLowerCase().split(/[,;\s]+/).indexOf(a) >= 0; }
+  function permList(p) { if (!p || p === "Dueño" || p === "Total") return AREAS.map(function (x) { return x[0]; }); return String(p).toLowerCase().split(/[,;\s]+/); }
+  var VAREA = { inicio: "pedidos", pedidos: "pedidos", productos: "productos", finanzas: "finanzas", packs: "packs", recetas: "recetas", proveedores: "proveedores", textos: "textos" };
+  function allowed(v) { if (v === "mas") return true; if (v === "accesos" || v === "voz") return !!(st.me && st.me.rol === "Dueño"); return can(VAREA[v]); }
+  function firstView() { var o = ["inicio", "pedidos", "productos", "finanzas", "mas"]; for (var i = 0; i < o.length; i++) if (allowed(o[i])) return o[i]; return "mas"; }
+  function applyPerms() { Array.prototype.forEach.call($("nav").querySelectorAll("button"), function (b) { b.hidden = !allowed(b.getAttribute("data-v")); }); }
   var tt = null;
   function toast(m) { var t = $("toast"); t.textContent = m; t.hidden = false; clearTimeout(tt); tt = setTimeout(function () { t.hidden = true; }, 2800); }
 
@@ -210,7 +217,7 @@ button { cursor:pointer; }
   function api(op, extra) {
     if (DEMO) return new Promise(function (res) { setTimeout(function () {
       var d = JSON.parse(JSON.stringify(demo));
-      if (op === "me") return res({ ok: true, email: "demo@uovo.com", nombre: "Demo", rol: "Dueño" });
+      if (op === "me") return res({ ok: true, email: "demo@uovo.com", nombre: "Demo", rol: (location.search.match(/rol=([\w,]+)/) || [])[1] || "Dueño" });
       if (op === "pedidos") return res({ ok: true, pedidos: d.pedidos });
       if (op === "productos") return res({ ok: true, productos: d.productos });
       if (op === "accesos") return res({ ok: true, accesos: d.accesos });
@@ -225,6 +232,7 @@ button { cursor:pointer; }
       if (op === "recetas") return res({ ok: true, recetas: d.recetas });
       if (op === "finanzas" || op === "setAnio") return res(d.fin);
       if (op === "setPack") return res({ ok: true });
+      if (op === "setPermisos") return res({ ok: true, accesos: d.accesos });
       if (op === "vozEstado") return res({ ok: true, clave: true });
       if (op === "setVozKey") return res({ ok: true });
       if (op === "voz") { var tx = String(extra.texto || "").toLowerCase(); if (/agotad/.test(tx)) return res({ ok: true, acciones: [{ tipo: "setAgotada", nombre: "Chocomarsh", valor: true, resumen: "Marcar Chocomarsh como agotada" }], pregunta: "" }); if (/precio|poné|pone|a \d/.test(tx)) return res({ ok: true, acciones: [{ tipo: "setPrecioProducto", nombre: "Red Velvet", precio: 2800, resumen: "Red Velvet a $2.800" }], pregunta: "" }); return res({ ok: true, acciones: [], pregunta: "¿Qué producto?" }); }
@@ -250,7 +258,7 @@ button { cursor:pointer; }
   function enter(me) {
     st.me = me; $("login").hidden = true; $("app").hidden = false; $("who").textContent = me.email + " · " + (me.rol || "");
     $("demobar").hidden = !DEMO; $("vfab").hidden = false; st.vz = false; if (me.rol === "Dueño") api("vozEstado").then(function (j) { st.vz = !!(j && j.clave); }).catch(function () {}); setTimeout(driveWelcome, 1500);
-    goto(st.v === "accesos" && me.rol !== "Dueño" ? "mas" : st.v);
+    applyPerms(); goto(allowed(st.v) ? st.v : firstView());
   }
   function onCred(resp) {
     st.token = resp.credential; store("uovo_adm_tok", st.token);
@@ -276,6 +284,7 @@ button { cursor:pointer; }
   /* ---------- Navegación ---------- */
   var SUB = ["packs", "recetas", "textos", "proveedores", "accesos", "voz"];
   function goto(v) {
+    if (!allowed(v)) v = firstView();
     st.v = v; var nk = SUB.indexOf(v) >= 0 ? "mas" : v;
     Array.prototype.forEach.call($("nav").querySelectorAll("button"), function (b) { b.classList.toggle("on", b.getAttribute("data-v") === nk); });
     if (v === "mas") st.loaded.mas = true;
@@ -363,14 +372,14 @@ button { cursor:pointer; }
 
   /* ---------- Accesos ---------- */
   function renderAccesos() {
-    var h = '<div class="help"><b>Compartir acceso:</b> escribí el mail de Google de la persona. Va a poder entrar a esta app con ese mail y usar <b>todas</b> las funciones. Podés pausar o quitar el acceso cuando quieras.</div>' +
+    var h = '<div class="help"><b>Compartir acceso:</b> escribí el mail de Google de la persona. Va a poder entrar a esta app con ese mail y usar solo las secciones que marques. Podés cambiarlas, pausar o quitar el acceso cuando quieras.</div>' +
       st.accesos.map(function (a) {
         var yo = a.permisos === "Dueño";
         return '<article class="card" data-r="' + a.r + '"><div class="row"><div><div class="nm" style="word-break:break-all">' + esc(a.email) + '</div><div class="meta">' + esc(a.nota || "") + ' <span class="badge ' + (yo ? "b" : "g") + '">' + esc(a.permisos) + "</span></div></div>" +
           (yo ? "" : '<button class="sw' + (a.activo ? " on" : "") + '" data-ac="1" style="border:0;background:none;padding:0"><i></i>' + (a.activo ? "Activo" : "Pausado") + "</button>") + "</div>" +
-          (yo ? "" : '<div class="acts"><button class="sm red" data-del="1">Quitar acceso</button></div>') + "</article>";
+          (yo ? "" : '<div class="meta" style="margin-top:8px">Puede usar:</div><div class="chips" style="flex-wrap:wrap">' + AREAS.map(function (x) { return '<button class="chip' + (permList(a.permisos).indexOf(x[0]) >= 0 ? " on" : "") + '" data-pm="' + x[0] + '">' + x[1] + "</button>"; }).join("") + "</div>") + (yo ? "" : '<div class="acts"><button class="sm red" data-del="1">Quitar acceso</button></div>') + "</article>";
       }).join("") +
-      '<div class="card"><div class="nm" style="margin-bottom:6px">Dar acceso a otra persona</div><div class="add"><input class="inp" id="a-mail" type="email" inputmode="email" placeholder="mail@gmail.com" autocomplete="off"><input class="inp" id="a-nota" type="text" placeholder="Nombre o nota (opcional)"><button class="btn" id="a-add">Dar acceso total</button></div></div>';
+      '<div class="card"><div class="nm" style="margin-bottom:6px">Dar acceso a otra persona</div><div class="add"><input class="inp" id="a-mail" type="email" inputmode="email" placeholder="mail@gmail.com" autocomplete="off"><input class="inp" id="a-nota" type="text" placeholder="Nombre o nota (opcional)"><div class="meta">Qué puede usar:</div><div class="chips" style="flex-wrap:wrap" id="a-perms">' + AREAS.map(function (x) { return '<button class="chip' + (st.npm.indexOf(x[0]) >= 0 ? " on" : "") + '" data-npm="' + x[0] + '">' + x[1] + "</button>"; }).join("") + '</div><button class="btn" id="a-add">Dar acceso</button></div></div>';
     return h;
   }
 
@@ -396,12 +405,12 @@ button { cursor:pointer; }
     if (al.length) h += '<div class="menu" id="alertas" style="margin-bottom:12px">' + al.map(function (x) { return '<button class="mi" data-go="' + x[1] + '" data-fil="' + x[2] + '" style="padding:12px 16px"><div><b style="font-weight:600">' + x[0] + "</b></div></button>"; }).join("") + "</div>";
     var ks = Object.keys(ent).sort(function (a, b) { return ent[b].n - ent[a].n; }).slice(0, 3);
     if (ks.length) h += '<div class="nm" style="margin:6px 2px 8px">Entregas pendientes</div><div class="card" id="entregas">' + ks.map(function (k) { return '<div class="frow"><span>' + esc(k) + "</span><span><b>" + ent[k].n + "</b> pedidos · " + ent[k].q + " cookies</span></div>"; }).join("") + "</div>";
-    h += '<div class="nm" style="margin:6px 2px 8px">Atajos</div><div class="kpis four" id="atajos">' + [["productos", "➕", "Producto", "newp"], ["packs", "🎁", "Packs", ""], ["textos", "✏️", "Textos", ""], ["proveedores", "🧾", "Insumos", ""]].map(function (x) { return '<button class="kpi" data-go="' + x[0] + '"' + (x[3] ? ' data-newp="1"' : "") + '><b style="font-size:1.4rem">' + x[1] + "</b><span>" + x[2] + "</span></button>"; }).join("") + "</div>";
+    h += '<div class="nm" style="margin:6px 2px 8px">Atajos</div><div class="kpis four" id="atajos">' + [["productos", "➕", "Producto", "newp"], ["packs", "🎁", "Packs", ""], ["textos", "✏️", "Textos", ""], ["proveedores", "🧾", "Insumos", ""]].filter(function (x) { return allowed(x[0]); }).map(function (x) { return '<button class="kpi" data-go="' + x[0] + '"' + (x[3] ? ' data-newp="1"' : "") + '><b style="font-size:1.4rem">' + x[1] + "</b><span>" + x[2] + "</span></button>"; }).join("") + "</div>";
     return h;
   }
   /* ---------- Más ---------- */
   function renderMas() {
-    var it = [["textos", "✏️", "Textos de la página", "Cambiá todos los textos de la tienda"], ["proveedores", "🧾", "Proveedores e insumos", "Precios de lo que comprás"], ["recetas", "🧁", "Recetas", "Costo de cada masa y de cada cookie"], ["packs", "🎁", "Packs y combos", "Activá, pausá y cambiá precios"]];
+    var it = [["textos", "✏️", "Textos de la página", "Cambiá todos los textos de la tienda"], ["proveedores", "🧾", "Proveedores e insumos", "Precios de lo que comprás"], ["recetas", "🧁", "Recetas", "Costo de cada masa y de cada cookie"], ["packs", "🎁", "Packs y combos", "Activá, pausá y cambiá precios"]].filter(function (x) { return allowed(x[0]); });
     if (st.me && st.me.rol === "Dueño") { it.push(["voz", "🎙️", "Asistente de voz", "Dictá lo que querés hacer"]); it.push(["accesos", "🔑", "Accesos", "Quién puede entrar a esta app"]); }
     return '<div class="menu">' + it.map(function (x) { return '<button class="mi" data-go="' + x[0] + '"><i>' + x[1] + "</i><div><b>" + x[2] + "</b><span>" + x[3] + "</span></div></button>"; }).join("") + "</div>";
   }
@@ -693,7 +702,8 @@ button { cursor:pointer; }
       ["[data-redit]", "Editar receta", "Cambiá insumos y cantidades de una masa. El costo por cookie se recalcula solo."]],
     accesos: [[".help", "Compartir acceso", "Solo vos ves esta pantalla."],
       ["#a-mail", "Mail de Google", "Escribí el mail de la persona. Entra con esa cuenta."],
-      ["#a-add", "Dar acceso", "Le das acceso total. Después podés pausarla o quitarla."]]
+      ["#a-perms", "Qué puede usar", "Elegí las secciones que va a ver esa persona. Después podés cambiarlas, pausarla o quitarla."],
+      ["#a-add", "Dar acceso", "Entra con ese mail de Google y solo ve lo que marcaste."]]
   };
   function tourSeen(v) { return load("uovo_adm_tour_" + v) === "1"; }
   function openTour(v) {
@@ -766,7 +776,7 @@ button { cursor:pointer; }
     { t: "Agregar un insumo nuevo", k: "agregar nuevo insumo ingrediente packaging sumar", go: "proveedores", p: ["Tocá Más → Proveedores e insumos.", "Abajo, en 'Agregar insumo', escribí nombre y unidad (g, ml, unidad).", "Tocá Agregar y cargale la compra."] },
     { t: "Ver cuánto gané (Finanzas)", k: "finanzas ganancia gane ganado ventas resultado plata mes anio costos balance", go: "finanzas", p: ["Tocá Finanzas abajo.", "Elegí el año y el mes (o el total).", "Arriba ves lo que te quedó y abajo a dónde fue la plata."] },
     { t: "Cambiar textos de la tienda", k: "texto textos cambiar frase titulo descripcion pagina web tienda quienes somos whatsapp", go: "textos", p: ["Tocá Más → Textos de la página.", "Buscá el texto con el buscador.", "Cambialo y salí del campo: se guarda y se ve en la tienda."] },
-    { t: "Dar acceso a otra persona", k: "acceso accesos compartir persona usuario mail dar invitar socio empleado", go: "accesos", p: ["Tocá Más → Accesos (solo el dueño lo ve).", "Escribí el mail de Google de la persona.", "Tocá Dar acceso total. Entra con esa cuenta."] },
+    { t: "Dar acceso a otra persona", k: "acceso accesos compartir persona usuario mail dar invitar socio empleado", go: "accesos", p: ["Tocá Más → Accesos (solo el dueño lo ve).", "Escribí el mail de Google de la persona.", "Marcá qué secciones puede usar y tocá Dar acceso. Entra con esa cuenta."] },
     { t: "Quitar o pausar un acceso", k: "quitar sacar pausar acceso accesos bloquear persona", go: "accesos", p: ["Tocá Más → Accesos.", "Usá el interruptor para pausar, o Quitar acceso para borrarlo."] },
     { t: "Ver la guía de una pantalla", k: "guia ayuda tutorial varita wizard explicar pantalla", go: "", p: ["Tocá la varita ✨ arriba a la derecha.", "Te marca cada parte de la pantalla actual con una explicación."] },
     { t: "Actualizar los datos", k: "actualizar refrescar recargar nuevos pedidos no aparece", go: "", p: ["Tocá ↻ arriba a la derecha para traer los datos más nuevos."] },
@@ -1001,10 +1011,19 @@ button { cursor:pointer; }
     var pt = t.closest("[data-pvt]"); if (pt) { st.pvt = pt.getAttribute("data-pvt"); render(true); return; }
     var fc = t.closest("[data-fc]"); if (fc) { st.fc = Number(fc.getAttribute("data-fc")); render(true); return; }
     var yr = t.closest("[data-yr]"); if (yr) { var ny = Number(st.fin.anio) + Number(yr.getAttribute("data-yr")); api("setAnio", { valor: ny }).then(function (j) { if (j && j.ok) { st.fin = j; render(true); } else toast(j && j.msg || "No se pudo"); }); return; }
+    var npb = t.closest("[data-npm]"); if (npb) { var na = npb.getAttribute("data-npm"), ni = st.npm.indexOf(na); if (ni >= 0) { if (st.npm.length > 1) st.npm.splice(ni, 1); else { toast("Elegí al menos una"); return; } } else st.npm.push(na); npb.classList.toggle("on", st.npm.indexOf(na) >= 0); return; }
+    var pmb = t.closest("[data-pm]"); if (pmb) {
+      var pc = pmb.closest(".card"), pr_ = Number(pc.getAttribute("data-r")), pa = st.accesos.filter(function (x) { return x.r === pr_; })[0]; if (!pa) return;
+      var cur = permList(pa.permisos), pk = pmb.getAttribute("data-pm"), pi = cur.indexOf(pk);
+      if (pi >= 0) { if (cur.length > 1) cur.splice(pi, 1); else { toast("Tiene que poder usar al menos una"); return; } } else cur.push(pk);
+      pmb.classList.toggle("on", cur.indexOf(pk) >= 0);
+      api("setPermisos", { r: pr_, permisos: cur.join(",") }).then(function (j) { if (j && j.ok) { st.accesos = j.accesos; toast("Permisos guardados ✓"); } else { toast(j && j.msg || "No se pudo"); render(true); } }).catch(function () { render(true); });
+      return;
+    }
     if (t.closest("#a-add")) {
       var em = $("a-mail").value.trim(), nt = $("a-nota").value.trim(); if (!em) return;
       t.closest("#a-add").disabled = true;
-      api("addAcceso", { email: em, nota: nt }).then(function (j) { if (j && j.ok) { st.accesos = j.accesos; render(); toast("Acceso otorgado a " + em); } else { toast(j && j.msg || "No se pudo"); render(); } }).catch(function () { render(); });
+      api("addAcceso", { email: em, nota: nt, permisos: st.npm.join(",") }).then(function (j) { if (j && j.ok) { st.accesos = j.accesos; render(); toast("Acceso otorgado a " + em); } else { toast(j && j.msg || "No se pudo"); render(); } }).catch(function () { render(); });
       return;
     }
     var card = t.closest(".card"); if (!card) return; var r = Number(card.getAttribute("data-r"));

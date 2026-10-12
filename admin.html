@@ -155,8 +155,8 @@ button { cursor:pointer; }
   <header class="top">
     <h1>Uovo Admin<small id="who"></small></h1>
     <button class="ibtn" id="wand" aria-label="Ayuda"><svg viewBox="0 0 24 24"><path d="M4 20 15 9"/><path d="m14 4 .8 2.2L17 7l-2.2.8L14 10l-.8-2.2L11 7l2.2-.8zM19 12l.5 1.3 1.3.5-1.3.5-.5 1.3-.5-1.3-1.3-.5 1.3-.5z"/></svg></button>
-    <button class="ibtn" id="refresh" aria-label="Actualizar">↻</button>
-    <button class="ibtn" id="logout" aria-label="Salir">⎋</button>
+    <button class="ibtn" id="refresh" aria-label="Actualizar" hidden style="display:none">↻</button>
+    <button class="ibtn" id="logout" aria-label="Salir" hidden style="display:none">⎋</button>
   </header>
   <main class="wrap" id="view"></main>
   <nav class="nav" id="nav">
@@ -176,7 +176,7 @@ button { cursor:pointer; }
   var ENDPOINT = "https://script.google.com/macros/s/AKfycbwRgztSNbcqRVjj6Kji1BbUCoZxAdQlYLYPxf5-266YiG16hzG9J4II1L7qhxlENjmZNA/exec";
   var DEMO = /[?&]demo=1/.test(location.search);
   var $ = function (id) { return document.getElementById(id); };
-  var st = { token: "", me: null, v: "inicio", fil: "pend", q: "", pedidos: [], productos: [], accesos: [], packs: [], recetas: [], fin: null, cfg: [], insumos: [], ppro: [], rd: null, pd: null, prov: null, pvt: "a", edit: 0, newp: false, cq: "", loaded: {}, rvs: [], rv: null, pvq: "", pvx: 0, pvnew: false, npm: ["pedidos", "productos", "packs", "recetas", "proveedores", "textos", "finanzas", "resenas"] };
+  var st = { token: "", me: null, v: "inicio", fil: "pend", q: "", pedidos: [], productos: [], accesos: [], packs: [], recetas: [], fin: null, cfg: [], insumos: [], ppro: [], rd: null, pd: null, prov: null, pvt: "a", edit: 0, newp: false, cq: "", loaded: {}, rvs: [], rv: null, pdx: 0, pvq: "", pvx: 0, pvnew: false, npm: ["pedidos", "productos", "packs", "recetas", "proveedores", "textos", "finanzas", "resenas"] };
   function store(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
   function load(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
@@ -232,12 +232,13 @@ button { cursor:pointer; }
       if (op === "recetas") return res({ ok: true, recetas: d.recetas });
       if (op === "finanzas" || op === "setAnio") return res(d.fin);
       if (op === "setPack") return res({ ok: true });
+      if (op === "setTestLote") return res({ ok: true, n: (extra.rows || []).length });
       if (op === "resenas" || op === "saveResena" || op === "setResena" || op === "delResena") return res({ ok: true, resenas: [{ r: 2, vi: true, nombre: "Lucía", est: 5, com: "Las mejores cookies que probé, la Red Velvet es increíble.", foto: "" }, { r: 3, vi: false, nombre: "Pedro", est: 4, com: "Muy ricas, llegaron perfectas.", foto: "" }] });
       if (op === "setPermisos") return res({ ok: true, accesos: d.accesos });
       if (op === "vozEstado") return res({ ok: true, clave: true });
       if (op === "setVozKey") return res({ ok: true });
       if (op === "voz") { var tx = String(extra.texto || "").toLowerCase(); if (/agotad/.test(tx)) return res({ ok: true, acciones: [{ tipo: "setAgotada", nombre: "Chocomarsh", valor: true, resumen: "Marcar Chocomarsh como agotada" }], pregunta: "" }); if (/precio|poné|pone|a \d/.test(tx)) return res({ ok: true, acciones: [{ tipo: "setPrecioProducto", nombre: "Red Velvet", precio: 2800, resumen: "Red Velvet a $2.800" }], pregunta: "" }); return res({ ok: true, acciones: [], pregunta: "¿Qué producto?" }); }
-      if (op === "setPedido") { var p = demo.pedidos.filter(function (x) { return x.r === extra.r; })[0]; p[extra.campo] = extra.valor; return res({ ok: true, p: p }); }
+      if (op === "setPedido") { var p = demo.pedidos.filter(function (x) { return x.r === extra.r; })[0]; p[extra.campo] = extra.valor; if (extra.campo === "te") p.cc = extra.valor; return res({ ok: true, p: p }); }
       res({ ok: true, accesos: d.accesos });
     }, 150); });
     var body = { admin: 1, token: st.token, op: op };
@@ -313,40 +314,45 @@ button { cursor:pointer; }
   $("logout").addEventListener("click", function () { signedOut(""); });
 
   /* ---------- Pedidos ---------- */
-  function estadoDe(p) { if (p.cc || p.cl) return "canc"; if (p.en) return "ent"; if (p.he) return "list"; if (p.ap) return "coc"; return "pend"; }
-  var FILS = [["pend", "Pendientes"], ["coc", "A cocinar"], ["list", "Listos"], ["ent", "Entregados"], ["canc", "Cancelados"], ["todos", "Todos"]];
+  function estadoDe(p) { if (p.te) return "test"; if (p.cc || p.cl) return "canc"; if (p.en) return "ent"; if (p.he) return "list"; if (p.ap) return "coc"; return "pend"; }
+  var FILS = [["pend", "Pendientes"], ["coc", "A cocinar"], ["list", "Listos"], ["ent", "Entregados"], ["canc", "Cancelados"], ["test", "Tests"], ["todos", "Todos"]];
+  var ESTL = { pend: ["Pendiente", "#FFF1D6", "#B26A00"], coc: ["A cocinar", "#EAF2FD", "#0F59C4"], list: ["Listo", "#E3F4E8", "#1B7A3A"], ent: ["Entregado", "#E3F4E8", "#1B7A3A"], canc: ["Cancelado", "#FBE9E7", "#B3261E"], test: ["Test", "#EDE7F6", "#5E35B1"] };
   function waLink(t) { var d = String(t || "").replace(/\D/g, ""); if (!d) return ""; if (d.indexOf("54") !== 0) d = "549" + d.replace(/^0+/, ""); return "https://wa.me/" + d; }
   function renderPedidos() {
     var cnt = {}; st.pedidos.forEach(function (p) { var e = estadoDe(p); cnt[e] = (cnt[e] || 0) + 1; });
     var q = st.q.trim().toLowerCase();
     var list = st.pedidos.filter(function (p) {
-      if (st.fil !== "todos" && estadoDe(p) !== st.fil) return false;
+      if (st.fil === "todos" ? estadoDe(p) === "test" : estadoDe(p) !== st.fil) return false;
       return !q || (p.nombre + " " + p.id + " " + p.pedido + " " + p.tel).toLowerCase().indexOf(q) >= 0;
     });
     var h = '<input class="search" id="pq" type="search" placeholder="Buscar por nombre, código o pedido…" value="' + esc(st.q) + '">' +
-      '<div class="chips">' + FILS.map(function (f) { var n = f[0] === "todos" ? st.pedidos.length : (cnt[f[0]] || 0); return '<button class="chip' + (st.fil === f[0] ? " on" : "") + '" data-f="' + f[0] + '">' + f[1] + "<b>" + n + "</b></button>"; }).join("") + "</div>";
+      '<div class="chips">' + FILS.map(function (f) { var n = f[0] === "todos" ? st.pedidos.length - (cnt.test || 0) : (cnt[f[0]] || 0); return '<button class="chip' + (st.fil === f[0] ? " on" : "") + '" data-f="' + f[0] + '">' + f[1] + "<b>" + n + "</b></button>"; }).join("") + "</div>";
     if (!list.length) h += '<div class="empty">No hay pedidos en esta vista.</div>';
+    if (list.length) { var allT = st.fil === "test"; h += '<div style="text-align:right;margin:-2px 2px 8px"><button class="sm" data-tlote="' + (allT ? "0" : "1") + '" style="font-size:.76rem">' + (allT ? "Sacar estos " + list.length + " de test" : "🧪 Marcar estos " + list.length + " como test") + "</button></div>"; }
     h += list.map(function (p) {
-      var c = p.cc || p.cl, wa = waLink(p.tel);
-      return '<article class="card' + (c ? " dim" : "") + '" data-r="' + p.r + '"><div class="row"><div><div class="nm">' + esc(p.nombre) + '</div><div class="id">' + esc(p.id) + " · " + esc(p.fecha) + '</div></div><div class="tot">' + money(p.total) + "</div></div>" +
-        '<div class="items">' + esc(p.pedido) + "</div>" +
-        '<div class="meta">Entrega: ' + esc(p.entrega || "—") + (p.pago ? " · " + esc(p.pago) : "") + (p.cupon ? " · Cupón " + esc(p.cupon) : "") + "</div>" +
-        (p.notas ? '<div class="note" style="margin-top:6px">📝 ' + esc(p.notas) + "</div>" : "") +
-        (c ? '<div style="margin-top:8px"><span class="badge">' + (p.cl ? "Cancelado por el cliente" : "Cancelado por nosotros") + "</span></div>" :
-          '<div class="tgl"><button class="tg' + (p.ap ? " on" : "") + '" data-t="ap">' + (p.ap ? "✓ " : "") + 'Aprobado</button><button class="tg' + (p.he ? " on" : "") + '" data-t="he">' + (p.he ? "✓ " : "") + 'Hecho</button><button class="tg' + (p.en ? " on" : "") + '" data-t="en">' + (p.en ? "✓ " : "") + "Entregado</button></div>") +
-        '<div class="acts">' + (wa ? '<a class="sm" target="_blank" rel="noopener" href="' + wa + '">WhatsApp</a>' : "") +
-        '<button class="sm" data-note="1">Nota</button>' +
-        (p.cl ? "" : (p.cc ? '<button class="sm" data-t="cc" data-v="0">Reactivar</button>' : '<button class="sm red" data-cc="1">Cancelar pedido</button>')) + "</div></article>";
+      var c = p.cc || p.cl, wa = waLink(p.tel), e = estadoDe(p), sb = ESTL[e], open = st.pdx === p.r;
+      var b = '<article class="card pc' + (c && !p.te ? " dim" : "") + '" data-r="' + p.r + '"><button class="row" data-pdx="' + p.r + '" style="width:100%;border:0;background:none;padding:0;text-align:left;align-items:center;gap:10px"><div style="min-width:0;flex:1"><div class="nm" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(p.nombre) + (p.notas ? " 📝" : "") + '</div><div class="id">' + esc(p.id) + " · " + (Number(p.cant) || 0) + " cookies" + (p.entrega ? " · " + esc(p.entrega) : "") + '</div></div><div style="text-align:right"><div class="tot" style="font-size:1rem">' + money(p.total) + '</div><span style="display:inline-block;font-size:.68rem;font-weight:800;padding:2px 8px;border-radius:999px;background:' + sb[1] + ";color:" + sb[2] + '">' + sb[0] + "</span></div></button>";
+      if (open) {
+        b += '<div class="items" style="margin-top:10px">' + esc(p.pedido) + "</div>" +
+          '<div class="meta">' + esc(p.fecha) + (p.pago ? " · " + esc(p.pago) : "") + (p.cupon ? " · Cupón " + esc(p.cupon) : "") + "</div>" +
+          (wa ? '<a class="sm" target="_blank" rel="noopener" href="' + wa + '" style="margin-top:8px">💬 ' + esc(p.tel) + "</a>" : "") +
+          '<textarea class="inp" rows="2" data-pnota="1" placeholder="Nota del pedido…" style="margin-top:8px">' + esc(p.notas) + "</textarea>" +
+          (c && !p.te ? '<div style="margin-top:8px"><span class="badge">' + (p.cl ? "Cancelado por el cliente" : "Cancelado por nosotros") + "</span></div>" :
+            (p.te ? "" : '<div class="tgl"><button class="tg' + (p.ap ? " on" : "") + '" data-t="ap">' + (p.ap ? "✓ " : "") + 'Aprobado</button><button class="tg' + (p.he ? " on" : "") + '" data-t="he">' + (p.he ? "✓ " : "") + 'Hecho</button><button class="tg' + (p.en ? " on" : "") + '" data-t="en">' + (p.en ? "✓ " : "") + "Entregado</button></div>")) +
+          '<div class="row" style="margin-top:10px;align-items:center"><button class="sw' + (p.te ? " on" : "") + '" data-te="1" style="border:0;background:none;padding:0"><i></i>Pedido de prueba</button>' +
+          (p.te || p.cl ? "" : (p.cc ? '<button class="sm" data-t="cc" data-v="0">Reactivar</button>' : '<button class="sm red" data-cc="1">Cancelar pedido</button>')) + "</div>";
+      }
+      return b + "</article>";
     }).join("");
     return h;
   }
   function patchPedido(r, campo, valor, undo) {
     var p = st.pedidos.filter(function (x) { return x.r === r; })[0]; if (!p) return;
-    var old = p[campo]; p[campo] = valor; render(true);
+    var old = p[campo], oldcc = p.cc; p[campo] = valor; if (campo === "te") p.cc = valor; render(true);
     api("setPedido", { r: r, id: p.id, campo: campo, valor: valor }).then(function (j) {
-      if (!j || !j.ok) { p[campo] = old; render(true); toast(j && j.msg || "No se pudo guardar"); return; }
+      if (!j || !j.ok) { p[campo] = old; p.cc = oldcc; render(true); toast(j && j.msg || "No se pudo guardar"); return; }
       for (var k in j.p) p[k] = j.p[k]; render(true);
-    }).catch(function () { p[campo] = old; render(true); toast("No se pudo guardar"); });
+    }).catch(function () { p[campo] = old; p.cc = oldcc; render(true); toast("No se pudo guardar"); });
   }
 
   /* ---------- Productos ---------- */
@@ -390,7 +396,7 @@ button { cursor:pointer; }
     var c = { pend: 0, coc: 0, list: 0 }, now = new Date(), cm = now.getMonth(), cy = now.getFullYear(), vm = 0, ck = 0, pm = 0, vp = 0, viejos = 0, ent = {};
     st.pedidos.forEach(function (p) {
       var e = estadoDe(p), d = pf(p.fecha); if (c[e] != null) c[e]++;
-      if (e === "canc") return;
+      if (e === "canc" || e === "test") return;
       if (d) { if (d.getMonth() === cm && d.getFullYear() === cy) { vm += p.total; ck += Number(p.cant) || 0; pm++; } else if ((d.getMonth() === (cm + 11) % 12) && d.getFullYear() === (cm ? cy : cy - 1)) vp += p.total; }
       if (e === "pend" && d && now - d > 864e5) viejos++;
       if (e !== "ent") { var k = p.entrega || "Sin fecha"; ent[k] = ent[k] || { n: 0, q: 0 }; ent[k].n++; ent[k].q += Number(p.cant) || 0; }
@@ -413,7 +419,8 @@ button { cursor:pointer; }
   function renderMas() {
     var it = [["textos", "✏️", "Textos de la página", "Cambiá todos los textos de la tienda"], ["proveedores", "🧾", "Proveedores e insumos", "Precios de lo que comprás"], ["recetas", "🧁", "Recetas", "Costo de cada masa y de cada cookie"], ["packs", "🎁", "Packs y combos", "Activá, pausá y cambiá precios"], ["resenas", "⭐", "Reseñas", "Lo que dicen tus clientes"]].filter(function (x) { return allowed(x[0]); });
     if (st.me && st.me.rol === "Dueño") { it.push(["voz", "🎙️", "Asistente de voz", "Dictá lo que querés hacer"]); it.push(["accesos", "🔑", "Accesos", "Quién puede entrar a esta app"]); }
-    return '<div class="menu">' + it.map(function (x) { return '<button class="mi" data-go="' + x[0] + '"><i>' + x[1] + "</i><div><b>" + x[2] + "</b><span>" + x[3] + "</span></div></button>"; }).join("") + "</div>";
+    var ac = '<div class="menu" style="margin-top:12px"><button class="mi" data-act="refresh"><i>↻</i><div><b>Actualizar datos</b><span>Traer lo más nuevo de la planilla</span></div></button><button class="mi" data-act="logout"><i>⎋</i><div><b>Cerrar sesión</b><span>' + esc(st.me && st.me.email || "") + "</span></div></button></div>";
+    return '<div class="menu">' + it.map(function (x) { return '<button class="mi" data-go="' + x[0] + '"><i>' + x[1] + "</i><div><b>" + x[2] + "</b><span>" + x[3] + "</span></div></button>"; }).join("") + "</div>" + ac;
   }
   var BACK = '<button class="back" data-go="mas">‹ Más</button>';
   /* ---------- Packs ---------- */
@@ -677,10 +684,9 @@ button { cursor:pointer; }
       ["#vfab", "Asistente de voz 🎙️", "Tocá el micrófono y preguntale lo que no te acuerdes: «¿cómo cambio un precio?». Te explica paso a paso y te lleva ahí."],
       ["#wand", "La varita ✨", "Tocala cuando quieras para ver esta guía de nuevo en cualquier pantalla."]],
     pedidos: [["#pq", "Buscador", "Escribí un nombre, un código o un sabor para encontrar un pedido."],
-      [".chips", "Etapas", "Filtrá por Pendientes, A cocinar, Listos, Entregados o Cancelados. El número es la cantidad."],
-      [".tgl", "Avanzá el pedido", "Tocá Aprobado, Hecho y Entregado a medida que avanza. Se guarda al instante en tu Excel."],
-      [".acts", "Contacto y notas", "WhatsApp abre el chat con el cliente, Nota guarda un recordatorio y Cancelar pide confirmación."],
-      ["#refresh", "Actualizar", "Si entraron pedidos nuevos, tocá ↻ para traerlos."]],
+      [".chips", "Etapas", "Filtrá por Pendientes, A cocinar, Listos, Entregados, Cancelados o Tests. El número es la cantidad."],
+      [".pc", "Tocá un pedido", "Se abre y ves el detalle, el WhatsApp del cliente, la nota, y los botones Aprobado, Hecho y Entregado."],
+      ["[data-tlote]", "Pedidos de prueba", "Marcá de una vez todos los pedidos de la lista como test: dejan de contar en ventas y finanzas. También podés marcarlos de a uno."]],
     productos: [["#newp", "Nuevo producto", "Creá una cookie nueva: nombre, descripción, precio y categoría."],
       [".help", "Tus productos", "Cambios acá se ven en la tienda al instante."],
       [".pr", "Precio", "Tocá el número, escribí el nuevo precio y listo."],
@@ -773,10 +779,11 @@ button { cursor:pointer; }
     { t: "Crear un producto nuevo", k: "crear nuevo nueva agregar sumar producto cookie sabor", go: "productos", p: ["Tocá Productos y después ＋ Nuevo producto (también está en Inicio → Atajos).", "Completá nombre, descripción, precio, categoría e ingredientes.", "Tocá guardar. Después podés ponerle fotos con el clip 📎 y una receta en Más → Recetas."] },
     { t: "Editar descripción, categoría o ingredientes", k: "editar descripcion categoria ingredientes texto producto", go: "productos", p: ["Tocá Productos.", "En la cookie, tocá Editar.", "Cambiá los campos; se guardan al salir de cada uno."] },
     { t: "Subir fotos o videos", k: "foto fotos video videos imagen subir cargar clip portada principal orden drive", go: "productos", p: ["Tocá Productos y el clip 📎 de la cookie (o editá un pack y tocá Fotos).", "La primera vez, permití el acceso a Drive.", "Tocá Agregar y elegí fotos o videos. Se suben a tu Drive solos.", "Ordenalos con las flechas: la 1ª es la principal y la 2ª es la que se ve al pasar el mouse o deslizar."] },
-    { t: "Avanzar un pedido (aprobar, hecho, entregado)", k: "pedido aprobar aprobado hecho entregado entregar avanzar estado marcar cocinar listo", go: "pedidos", p: ["Tocá Pedidos.", "Elegí la etapa arriba (Pendientes, A cocinar, Listos…).", "En el pedido tocá Aprobado, Hecho o Entregado según avance. Se guarda en tu Excel."] },
+    { t: "Avanzar un pedido (aprobar, hecho, entregado)", k: "pedido aprobar aprobado hecho entregado entregar avanzar estado marcar cocinar listo", go: "pedidos", p: ["Tocá Pedidos.", "Elegí la etapa arriba (Pendientes, A cocinar, Listos…).", "Tocá el pedido para abrirlo.", "Tocá Aprobado, Hecho o Entregado según avance. Se guarda en tu Excel."] },
+    { t: "Marcar pedidos como prueba (test)", k: "test prueba pruebas probar limpiar empezar cero borrar pedidos viejos", go: "pedidos", p: ["Tocá Pedidos.", "Para uno solo: abrilo y activá Pedido de prueba.", "Para varios: elegí Todos o la etapa y tocá «Marcar estos N como test».", "Los tests no cuentan en ventas ni finanzas. Los ves en la etapa Tests y los podés sacar de ahí."] },
     { t: "Cancelar un pedido", k: "cancelar cancelacion anular pedido", go: "pedidos", p: ["Tocá Pedidos y buscá el pedido.", "Tocá Cancelar pedido; te pide confirmar tocando de nuevo.", "Si te arrepentís, el pedido queda con el botón Reactivar."] },
-    { t: "Escribir una nota en un pedido", k: "nota notas anotar recordatorio comentario pedido", go: "pedidos", p: ["Tocá Pedidos.", "En el pedido tocá Nota.", "Escribí y aceptá: queda guardada en el pedido."] },
-    { t: "Escribirle al cliente por WhatsApp", k: "whatsapp wsp avisar contactar cliente mensaje escribir", go: "pedidos", p: ["Tocá Pedidos.", "En el pedido tocá WhatsApp: abre el chat con ese cliente."] },
+    { t: "Escribir una nota en un pedido", k: "nota notas anotar recordatorio comentario pedido", go: "pedidos", p: ["Tocá Pedidos.", "Tocá el pedido para abrirlo.", "Escribí en el campo Nota: se guarda sola al salir del campo."] },
+    { t: "Escribirle al cliente por WhatsApp", k: "whatsapp wsp avisar contactar cliente mensaje escribir", go: "pedidos", p: ["Tocá Pedidos.", "Tocá el pedido para abrirlo.", "Tocá el botón con el teléfono (💬): abre el chat con ese cliente."] },
     { t: "Buscar un pedido", k: "buscar busqueda encontrar pedido cliente codigo nombre", go: "pedidos", p: ["Tocá Pedidos.", "Escribí en el buscador un nombre, código o sabor.", "Con 'Todos' arriba buscás en todas las etapas."] },
     { t: "Crear un pack o combo", k: "pack combo crear nuevo promo promocion oferta", go: "packs", p: ["Tocá Más → Packs y combos.", "Elegí ＋ Pack (X cookies a un precio) o ＋ Combo (cookies fijas).", "Completá cantidad/cookies, precio, límite y vencimiento (opcionales) y guardá."] },
     { t: "Activar, pausar o cambiar precio de un pack", k: "pack combo activar pausar activo pausado precio oferta", go: "packs", p: ["Tocá Más → Packs y combos.", "Usá el interruptor Activo/Pausado.", "Para el precio, tocá el número y escribí el nuevo."] },
@@ -789,9 +796,9 @@ button { cursor:pointer; }
     { t: "Dar acceso a otra persona", k: "acceso accesos compartir persona usuario mail dar invitar socio empleado", go: "accesos", p: ["Tocá Más → Accesos (solo el dueño lo ve).", "Escribí el mail de Google de la persona.", "Marcá qué secciones puede usar y tocá Dar acceso. Entra con esa cuenta."] },
     { t: "Quitar o pausar un acceso", k: "quitar sacar saco quito borrar borro eliminar elimino pausar pauso acceso accesos bloquear persona", go: "accesos", p: ["Tocá Más → Accesos.", "Usá el interruptor para pausar, o Quitar acceso para borrarlo."] },
     { t: "Ver la guía de una pantalla", k: "guia ayuda tutorial varita wizard explicar pantalla", go: "", p: ["Tocá la varita ✨ arriba a la derecha.", "Te marca cada parte de la pantalla actual con una explicación."] },
-    { t: "Actualizar los datos", k: "actualizar refrescar recargar nuevos pedidos no aparece", go: "", p: ["Tocá ↻ arriba a la derecha para traer los datos más nuevos."] },
+    { t: "Actualizar los datos", k: "actualizar refrescar recargar nuevos pedidos no aparece", go: "", p: ["Tocá Más → Actualizar datos para traer lo más nuevo."] },
     { t: "Instalar la app en el celular", k: "instalar celular icono pantalla inicio app descargar", go: "", p: ["Abrí esta página en Chrome (Android) o Safari (iPhone).", "Android: menú ⋮ → Instalar app. iPhone: Compartir → Agregar a pantalla de inicio."] },
-    { t: "Salir de la app", k: "salir cerrar sesion logout desloguear cuenta", go: "", p: ["Tocá ⎋ arriba a la derecha."] },
+    { t: "Salir de la app", k: "salir cerrar sesion logout desloguear cuenta", go: "", p: ["Tocá Más → Cerrar sesión."] },
     { t: "Dictar órdenes por voz", k: "voz dictar ordenes ia clave api asistente comandos", go: "voz", p: ["Es opcional y necesita una clave de API de Anthropic (con costo mínimo por uso).", "Si no la cargás, el micrófono funciona igual como ayuda."] }
   ];
 
@@ -1046,6 +1053,7 @@ button { cursor:pointer; }
     if (st.pd && tg.matches("[data-kf]")) { var kf = tg.getAttribute("data-kf"); st.pd[kf] = (kf === "nombre" || kf === "texto" || kf === "vence") ? tg.value : Number(tg.value) || 0; return; }
     if (st.pd && tg.matches("[data-kin]")) { st.pd.items[Number(tg.getAttribute("data-kin"))].n = tg.value; return; }
     if (st.pd && tg.matches("[data-kic]")) { st.pd.items[Number(tg.getAttribute("data-kic"))].c = Number(tg.value) || 0; return; }
+    if (e.target.matches("[data-pnota]")) { var pn = st.pedidos.filter(function (x) { return x.r === Number(c.getAttribute("data-r")); })[0]; if (pn && pn.notas !== e.target.value) patchPedido(pn.r, "notas", e.target.value); return; }
     if (e.target.matches("[data-cfg]")) { var kk = c.getAttribute("data-k"), rr = Number(c.getAttribute("data-r")), it = st.cfg.filter(function (x) { return x.r === rr; })[0]; if (!it || it.v === e.target.value) return; var ov = it.v; it.v = e.target.value; (DEMO ? Promise.resolve({ ok: true }) : api("setConfig", { r: rr, k: kk, valor: it.v })).then(function (j) { if (j && j.ok) toast("Guardado ✓"); else { it.v = ov; toast(j && j.msg || "No se pudo guardar"); render(true); } }).catch(function () { it.v = ov; toast("No se pudo guardar"); }); return; }
     if (e.target.matches("[data-pv]")) { var ins = c.getAttribute("data-ins"), campo = e.target.getAttribute("data-pv"), rowr = Number(c.getAttribute("data-r")), rawv = e.target.value, vv = rawv, row = (st.prov[st.pvt] || []).filter(function (z) { return z.r === rowr; })[0] || {}, note = "";
       if (campo === "cant") { var pq = parseQty(rawv, row.uni); if (!pq) { toast("Cantidad inválida"); render(true); return; } vv = String(pq.n); if (pq.conv) note = pq.conv + " = " + pq.n + " " + row.uni; }
@@ -1061,6 +1069,7 @@ button { cursor:pointer; }
   });
   $("view").addEventListener("click", function (e) {
     var t = e.target;
+    var act = t.closest("[data-act]"); if (act) { var av = act.getAttribute("data-act"); if (av === "refresh") { $("refresh").click(); toast("Actualizando…"); } else if (av === "logout") $("logout").click(); return; }
     var f = t.closest("[data-f]"); if (f) { st.fil = f.getAttribute("data-f"); render(); return; }
     var go = t.closest("[data-go]"); if (go) { var gf = go.getAttribute("data-fil"); if (gf) st.fil = gf; if (go.hasAttribute("data-newp")) st.newp = true; goto(go.getAttribute("data-go")); return; }
     if (t.closest("[data-newp]")) { st.newp = true; if (st.v !== "productos") goto("productos"); else { st.newp = !$("npform"); render(true); } return; }
@@ -1131,8 +1140,18 @@ button { cursor:pointer; }
       api("addAcceso", { email: em, nota: nt, permisos: st.npm.join(",") }).then(function (j) { if (j && j.ok) { st.accesos = j.accesos; render(); toast("Acceso otorgado a " + em); } else { toast(j && j.msg || "No se pudo"); render(); } }).catch(function () { render(); });
       return;
     }
+    var tl = t.closest("[data-tlote]"); if (tl && st.v === "pedidos") {
+      if (!tl.classList.contains("arm")) { tl.classList.add("arm"); tl.dataset.txt = tl.textContent; tl.textContent = "¿Seguro? Tocá de nuevo"; clearTimeout(armTimer); armTimer = setTimeout(function () { tl.classList.remove("arm"); tl.textContent = tl.dataset.txt; }, 3000); return; }
+      var val = tl.getAttribute("data-tlote") === "1", q2 = st.q.trim().toLowerCase();
+      var rows = st.pedidos.filter(function (p) { if (st.fil === "todos" ? estadoDe(p) === "test" : estadoDe(p) !== st.fil) return false; return !q2 || (p.nombre + " " + p.id + " " + p.pedido + " " + p.tel).toLowerCase().indexOf(q2) >= 0; }).map(function (p) { return { r: p.r, id: p.id }; });
+      tl.disabled = true;
+      (DEMO ? Promise.resolve({ ok: true, n: rows.length }) : api("setTestLote", { rows: rows, valor: val })).then(function (j) { if (j && j.ok) { var ids = {}; rows.forEach(function (x) { ids[x.r] = 1; }); st.pedidos.forEach(function (p) { if (ids[p.r]) { p.te = val; p.cc = val; } }); st.fil = val ? "test" : "pend"; render(); toast((val ? "Marcados como test: " : "Sacados de test: ") + j.n); } else { toast(j && j.msg || "No se pudo"); render(true); } }).catch(function () { render(true); });
+      return;
+    }
     var card = t.closest(".card"); if (!card) return; var r = Number(card.getAttribute("data-r"));
     if (st.v === "pedidos") {
+      var pdx = t.closest("[data-pdx]"); if (pdx) { var pr0 = Number(pdx.getAttribute("data-pdx")); st.pdx = st.pdx === pr0 ? 0 : pr0; render(true); return; }
+      if (t.closest("[data-te]")) { var pt0 = st.pedidos.filter(function (x) { return x.r === r; })[0]; if (pt0) patchPedido(r, "te", !pt0.te); return; }
       var tg = t.closest("[data-t]");
       if (tg) {
         var p = st.pedidos.filter(function (x) { return x.r === r; })[0], c = tg.getAttribute("data-t");

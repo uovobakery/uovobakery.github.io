@@ -121,6 +121,24 @@ button { cursor:pointer; }
 .modal{position:fixed;inset:0;z-index:60;background:rgba(10,20,40,.6);display:grid;place-items:center;padding:20px}
 .modal .box{background:#fff;border-radius:20px;padding:22px;max-width:380px}
 .modal h3{margin:0 0 8px;color:#0F59C4}.modal p{margin:0 0 14px;line-height:1.45}
+
+.vfab{position:fixed;right:14px;bottom:calc(78px + env(safe-area-inset-bottom));z-index:25;width:56px;height:56px;border-radius:50%;border:0;background:var(--blue);color:#fff;box-shadow:0 6px 18px rgba(15,89,196,.45);display:grid;place-items:center}
+.vfab svg{width:26px;height:26px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.vz{position:fixed;inset:0;z-index:45;background:rgba(10,20,40,.55);display:flex;align-items:flex-end;justify-content:center}
+.vzb{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:560px;max-height:88vh;overflow:auto;padding:16px 16px calc(16px + env(safe-area-inset-bottom))}
+.vzb h3{margin:0 0 10px;color:#0F59C4;display:flex;align-items:center}
+.vzb h3 span{flex:1}
+.vzb h3 button{border:0;background:#eef3fb;border-radius:50%;width:34px;height:34px;font-size:1rem;color:#0F59C4}
+.vzb textarea{width:100%;min-height:74px}
+.vzr{display:flex;gap:8px;margin:10px 0}
+.vzr .btn,.vzr .sm{flex:1}
+.mic.on{background:#b3261e;border-color:#b3261e;color:#fff;animation:pu 1s infinite}
+@keyframes pu{50%{opacity:.6}}
+.va{display:flex;gap:8px;align-items:flex-start;padding:9px 10px;border:1px solid #e3eaf6;border-radius:12px;margin-bottom:6px;font-size:.92rem}
+.va.warn{border-color:#e8b4b0;background:#fdf1f0}
+.va.ok{border-color:#b6dfc2;background:#eef9f1}
+.va.er{border-color:#e8b4b0;background:#fdf1f0}
+.vq{background:#FFF8E1;border-radius:12px;padding:10px 12px;margin:8px 0;font-weight:600}
 </style>
 </head>
 <body>
@@ -149,6 +167,7 @@ button { cursor:pointer; }
     <button data-v="mas"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg>Más</button>
   </nav>
 </div>
+<button class="vfab" id="vfab" aria-label="Asistente de voz" hidden><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
 <div id="toast" class="toast" hidden></div>
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -206,6 +225,9 @@ button { cursor:pointer; }
       if (op === "recetas") return res({ ok: true, recetas: d.recetas });
       if (op === "finanzas" || op === "setAnio") return res(d.fin);
       if (op === "setPack") return res({ ok: true });
+      if (op === "vozEstado") return res({ ok: true, clave: true });
+      if (op === "setVozKey") return res({ ok: true });
+      if (op === "voz") { var tx = String(extra.texto || "").toLowerCase(); if (/agotad/.test(tx)) return res({ ok: true, acciones: [{ tipo: "setAgotada", nombre: "Chocomarsh", valor: true, resumen: "Marcar Chocomarsh como agotada" }], pregunta: "" }); if (/precio|poné|pone|a \d/.test(tx)) return res({ ok: true, acciones: [{ tipo: "setPrecioProducto", nombre: "Red Velvet", precio: 2800, resumen: "Red Velvet a $2.800" }], pregunta: "" }); return res({ ok: true, acciones: [], pregunta: "¿Qué producto?" }); }
       if (op === "setPedido") { var p = demo.pedidos.filter(function (x) { return x.r === extra.r; })[0]; p[extra.campo] = extra.valor; return res({ ok: true, p: p }); }
       res({ ok: true, accesos: d.accesos });
     }, 150); });
@@ -227,7 +249,7 @@ button { cursor:pointer; }
   function signedOut(msg) { st.token = ""; st.me = null; store("uovo_adm_tok", null); showLogin(msg); try { if (window.google && google.accounts) google.accounts.id.disableAutoSelect(); } catch (e) {} }
   function enter(me) {
     st.me = me; $("login").hidden = true; $("app").hidden = false; $("who").textContent = me.email + " · " + (me.rol || "");
-    $("demobar").hidden = !DEMO; setTimeout(driveWelcome, 1500);
+    $("demobar").hidden = !DEMO; $("vfab").hidden = false; setTimeout(driveWelcome, 1500);
     goto(st.v === "accesos" && me.rol !== "Dueño" ? "mas" : st.v);
   }
   function onCred(resp) {
@@ -252,7 +274,7 @@ button { cursor:pointer; }
   }
 
   /* ---------- Navegación ---------- */
-  var SUB = ["packs", "recetas", "textos", "proveedores", "accesos"];
+  var SUB = ["packs", "recetas", "textos", "proveedores", "accesos", "voz"];
   function goto(v) {
     st.v = v; var nk = SUB.indexOf(v) >= 0 ? "mas" : v;
     Array.prototype.forEach.call($("nav").querySelectorAll("button"), function (b) { b.classList.toggle("on", b.getAttribute("data-v") === nk); });
@@ -265,6 +287,7 @@ button { cursor:pointer; }
   }
   function fetchView(v) {
     if (v === "textos") { fetchTextos(); return; }
+    if (v === "voz") { api("vozEstado").then(function (j) { st.vz = !!(j && j.clave); st.loaded.voz = true; if (st.v === "voz") render(); }).catch(function () {}); return; }
     var op = v === "inicio" ? "pedidos" : v === "productos" ? "catalogo" : v === "recetas" ? "recetas2" : v === "packs" ? "packs2" : v;
     if ((v === "recetas" || v === "packs") && !st.loaded.productos) api("catalogo").then(function (j) { if (j && j.ok) { st.productos = j.catalogo; st.loaded.productos = true; } }).catch(function () {});
     if (v === "inicio" && !st.loaded.productos) api("catalogo").then(function (j) { if (j && j.ok) { st.productos = j.catalogo; st.loaded.productos = true; if (st.v === "inicio") render(true); } }).catch(function () {});
@@ -379,7 +402,7 @@ button { cursor:pointer; }
   /* ---------- Más ---------- */
   function renderMas() {
     var it = [["textos", "✏️", "Textos de la página", "Cambiá todos los textos de la tienda"], ["proveedores", "🧾", "Proveedores e insumos", "Precios de lo que comprás"], ["recetas", "🧁", "Recetas", "Costo de cada masa y de cada cookie"], ["packs", "🎁", "Packs y combos", "Activá, pausá y cambiá precios"]];
-    if (st.me && st.me.rol === "Dueño") it.push(["accesos", "🔑", "Accesos", "Quién puede entrar a esta app"]);
+    if (st.me && st.me.rol === "Dueño") { it.push(["voz", "🎙️", "Asistente de voz", "Dictá lo que querés hacer"]); it.push(["accesos", "🔑", "Accesos", "Quién puede entrar a esta app"]); }
     return '<div class="menu">' + it.map(function (x) { return '<button class="mi" data-go="' + x[0] + '"><i>' + x[1] + "</i><div><b>" + x[2] + "</b><span>" + x[3] + "</span></div></button>"; }).join("") + "</div>";
   }
   var BACK = '<button class="back" data-go="mas">‹ Más</button>';
@@ -622,7 +645,7 @@ button { cursor:pointer; }
   }
 
   function render(keepScroll) {
-    var y = window.scrollY, V = { inicio: renderInicio, pedidos: renderPedidos, productos: renderProductos, mas: renderMas, packs: renderPacks, recetas: renderRecetas, finanzas: renderFinanzas, textos: renderTextos, proveedores: renderProv, accesos: function () { return BACK + renderAccesos(); } };
+    var y = window.scrollY, V = { inicio: renderInicio, pedidos: renderPedidos, productos: renderProductos, mas: renderMas, packs: renderPacks, recetas: renderRecetas, finanzas: renderFinanzas, textos: renderTextos, proveedores: renderProv, accesos: function () { return BACK + renderAccesos(); }, voz: renderVozCfg };
     var h = V[st.v]();
     var act = document.activeElement, id = act && act.id, pos = act && act.selectionStart;
     $("view").innerHTML = h;
@@ -637,6 +660,7 @@ button { cursor:pointer; }
       ["#kp-ped", "Pedidos por atender", "Cada número es una etapa. Tocalo y vas directo a esos pedidos."],
       ["#atajos", "Atajos", "Creá un producto, abrí Packs, Textos o Insumos con un toque."],
       ["#nav [data-v=mas]", "Más funciones", "Textos, Proveedores, Recetas, Packs y Accesos están en Más."],
+      ["#vfab", "Asistente de voz 🎙️", "Tocá el micrófono y decí, por ejemplo: «poné la Red Velvet a 2800» o «marcá agotada la Trichoc»."],
       ["#wand", "La varita ✨", "Tocala cuando quieras para ver esta guía de nuevo en cualquier pantalla."]],
     pedidos: [["#pq", "Buscador", "Escribí un nombre, un código o un sabor para encontrar un pedido."],
       [".chips", "Etapas", "Filtrá por Pendientes, A cocinar, Listos, Entregados o Cancelados. El número es la cantidad."],
@@ -654,6 +678,8 @@ button { cursor:pointer; }
     proveedores: [[".chips", "Insumos y packaging", "Cambiá entre ingredientes y packaging."],
       [".card", "Tu última compra", "Cargá proveedor, cantidad y precio total. El costo por unidad se calcula solo."],
       ["#ai-ok", "Agregar", "¿Falta un insumo? Sumalo acá."]],
+    voz: [["#vz-key", "Clave de IA", "Pegá acá tu clave de Anthropic (una sola vez). Queda guardada en tu Apps Script, no en este teléfono."],
+      [".help", "Cómo se usa", "Tocá el micrófono azul, dictá lo que querés y confirmá antes de aplicar."]],
     mas: [[".menu", "Más funciones", "Entrá a cada una. Arriba a la izquierda, ‹ Más te devuelve acá."]],
     finanzas: [["#fin-year", "Año", "Cambiá de año con las flechas."],
       ["#fin-mes", "Mes", "Elegí un mes o el total del año."],
@@ -706,6 +732,144 @@ button { cursor:pointer; }
   }
   function maybeTour() { if (!tourSeen(st.v) && !document.querySelector(".tour")) openTour(st.v); }
   $("wand").addEventListener("click", function () { openTour(st.v); });
+
+
+  /* ---------- Asistente de voz ---------- */
+  var VZ = { el: null, prev: "", acc: [], rec: null, listening: false, busy: false };
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  function nrm(x) { return String(x == null ? "" : x).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9@. ]+/g, " ").replace(/\s+/g, " ").trim(); }
+  function fnd(list, name, get) {
+    var n = nrm(name); if (!n) return null; get = get || function (x) { return x.nombre; };
+    var i, a;
+    for (i = 0; i < list.length; i++) if (nrm(get(list[i])) === n) return list[i];
+    var c = list.filter(function (x) { a = nrm(get(x)); return a && (a.indexOf(n) >= 0 || n.indexOf(a) >= 0); });
+    return c.length === 1 ? c[0] : null;
+  }
+  var VC = {};
+  function vget(key, op, pick) {
+    if (VC[key]) return Promise.resolve(VC[key]);
+    return api(op).then(function (j) { if (!j || !j.ok) throw new Error(j && j.msg || "No se pudo leer " + key); VC[key] = pick(j); return VC[key]; });
+  }
+  function nf(name, what) { throw new Error("No encontré " + what + " «" + name + "»"); }
+  function okj(j) { if (!j || !j.ok) throw new Error(j && j.msg || "No se pudo guardar"); return j; }
+  var DESTR = { cancelarPedido: 1, eliminarReceta: 1, guardarReceta: 1 };
+  function isWarn(a) { return DESTR[a.tipo] || (a.tipo === "setAcceso" && a.activo === false); }
+  var EX = {
+    setPrecioProducto: function (a) { return vget("cat", "catalogo", function (j) { return j.catalogo; }).then(function (L) { var p = fnd(L, a.nombre) || nf(a.nombre, "el producto"); return api("setProducto", { r: p.r, nombre: p.nombre, campo: "pr", valor: Number(a.precio) }).then(okj).then(function () { p.precio = Number(a.precio); }); }); },
+    setAgotada: function (a) { return vget("cat", "catalogo", function (j) { return j.catalogo; }).then(function (L) { var p = fnd(L, a.nombre) || nf(a.nombre, "el producto"); return api("setProducto", { r: p.r, nombre: p.nombre, campo: "ag", valor: !!a.valor }).then(okj); }); },
+    setVisible: function (a) { return vget("cat", "catalogo", function (j) { return j.catalogo; }).then(function (L) { var p = fnd(L, a.nombre) || nf(a.nombre, "el producto"); return api("setProducto", { r: p.r, nombre: p.nombre, campo: "vi", valor: !!a.valor }).then(okj); }); },
+    editProducto: function (a) { return vget("cat", "catalogo", function (j) { return j.catalogo; }).then(function (L) { var p = fnd(L, a.nombre) || nf(a.nombre, "el producto"), cp = {}; if (a.desc) cp.desc = a.desc; if (a.cat) cp.cat = a.cat; if (a.ing) cp.ing = a.ing; return api("saveProducto", { r: p.r, nombre: p.nombre, campos: cp }).then(okj); }); },
+    crearProducto: function (a) { return api("addProducto", { nombre: a.nombre, desc: a.desc || "", precio: Number(a.precio) || 0, cat: a.cat || "", ing: a.ing || "" }).then(okj); },
+    setPedido: function (a) { return vget("ped", "pedidos", function (j) { return j.pedidos; }).then(function (L) { var p = fnd(L, a.pedido, function (x) { return x.id; }) || nf(a.pedido, "el pedido"), c = { aprobado: "ap", hecho: "he", entregado: "en" }[a.campo]; if (!c) throw new Error("Campo inválido"); return api("setPedido", { r: p.r, id: p.id, campo: c, valor: !!a.valor }).then(okj); }); },
+    cancelarPedido: function (a) { return vget("ped", "pedidos", function (j) { return j.pedidos; }).then(function (L) { var p = fnd(L, a.pedido, function (x) { return x.id; }) || nf(a.pedido, "el pedido"); return api("setPedido", { r: p.r, id: p.id, campo: "cc", valor: true }).then(okj); }); },
+    notaPedido: function (a) { return vget("ped", "pedidos", function (j) { return j.pedidos; }).then(function (L) { var p = fnd(L, a.pedido, function (x) { return x.id; }) || nf(a.pedido, "el pedido"); return api("setPedido", { r: p.r, id: p.id, campo: "notas", valor: a.nota }).then(okj); }); },
+    setPackActivo: function (a) { return vget("pk", "packs2", function (j) { return j.packs; }).then(function (L) { var p = fnd(L, a.nombre, function (x) { return x.nombre || "Pack x" + x.q; }) || nf(a.nombre, "el pack"); return api("setPack", { r: p.r, nombre: p.nombre, campo: "ac", valor: !!a.valor }).then(okj); }); },
+    setPackPrecio: function (a) { return vget("pk", "packs2", function (j) { return j.packs; }).then(function (L) { var p = fnd(L, a.nombre, function (x) { return x.nombre || "Pack x" + x.q; }) || nf(a.nombre, "el pack"); return api("setPack", { r: p.r, nombre: p.nombre, campo: "pr", valor: Number(a.precio) }).then(okj); }); },
+    crearPack: function (a) { return api("savePack", { r: 0, orig: "", tipo: "Pack", nombre: "", q: Number(a.cantidad) || 3, precio: Number(a.precio) || 0, lim: Number(a.limite) || 0, vence: "", texto: "", items: [], vars: [] }).then(okj); },
+    crearCombo: function (a) { return vget("cat", "catalogo", function (j) { return j.catalogo; }).then(function (L) { var its = (a.items || []).map(function (i) { var p = fnd(L, i.cookie) || nf(i.cookie, "el producto"); return { n: p.nombre, c: Number(i.cantidad) || 1 }; }); var q = its.reduce(function (t, i) { return t + i.c; }, 0); return api("savePack", { r: 0, orig: "", tipo: "Combo", nombre: a.nombre, q: q, precio: Number(a.precio) || 0, lim: Number(a.limite) || 0, vence: "", texto: "", items: its, vars: [] }).then(okj); }); },
+    setInsumo: function (a) { var t = a.tabla === "packaging" ? "p" : "a"; return vget("prov", "proveedores", function (j) { return j.proveedores; }).then(function (P) { var x = fnd(P[t] || [], a.nombre, function (z) { return z.ins; }); if (!x) { t = t === "a" ? "p" : "a"; x = fnd(P[t] || [], a.nombre, function (z) { return z.ins; }); } if (!x) nf(a.nombre, "el insumo"); var sets = []; if (a.proveedor) sets.push(["prov", a.proveedor]); if (a.cantidad != null && a.cantidad !== "") sets.push(["cant", a.cantidad]); if (a.precioTotal != null && a.precioTotal !== "") sets.push(["precio", a.precioTotal]); return sets.reduce(function (pr, s2) { return pr.then(function () { return api("setProveedor", { t: t, r: x.r, ins: x.ins, campo: s2[0], valor: String(s2[1]) }).then(okj); }); }, Promise.resolve()); }); },
+    setTexto: function (a) { return vget("cfg", "config", function (j) { return j.config; }).then(function (L) { var K = L.filter(function (z) { return z.k; }), k = nrm(String(a.clave).replace(/_/g, " ")), x = K.filter(function (z) { return nrm(String(z.k).replace(/_/g, " ")) === k; })[0] || nf(a.clave, "el texto"); return api("setConfig", { r: x.r, k: x.k, valor: String(a.valor) }).then(okj); }); },
+    guardarReceta: function (a) { return vget("pro", "catalogo", function (j) { return j.catalogo; }).then(function (L) { var p = fnd(L, a.producto) || nf(a.producto, "el producto"); return api("recetas2").then(okj).then(function (R) { var its = (a.items || []).map(function (i) { var z = fnd(R.insumos, i.insumo, function (q) { return q.n; }) || nf(i.insumo, "el insumo"); return [z.n, Number(i.cantidad) || 0]; }); return api("saveReceta", { nombre: p.nombre, y: Number(a.cookiesPorMasa) || 0, items: its }).then(okj); }); }); },
+    eliminarReceta: function (a) { return api("recetas2").then(okj).then(function (R) { var x = fnd(R.recetas, a.producto) || nf(a.producto, "la receta"); return api("delReceta", { nombre: x.nombre }).then(okj); }); },
+    darAcceso: function (a) { return api("addAcceso", { email: a.email, nota: a.nota || "" }).then(okj); },
+    setAcceso: function (a) { return api("accesos").then(okj).then(function (R) { var x = fnd(R.accesos, a.email, function (z) { return z.email; }) || nf(a.email, "el mail"); return api("setAcceso", { r: x.r, activo: !!a.activo }).then(okj); }); },
+    irA: function (a) { vzClose(); st.loaded = {}; goto(a.seccion); return Promise.resolve(); },
+    irAFotos: function (a) { return vget("cat", "catalogo", function (j) { return j.catalogo; }).then(function (L) { var p = fnd(L, a.producto) || nf(a.producto, "el producto"); vzClose(); st.productos = L; st.loaded.productos = true; goto("productos"); setTimeout(function () { openFotos("prod", p); }, 250); }); },
+    responder: function () { return Promise.resolve(); }
+  };
+  function vzClose() { if (VZ.rec) { try { VZ.rec.stop(); } catch (e) {} } VZ.listening = false; if (VZ.el) { VZ.el.remove(); VZ.el = null; } }
+  function vzOpen() {
+    if (VZ.el) return;
+    VZ.prev = ""; VZ.acc = []; VC = {};
+    var el = document.createElement("div"); el.className = "vz";
+    el.innerHTML = '<div class="vzb"><h3><span>🎙️ Asistente de voz</span><button data-vz="close" aria-label="Cerrar">✕</button></h3>' +
+      '<textarea class="inp" id="vz-t" rows="3" placeholder="Hablá o escribí. Ej: poné la Red Velvet a 2800"></textarea>' +
+      '<div class="vzr">' + (SR ? '<button class="sm mic" data-vz="mic" id="vz-mic">🎙️ Hablar</button>' : "") + '<button class="btn" data-vz="go" id="vz-go">Interpretar</button></div><div id="vz-res"></div></div>';
+    document.body.appendChild(el); VZ.el = el;
+    el.addEventListener("click", function (e) { if (e.target === el) vzClose(); });
+    if (SR) vzMic();
+  }
+  function vzMic() {
+    if (!SR || !VZ.el) return;
+    var b = $("vz-mic"), t = $("vz-t");
+    if (VZ.listening) { try { VZ.rec.stop(); } catch (e) {} return; }
+    var r = new SR(); r.lang = "es-AR"; r.interimResults = true; r.continuous = false; VZ.rec = r;
+    var base = t.value ? t.value.replace(/\s*$/, " ") : "";
+    r.onstart = function () { VZ.listening = true; if (b) { b.classList.add("on"); b.textContent = "● Escuchando…"; } };
+    r.onresult = function (ev) { var tx = ""; for (var i = 0; i < ev.results.length; i++) tx += ev.results[i][0].transcript; if (VZ.el) t.value = base + tx; };
+    r.onerror = function (ev) { if (VZ.el && ev.error === "not-allowed") $("vz-res").innerHTML = '<div class="va er">No hay permiso para el micrófono. Escribí la orden o habilitalo en el navegador.</div>'; };
+    r.onend = function () { VZ.listening = false; var b2 = $("vz-mic"); if (b2) { b2.classList.remove("on"); b2.textContent = "🎙️ Hablar"; } if (VZ.el && t.value.trim() && !VZ.busy && !VZ.acc.length) vzGo(); };
+    try { r.start(); } catch (e) {}
+  }
+  function vzGo() {
+    var t = $("vz-t"), res = $("vz-res"); if (!t || VZ.busy) return;
+    var tx = t.value.trim(); if (!tx) return;
+    var full = (VZ.prev ? VZ.prev + ". " : "") + tx;
+    VZ.busy = true; res.innerHTML = '<div class="empty" style="padding:14px">Pensando…</div>';
+    api("voz", { texto: full }).then(function (j) {
+      VZ.busy = false; if (!VZ.el) return;
+      if (!j || !j.ok) {
+        var m = j && j.error === "sinclave" ? "Falta cargar la clave de IA. Andá a Más → Asistente de voz." : (j && j.msg || "No se pudo interpretar.");
+        res.innerHTML = '<div class="va er">' + esc(m) + "</div>"; return;
+      }
+      var A = j.acciones || [];
+      if (!A.length) {
+        VZ.prev = full; t.value = "";
+        res.innerHTML = '<div class="vq">' + esc(j.pregunta || "No entendí. ¿Podés repetirlo?") + "</div>"; t.placeholder = "Tu respuesta…"; t.focus(); return;
+      }
+      VZ.acc = A; vzPaint();
+    }).catch(function () { VZ.busy = false; if (VZ.el) res.innerHTML = '<div class="va er">No se pudo conectar.</div>'; });
+  }
+  function vzPaint(done) {
+    var res = $("vz-res"); if (!res) return;
+    var h = VZ.acc.map(function (a, i) {
+      var cls = a.st === "ok" ? "ok" : a.st === "er" ? "er" : isWarn(a) ? "warn" : "";
+      var ic = a.st === "ok" ? "✅" : a.st === "er" ? "⚠️" : isWarn(a) ? "❗" : "•";
+      var txt = a.tipo === "responder" ? (a.texto || a.resumen) : (a.resumen || a.tipo);
+      if (a.tipo === "guardarReceta" && !a.st) txt += " (reemplaza la receta completa)";
+      return '<div class="va ' + cls + '"><span>' + ic + "</span><div>" + esc(txt) + (a.err ? '<div class="meta" style="color:#b3261e">' + esc(a.err) + "</div>" : "") + "</div></div>";
+    }).join("");
+    if (!done) h += '<div class="vzr"><button class="sm" data-vz="no">Cancelar</button><button class="btn" data-vz="apply">' + (VZ.acc.every(function (a) { return a.tipo === "responder"; }) ? "Listo" : "Aplicar") + "</button></div>";
+    else h += '<div class="vzr"><button class="btn" data-vz="close">Cerrar</button><button class="sm" data-vz="new">Otra orden</button></div>';
+    res.innerHTML = h;
+  }
+  function vzApply() {
+    var A = VZ.acc; if (!A.length) return;
+    if (A.every(function (a) { return a.tipo === "responder"; })) { vzClose(); return; }
+    var nav = false, any = false;
+    var chain = A.reduce(function (pr, a) {
+      return pr.then(function () {
+        if (a.tipo === "irA" || a.tipo === "irAFotos") nav = true;
+        var f = EX[a.tipo]; if (!f) { a.st = "er"; a.err = "Acción no soportada"; return; }
+        return f(a).then(function () { a.st = "ok"; if (a.tipo !== "responder" && a.tipo !== "irA" && a.tipo !== "irAFotos") any = true; }, function (e) { a.st = "er"; a.err = e.message; });
+      });
+    }, Promise.resolve());
+    var b = VZ.el && VZ.el.querySelector("[data-vz=apply]"); if (b) { b.disabled = true; b.textContent = "Aplicando…"; }
+    chain.then(function () {
+      if (!VZ.el) { if (any) { st.loaded = {}; } return; }
+      vzPaint(true);
+      if (any) { st.loaded = {}; var v = st.v; fetchView(v); st.loaded.mas = true; }
+    });
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-vz]"); if (!b) return;
+    var a = b.getAttribute("data-vz");
+    if (a === "close") vzClose(); else if (a === "mic") vzMic(); else if (a === "go") vzGo(); else if (a === "no") { VZ.acc = []; VZ.prev = ""; $("vz-res").innerHTML = ""; $("vz-t").value = ""; }
+    else if (a === "apply") vzApply(); else if (a === "new") { VZ.acc = []; VZ.prev = ""; VC = {}; $("vz-t").value = ""; $("vz-res").innerHTML = ""; vzMic(); }
+  });
+  $("vfab").addEventListener("click", vzOpen);
+  function renderVozCfg() {
+    var h = BACK + '<div class="card"><div class="nm">Estado: ' + (st.vz ? '<span class="badge g">Clave cargada</span>' : '<span class="badge o">Falta la clave</span>') + '</div>' +
+      '<div class="help" style="margin-top:8px">Pegá tu clave de Anthropic (empieza con sk-ant-). Se guarda en tu Apps Script y solo la usa el servidor. Cada orden dictada consume un poco de crédito de tu cuenta de Anthropic.</div>' +
+      '<div class="add"><input class="inp" id="vz-key" type="password" autocomplete="off" placeholder="sk-ant-…"><button class="btn" id="vz-save">' + (st.vz ? "Reemplazar clave" : "Guardar clave") + "</button></div></div>" +
+      '<div class="help"><b>Ejemplos:</b><br>• «Poné la Red Velvet a 2800»<br>• «Marcá agotada la Trichoc»<br>• «Aprobá el pedido U-A1B2»<br>• «La harina la compré a 1800 el kilo en Mayorista Sur»<br>• «Creá un combo Dúo con una Red Velvet y una Chocomarsh a 4500»<br>• «Llevame a las fotos de la Trichoc»<br><br><b>Privacidad:</b> a la IA se le envían nombres de productos, precios, insumos y códigos de pedido. No se envían nombres ni teléfonos de clientes. Siempre ves y confirmás los cambios antes de aplicarlos.</div>';
+    return h;
+  }
+  document.addEventListener("click", function (e) {
+    if (!e.target.closest || !e.target.closest("#vz-save")) return;
+    var k = $("vz-key").value.trim(); if (!/^sk-ant-/.test(k)) { toast("La clave debe empezar con sk-ant-"); return; }
+    api("setVozKey", { valor: k }).then(function (j) { if (j && j.ok) { st.vz = true; $("vz-key").value = ""; render(true); toast("Clave guardada ✓"); } else toast(j && j.msg || "No se pudo guardar"); }).catch(function () { toast("No se pudo guardar"); });
+  });
 
   /* ---------- Eventos ---------- */
   var armTimer = null;

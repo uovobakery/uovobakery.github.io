@@ -78,6 +78,18 @@ button { cursor:pointer; }
 .add { display:grid; gap:8px; margin-top:6px; }
 .btn { border:0; background:var(--blue); color:#fff; border-radius:12px; padding:12px; font-weight:800; }
 .btn:disabled { opacity:.5; }
+.ibtn svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tour{position:fixed;inset:0;background:rgba(10,20,40,.55);display:flex;align-items:flex-end;justify-content:center;z-index:50;padding:16px}
+.tour .card{background:#fff;border-radius:20px;max-width:420px;width:100%;padding:22px 20px 16px;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+.tour h3{margin:0 0 8px;font-size:1.15rem;color:#0F59C4}
+.tour p{margin:0 0 16px;line-height:1.45;color:#333}
+.tour .dots{display:flex;gap:6px;justify-content:center;margin-bottom:14px}
+.tour .dots i{width:8px;height:8px;border-radius:50%;background:#cfd8e8}
+.tour .dots i.on{background:#0F59C4}
+.tour .row{display:flex;gap:8px}
+.tour .row button{flex:1;padding:12px;border-radius:12px;border:1px solid #0F59C4;background:#fff;color:#0F59C4;font:inherit;font-weight:700}
+.tour .row button.pri{background:#0F59C4;color:#fff}
+.tour .skip{display:block;margin:10px auto 0;border:0;background:none;color:#777;font:inherit;font-size:.85rem}
 </style>
 </head>
 <body>
@@ -93,6 +105,7 @@ button { cursor:pointer; }
   <div id="demobar" class="demo" hidden>MODO DEMO · datos de ejemplo, no se guarda nada</div>
   <header class="top">
     <h1>Uovo Admin<small id="who"></small></h1>
+    <button class="ibtn" id="wand" aria-label="Ayuda"><svg viewBox="0 0 24 24"><path d="M4 20 15 9"/><path d="m14 4 .8 2.2L17 7l-2.2.8L14 10l-.8-2.2L11 7l2.2-.8zM19 12l.5 1.3 1.3.5-1.3.5-.5 1.3-.5-1.3-1.3-.5 1.3-.5z"/></svg></button>
     <button class="ibtn" id="refresh" aria-label="Actualizar">↻</button>
     <button class="ibtn" id="logout" aria-label="Salir">⎋</button>
   </header>
@@ -161,7 +174,7 @@ button { cursor:pointer; }
   }
   function signedOut(msg) { st.token = ""; st.me = null; store("uovo_adm_tok", null); showLogin(msg); try { if (window.google && google.accounts) google.accounts.id.disableAutoSelect(); } catch (e) {} }
   function enter(me) {
-    st.me = me; $("login").hidden = true; $("app").hidden = false; $("who").textContent = me.email;
+    st.me = me; $("login").hidden = true; $("app").hidden = false; $("who").textContent = me.email + " · " + (me.rol || "");
     $("nav-acc").hidden = me.rol !== "Dueño"; $("demobar").hidden = !DEMO;
     goto(st.v === "accesos" && me.rol !== "Dueño" ? "pedidos" : st.v);
   }
@@ -277,7 +290,41 @@ button { cursor:pointer; }
     $("view").innerHTML = h;
     if (id === "pq") { var e = $("pq"); e.focus(); try { e.setSelectionRange(pos, pos); } catch (x) {} }
     if (keepScroll) window.scrollTo(0, y);
+    if (!keepScroll) maybeTour();
   }
+
+  /* ---------- Asistente (wizard) ---------- */
+  var TOUR = {
+    pedidos: [["Tus pedidos", "Acá llegan los pedidos de la tienda, del más nuevo al más viejo. Los filtros de arriba (Pendientes, A cocinar, Listos…) te muestran cada etapa. Con el buscador encontrás a un cliente."],
+      ["Avanzá el estado", "Tocá Aprobado, Hecho y Entregado a medida que avanza el pedido. Se guarda al instante en tu Excel."],
+      ["Hablá con el cliente", "WhatsApp abre el chat con el cliente. Nota te deja escribir un recordatorio del pedido."],
+      ["Cancelar", "Cancelar pedido pide confirmación y se puede reactivar después. Para actualizar la lista usá ↻ arriba."]],
+    productos: [["Tus productos", "Acá ves todas las cookies de la tienda."],
+      ["Agotada y visible", "Agotada marca que no hay stock (el cliente la ve apagada). Visible la muestra u oculta en la tienda."],
+      ["Precio", "Podés cambiar el precio de cada cookie desde acá y se actualiza en la tienda."]],
+    accesos: [["Quién puede entrar", "Acá ves las cuentas de Google con acceso a esta app. Solo vos (Dueño) ves esta pantalla."],
+      ["Dar acceso", "Escribí el email de Google de la persona y agregala. Va a tener acceso total. Entra con esa misma cuenta de Google."],
+      ["Pausar o quitar", "Pausar deja a la persona sin acceso pero sin borrarla; Quitar la elimina."]]
+  };
+  function tourSeen(v) { return load("uovo_adm_tour_" + v) === "1"; }
+  function openTour(v) {
+    var steps = TOUR[v]; if (!steps) return; store("uovo_adm_tour_" + v, "1");
+    var i = 0, el = document.createElement("div"); el.className = "tour";
+    function paint() {
+      var s = steps[i], last = i === steps.length - 1, dots = "";
+      for (var k = 0; k < steps.length; k++) dots += '<i class="' + (k === i ? "on" : "") + '"></i>';
+      el.innerHTML = '<div class="card"><h3>' + esc(s[0]) + "</h3><p>" + esc(s[1]) + '</p><div class="dots">' + dots + '</div><div class="row">' + (i ? '<button data-t="b">Atrás</button>' : "") + '<button class="pri" data-t="n">' + (last ? "Listo" : "Siguiente") + '</button></div>' + (last ? "" : '<button class="skip" data-t="x">Saltar</button>') + "</div>";
+    }
+    el.addEventListener("click", function (e) {
+      var t = e.target.getAttribute && e.target.getAttribute("data-t");
+      if (t === "n") { if (i < steps.length - 1) { i++; paint(); } else el.remove(); }
+      else if (t === "b") { i--; paint(); }
+      else if (t === "x" || e.target === el) el.remove();
+    });
+    paint(); document.body.appendChild(el);
+  }
+  function maybeTour() { if (!tourSeen(st.v) && !document.querySelector(".tour")) openTour(st.v); }
+  $("wand").addEventListener("click", function () { openTour(st.v); });
 
   /* ---------- Eventos ---------- */
   var armTimer = null;

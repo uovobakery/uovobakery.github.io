@@ -90,6 +90,7 @@ button { cursor:pointer; }
 .mi:last-child{border-bottom:0}.mi i{width:40px;height:40px;border-radius:50%;background:#e8f0fd;display:grid;place-items:center;font-style:normal;font-size:1.2rem}
 .mi b{display:block}.mi span{font-size:.82rem;color:#667}
 .kpis.two{grid-template-columns:1fr 1fr}.kpis.four{grid-template-columns:repeat(4,1fr)}.hero.neg{background:#b3261e}.rd{color:#b3261e}textarea.inp{resize:vertical;font:inherit;width:100%}
+.rl{display:flex;gap:6px;align-items:center}.rl select{flex:1;min-width:0}.rl .u{min-width:34px;font-size:.8rem;color:#667}
 .back{border:0;background:none;color:#0F59C4;font:inherit;font-weight:700;padding:4px 0 10px}
 .frow{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #eef2f9}
 .frow.t{font-weight:800}
@@ -142,7 +143,7 @@ button { cursor:pointer; }
   var ENDPOINT = "https://script.google.com/macros/s/AKfycbwRgztSNbcqRVjj6Kji1BbUCoZxAdQlYLYPxf5-266YiG16hzG9J4II1L7qhxlENjmZNA/exec";
   var DEMO = /[?&]demo=1/.test(location.search);
   var $ = function (id) { return document.getElementById(id); };
-  var st = { token: "", me: null, v: "inicio", fil: "pend", q: "", pedidos: [], productos: [], accesos: [], packs: [], recetas: [], fin: null, cfg: [], prov: null, pvt: "a", edit: 0, newp: false, cq: "", loaded: {} };
+  var st = { token: "", me: null, v: "inicio", fil: "pend", q: "", pedidos: [], productos: [], accesos: [], packs: [], recetas: [], fin: null, cfg: [], insumos: [], ppro: [], rd: null, pd: null, prov: null, pvt: "a", edit: 0, newp: false, cq: "", loaded: {} };
   function store(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
   function load(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
@@ -185,6 +186,8 @@ button { cursor:pointer; }
       if (op === "proveedores" || op === "setProveedor" || op === "addInsumo") return res({ ok: true, proveedores: d.prov });
       if (op === "addProducto") return res({ ok: true, catalogo: d.productos });
       if (op === "saveProducto" || op === "setConfig" || op === "setFotos") return res({ ok: true });
+      if (op === "recetas2" || op === "saveReceta" || op === "delReceta") return res({ ok: true, recetas: d.recetas.map(function (x) { x.y = x.q; x.items = [{ n: "Harina 0000", q: 184.6, u: "g" }, { n: "Manteca", q: 114.4, u: "g" }]; return x; }), insumos: [{ n: "Harina 0000", u: "g" }, { n: "Manteca", u: "g" }, { n: "Azúcar", u: "g" }] });
+      if (op === "packs2" || op === "savePack" || op === "delPack" || op === "setPack2") return res({ ok: true, productos: ["Red Velvet", "Chocomarsh", "Trichoc"], packs: d.packs.map(function (p) { p.texto = ""; p.vence = ""; p.items = p.tipo === "Combo" ? [{ n: "Red Velvet", c: 1 }, { n: "Chocomarsh", c: 1 }] : []; p.vars = ["Red Velvet"]; return p; }) });
       if (op === "packs") return res({ ok: true, packs: d.packs });
       if (op === "recetas") return res({ ok: true, recetas: d.recetas });
       if (op === "finanzas" || op === "setAnio") return res(d.fin);
@@ -248,11 +251,12 @@ button { cursor:pointer; }
   }
   function fetchView(v) {
     if (v === "textos") { fetchTextos(); return; }
-    var op = v === "inicio" ? "pedidos" : v === "productos" ? "catalogo" : v;
+    var op = v === "inicio" ? "pedidos" : v === "productos" ? "catalogo" : v === "recetas" ? "recetas2" : v === "packs" ? "packs2" : v;
+    if ((v === "recetas" || v === "packs") && !st.loaded.productos) api("catalogo").then(function (j) { if (j && j.ok) { st.productos = j.catalogo; st.loaded.productos = true; } }).catch(function () {});
     if (v === "inicio" && !st.loaded.productos) api("catalogo").then(function (j) { if (j && j.ok) { st.productos = j.catalogo; st.loaded.productos = true; if (st.v === "inicio") render(true); } }).catch(function () {});
     api(op).then(function (j) {
       if (!j || !j.ok) { $("view").innerHTML = '<div class="empty">No se pudo cargar. ' + esc(j && j.msg || "") + "</div>"; return; }
-      if (op === "finanzas") st.fin = j; else if (op === "catalogo") st.productos = j.catalogo; else if (op === "proveedores") st.prov = j.proveedores; else if (op === "config") st.cfg = j.config; else st[op] = j[op];
+      if (op === "finanzas") st.fin = j; else if (op === "catalogo") st.productos = j.catalogo; else if (op === "proveedores") st.prov = j.proveedores; else if (op === "config") st.cfg = j.config; else if (op === "recetas2") { st.recetas = j.recetas; st.insumos = j.insumos; } else if (op === "packs2") { st.packs = j.packs; st.ppro = j.productos; } else st[op] = j[op];
       st.loaded[v] = true; if (op === "pedidos") { st.loaded.pedidos = true; st.loaded.inicio = true; }
       if (st.v === v) render();
     }).catch(function () { if (st.v === v) $("view").innerHTML = '<div class="empty">No se pudo cargar.</div>'; });
@@ -366,13 +370,32 @@ button { cursor:pointer; }
   }
   var BACK = '<button class="back" data-go="mas">‹ Más</button>';
   /* ---------- Packs ---------- */
+  function fdate(v) { return v ? String(v).split("-").reverse().join("/") : ""; }
+  function opts(list, sel, ph) { return (ph ? '<option value="">' + ph + "</option>" : "") + list.map(function (x) { return '<option value="' + esc(x) + '"' + (x === sel ? " selected" : "") + ">" + esc(x) + "</option>"; }).join(""); }
   function renderPacks() {
-    if (!st.packs.length) return BACK + '<div class="empty">No hay packs ni combos. Cargalos en la hoja "Packs y combos".</div>';
-    return BACK + '<div class="help">Activá o pausá cada oferta y cambiá su precio. Se refleja en la tienda.</div>' + st.packs.map(function (p) {
-      return '<article class="card" data-r="' + p.r + '"><div class="row"><div><div class="nm">' + esc(p.nombre) + ' <span class="badge b">' + esc(p.tipo) + '</span></div><div class="meta">' + p.q + " cookies" + (p.normal ? " · normal " + money(p.normal) : "") + (p.ahorro ? " · ahorro " + money(p.ahorro) : "") + (p.ganancia != null ? " · ganancia " + money(p.ganancia) : "") + (p.lim ? " · límite " + p.lim : "") + (p.vence ? " · vence " + esc(p.vence) : "") + "</div></div>" +
+    var h = BACK + '<div style="display:flex;gap:8px;margin-bottom:12px"><button class="btn" data-knew="Pack">＋ Pack</button><button class="btn" data-knew="Combo">＋ Combo</button></div>';
+    if (st.pd && !st.pd.r) h += editorP();
+    if (!st.packs.length && !st.pd) return h + '<div class="empty">No hay packs ni combos todavía.</div>';
+    return h + '<div class="help">Activá o pausá cada oferta, cambiá su precio o tocá Editar. Se refleja en la tienda.</div>' + st.packs.map(function (p) {
+      var ed = st.pd && st.pd.r === p.r;
+      return '<article class="card" data-r="' + p.r + '"><div class="row"><div><div class="nm">' + esc(p.nombre || "Pack x" + p.q) + ' <span class="badge b">' + esc(p.tipo) + '</span></div><div class="meta">' + (p.tipo === "Pack" ? p.q + " cookies" : p.items.map(function (i) { return i.c + " " + esc(i.n); }).join(" + ")) + (p.normal ? " · normal " + money(p.normal) : "") + (p.ahorro ? " · ahorro " + money(p.ahorro) : "") + (p.ganancia != null ? " · ganancia " + money(p.ganancia) : "") + (p.lim ? " · límite " + p.lim : "") + (p.vence ? " · vence " + fdate(p.vence) : "") + "</div></div>" +
         '<div class="pr"><span>$</span><input class="inp" type="number" inputmode="numeric" min="0" step="50" value="' + p.precio + '" data-pkpr="1"></div></div>' +
-        '<div class="row" style="margin-top:12px"><button class="sw' + (p.ac ? " on" : "") + '" data-pksw="1" style="border:0;background:none;padding:0"><i></i>' + (p.ac ? "Activo" : "Pausado") + "</button></div></article>";
+        '<div class="row" style="margin-top:12px;align-items:center"><button class="sw' + (p.ac ? " on" : "") + '" data-pksw="1" style="border:0;background:none;padding:0"><i></i>' + (p.ac ? "Activo" : "Pausado") + '</button><button class="sm" data-kedit="1">' + (ed ? "Cerrar" : "Editar") + "</button></div>" + (ed ? editorP() : "") + "</article>";
     }).join("");
+  }
+  function editorP() {
+    var d = st.pd, c = d.tipo === "Combo", h = '<div class="add" style="margin-top:10px" id="pk-ed"><div class="nm">' + (d.r ? "Editar " : "Nuevo ") + (c ? "combo" : "pack") + "</div>";
+    if (c) h += '<input class="inp" data-kf="nombre" placeholder="Nombre del combo" value="' + esc(d.nombre) + '">';
+    else h += '<input class="inp" data-kf="q" type="number" inputmode="numeric" placeholder="Cantidad de cookies del pack" value="' + (d.q || "") + '">';
+    if (c) {
+      h += d.items.map(function (it, i) { return '<div class="rl"><select class="inp" data-kin="' + i + '">' + opts(st.ppro, it.n, "Elegí cookie") + '</select><input class="inp" type="number" inputmode="numeric" min="1" data-kic="' + i + '" value="' + (it.c || "") + '" style="max-width:80px"><button class="sm red" data-kix="' + i + '">×</button></div>'; }).join("");
+      if (d.items.length < 4) h += '<button class="sm" data-kiadd="1">＋ Cookie</button>';
+    } else {
+      h += '<div class="meta">Cookies que valen para este pack (si no marcás ninguna, valen todas):</div><div class="chips" style="flex-wrap:wrap">' + st.ppro.map(function (n) { return '<button class="chip' + (d.vars.indexOf(n) >= 0 ? " on" : "") + '" data-kv="' + esc(n) + '">' + esc(n) + "</button>"; }).join("") + "</div>";
+    }
+    h += '<input class="inp" data-kf="precio" type="number" inputmode="numeric" placeholder="Precio" value="' + (d.precio || "") + '"><input class="inp" data-kf="lim" type="number" inputmode="numeric" placeholder="Límite por pedido (opcional)" value="' + (d.lim || "") + '"><div class="meta">Vence (opcional)</div><input class="inp" data-kf="vence" type="date" value="' + esc(d.vence) + '"><textarea class="inp" rows="2" data-kf="texto" placeholder="Texto o descripción (opcional)">' + esc(d.texto) + '</textarea>';
+    h += '<div style="display:flex;gap:8px"><button class="btn" data-ksave="1">Guardar</button><button class="sm" data-kcancel="1">Cancelar</button>' + (d.r ? '<button class="sm red" data-kdel="1">Eliminar</button>' : "") + "</div></div>";
+    return h;
   }
   function patchPack(r, campo, valor) {
     var p = st.packs.filter(function (x) { return x.r === r; })[0]; if (!p) return;
@@ -383,10 +406,24 @@ button { cursor:pointer; }
   }
   /* ---------- Recetas ---------- */
   function renderRecetas() {
-    if (!st.recetas.length) return BACK + '<div class="empty">Todavía no hay recetas. Cargalas en la hoja "Recetas".</div>';
-    return BACK + '<div class="help">Costo de cada cookie según su receta. Para editar una receta, usá la hoja "Recetas".</div>' + st.recetas.map(function (x) {
-      return '<article class="card"><div class="row"><div><div class="nm">' + esc(x.nombre) + '</div><div class="meta">Masa ' + money(x.masa) + " · " + x.q + ' cookies por masa</div></div><div class="tot">' + money(x.costo) + '<div class="meta" style="text-align:right">por cookie</div></div></div></article>';
+    var h = BACK + '<button class="btn" id="rnew" data-rnew="1" style="margin-bottom:12px">＋ Nueva receta</button>';
+    if (st.rd && !st.rd.orig) h += '<div class="card" id="rd-ed">' + editorR() + "</div>";
+    if (!st.recetas.length && !st.rd) return h + '<div class="empty">Todavía no hay recetas.</div>';
+    return h + '<div class="help">Costo de cada cookie según su receta. Tocá Editar para cambiar insumos y cantidades.</div>' + st.recetas.map(function (x) {
+      var ed = st.rd && st.rd.orig === x.nombre;
+      return '<article class="card" data-rn="' + esc(x.nombre) + '"><div class="row"><div><div class="nm">' + esc(x.nombre) + '</div><div class="meta">Masa ' + money(x.masa) + " · " + x.y + ' cookies por masa</div></div><div class="tot">' + money(x.costo) + '<div class="meta" style="text-align:right">por cookie</div></div></div>' +
+        '<div class="row" style="margin-top:10px"><button class="sm" data-redit="1">' + (ed ? "Cerrar" : "Editar") + "</button></div>" + (ed ? editorR() : "") + "</article>";
     }).join("");
+  }
+  function editorR() {
+    var d = st.rd, names = st.insumos.map(function (i) { return i.n; }), un = {}; st.insumos.forEach(function (i) { un[i.n] = i.u; });
+    var h = '<div class="add" style="margin-top:10px">';
+    if (!d.orig) h += '<select class="inp" data-rnom="1">' + opts(st.productos.map(function (p) { return p.nombre; }), d.nombre, "Elegí el producto") + "</select>";
+    h += '<input class="inp" type="number" inputmode="numeric" data-ry="1" placeholder="Cookies que salen de la masa" value="' + (d.y || "") + '"><div class="meta">Insumos de <b>una masa</b> (cantidad total):</div>';
+    h += d.items.map(function (it, i) { return '<div class="rl"><select class="inp" data-rin="' + i + '">' + opts(names, it.n, "Insumo") + '</select><input class="inp" type="number" inputmode="decimal" step="any" data-riq="' + i + '" value="' + (it.q === "" ? "" : it.q) + '" placeholder="Cant." style="max-width:90px"><span class="u">' + esc(un[it.n] || "") + '</span><button class="sm red" data-rix="' + i + '">×</button></div>'; }).join("");
+    if (d.items.length < 20) h += '<button class="sm" data-riadd="1">＋ Insumo</button>';
+    h += '<div style="display:flex;gap:8px;margin-top:6px"><button class="btn" data-rsave="1">Guardar receta</button><button class="sm" data-rcancel="1">Cancelar</button>' + (d.orig ? '<button class="sm red" data-rdel="1">Eliminar</button>' : "") + "</div></div>";
+    return h;
   }
   /* ---------- Finanzas ---------- */
   function finHead() { var f = st.fin && st.fin.filas || []; for (var i = 0; i < f.length; i++) if (String(f[i][0]).trim().toLowerCase() === "estado de resultados") return i; return -1; }
@@ -473,9 +510,12 @@ button { cursor:pointer; }
       ["#fin-mes", "Mes", "Elegí un mes o el total del año."],
       ["#fin-res", "Lo que te quedó", "Lo que ganaste después de todos los costos y gastos."],
       ["#fin-lines", "¿A dónde fue la plata?", "El detalle: descuentos, insumos, mano de obra y gastos."]],
-    packs: [[".pr", "Precio", "Cambiá el precio del pack o combo."],
+    packs: [["[data-knew=Pack]", "Nuevo pack o combo", "Un pack es X cookies a un precio; un combo es una selección fija de cookies."],
+      [".pr", "Precio", "Cambiá el precio del pack o combo."],
+      ["[data-kedit]", "Editar", "Cantidad, cookies, límite, vencimiento y texto. También podés eliminarlo."],
       ["[data-pksw]", "Activo / Pausado", "Activá o pausá la oferta en la tienda."]],
-    recetas: [[".card", "Costo por cookie", "Cada receta con el costo de la masa y de cada cookie. Para editarlas usá la hoja Recetas."]],
+    recetas: [["#rnew", "Nueva receta", "Elegí el producto, cuántas cookies salen de una masa y los insumos con su cantidad."],
+      ["[data-redit]", "Editar receta", "Cambiá insumos y cantidades de una masa. El costo por cookie se recalcula solo."]],
     accesos: [[".help", "Compartir acceso", "Solo vos ves esta pantalla."],
       ["#a-mail", "Mail de Google", "Escribí el mail de la persona. Entra con esa cuenta."],
       ["#a-add", "Dar acceso", "Le das acceso total. Después podés pausarla o quitarla."]]
@@ -522,7 +562,15 @@ button { cursor:pointer; }
   var armTimer = null;
   $("view").addEventListener("input", function (e) { if (e.target.id === "pq") { st.q = e.target.value; render(); } if (e.target.id === "cq") { st.cq = e.target.value; render(true); } });
   $("view").addEventListener("change", function (e) {
-    var c = e.target.closest(".card"); if (!c) return;
+    var c = e.target.closest(".card"); if (!c && !e.target.closest("#pk-ed")) return;
+    var tg = e.target;
+    if (st.rd && tg.matches("[data-rnom]")) { st.rd.nombre = tg.value; return; }
+    if (st.rd && tg.matches("[data-ry]")) { st.rd.y = Number(tg.value) || 0; return; }
+    if (st.rd && tg.matches("[data-rin]")) { st.rd.items[Number(tg.getAttribute("data-rin"))].n = tg.value; render(true); return; }
+    if (st.rd && tg.matches("[data-riq]")) { st.rd.items[Number(tg.getAttribute("data-riq"))].q = tg.value === "" ? "" : Number(tg.value); return; }
+    if (st.pd && tg.matches("[data-kf]")) { var kf = tg.getAttribute("data-kf"); st.pd[kf] = (kf === "nombre" || kf === "texto" || kf === "vence") ? tg.value : Number(tg.value) || 0; return; }
+    if (st.pd && tg.matches("[data-kin]")) { st.pd.items[Number(tg.getAttribute("data-kin"))].n = tg.value; return; }
+    if (st.pd && tg.matches("[data-kic]")) { st.pd.items[Number(tg.getAttribute("data-kic"))].c = Number(tg.value) || 0; return; }
     if (e.target.matches("[data-cfg]")) { var kk = c.getAttribute("data-k"), rr = Number(c.getAttribute("data-r")), it = st.cfg.filter(function (x) { return x.r === rr; })[0]; if (!it || it.v === e.target.value) return; var ov = it.v; it.v = e.target.value; (DEMO ? Promise.resolve({ ok: true }) : api("setConfig", { r: rr, k: kk, valor: it.v })).then(function (j) { if (j && j.ok) toast("Guardado ✓"); else { it.v = ov; toast(j && j.msg || "No se pudo guardar"); render(true); } }).catch(function () { it.v = ov; toast("No se pudo guardar"); }); return; }
     if (e.target.matches("[data-pv]")) { var ins = c.getAttribute("data-ins"), campo = e.target.getAttribute("data-pv"); api("setProveedor", { t: st.pvt, r: Number(c.getAttribute("data-r")), ins: ins, campo: campo, valor: e.target.value }).then(function (j) { if (j && j.ok) { st.prov = j.proveedores; render(true); toast("Guardado ✓"); } else { toast(j && j.msg || "No se pudo guardar"); render(true); } }).catch(function () {}); return; }
     if (e.target.matches("[data-f2]")) { var pr2 = st.productos.filter(function (x) { return x.r === Number(c.getAttribute("data-r")); })[0]; if (!pr2) return; var cp = {}; cp[e.target.getAttribute("data-f2")] = e.target.value; pr2[e.target.getAttribute("data-f2")] = e.target.value; (DEMO ? Promise.resolve({ ok: true }) : api("saveProducto", { r: pr2.r, nombre: pr2.nombre, campos: cp })).then(function (j) { if (j && j.ok) toast("Guardado ✓"); else toast(j && j.msg || "No se pudo guardar"); }).catch(function () { toast("No se pudo guardar"); }); return; }
@@ -545,6 +593,41 @@ button { cursor:pointer; }
     if (t.closest("#ai-ok")) {
       var ain = $("ai-n").value.trim(); if (!ain) { toast("Falta el nombre"); return; }
       api("addInsumo", { t: st.pvt, nombre: ain, unidad: $("ai-u").value }).then(function (j) { if (j && j.ok) { st.prov = j.proveedores; render(true); toast("Agregado ✓"); } else toast(j && j.msg || "No se pudo"); }); return;
+    }
+    var kn = t.closest("[data-knew]"); if (kn) { st.pd = { r: 0, orig: "", tipo: kn.getAttribute("data-knew"), nombre: "", q: 3, precio: 0, lim: 0, vence: "", texto: "", items: [{ n: "", c: 1 }], vars: [] }; render(true); return; }
+    if (t.closest("[data-kedit]")) { var kp = st.packs.filter(function (x) { return x.r === Number(t.closest(".card").getAttribute("data-r")); })[0]; st.pd = st.pd && st.pd.r === kp.r ? null : { r: kp.r, orig: kp.nombre, tipo: kp.tipo, nombre: kp.nombre, q: kp.q, precio: kp.precio, lim: kp.lim, vence: kp.vence, texto: kp.texto, items: kp.items.map(function (i) { return { n: i.n, c: i.c }; }), vars: kp.vars.slice() }; render(true); return; }
+    if (st.pd) {
+      var kv = t.closest("[data-kv]"); if (kv) { var vn = kv.getAttribute("data-kv"), ix = st.pd.vars.indexOf(vn); if (ix >= 0) st.pd.vars.splice(ix, 1); else st.pd.vars.push(vn); render(true); return; }
+      if (t.closest("[data-kiadd]")) { st.pd.items.push({ n: "", c: 1 }); render(true); return; }
+      var kx = t.closest("[data-kix]"); if (kx) { st.pd.items.splice(Number(kx.getAttribute("data-kix")), 1); render(true); return; }
+      if (t.closest("[data-kcancel]")) { st.pd = null; render(true); return; }
+      if (t.closest("[data-ksave]")) {
+        var kd = st.pd; t.closest("[data-ksave]").disabled = true;
+        api("savePack", { r: kd.r, orig: kd.orig, tipo: kd.tipo, nombre: kd.nombre, q: kd.q, precio: kd.precio, lim: kd.lim, vence: kd.vence, texto: kd.texto, items: kd.items, vars: kd.vars }).then(function (j) { if (j && j.ok) { st.packs = j.packs; st.pd = null; render(true); toast("Guardado ✓"); } else { toast(j && j.msg || "No se pudo guardar"); render(true); } }).catch(function () { render(true); });
+        return;
+      }
+      var kdl = t.closest("[data-kdel]"); if (kdl) {
+        if (kdl.classList.contains("arm")) api("delPack", { r: st.pd.r, orig: st.pd.orig }).then(function (j) { if (j && j.ok) { st.packs = j.packs; st.pd = null; render(true); toast("Eliminado"); } else toast(j && j.msg || "No se pudo"); });
+        else { kdl.classList.add("arm"); kdl.textContent = "¿Seguro? Tocá de nuevo"; clearTimeout(armTimer); armTimer = setTimeout(function () { kdl.classList.remove("arm"); kdl.textContent = "Eliminar"; }, 3000); }
+        return;
+      }
+    }
+    if (t.closest("[data-rnew]")) { st.rd = { orig: "", nombre: "", y: 0, items: [{ n: "", q: "" }] }; render(true); return; }
+    if (t.closest("[data-redit]")) { var rn = t.closest(".card").getAttribute("data-rn"), rx = st.recetas.filter(function (x) { return x.nombre === rn; })[0]; st.rd = st.rd && st.rd.orig === rn ? null : { orig: rn, nombre: rn, y: rx.y, items: rx.items.map(function (i) { return { n: i.n, q: i.q }; }) }; render(true); return; }
+    if (st.rd) {
+      if (t.closest("[data-riadd]")) { st.rd.items.push({ n: "", q: "" }); render(true); return; }
+      var rxx = t.closest("[data-rix]"); if (rxx) { st.rd.items.splice(Number(rxx.getAttribute("data-rix")), 1); render(true); return; }
+      if (t.closest("[data-rcancel]")) { st.rd = null; render(true); return; }
+      if (t.closest("[data-rsave]")) {
+        var rd = st.rd; t.closest("[data-rsave]").disabled = true;
+        api("saveReceta", { nombre: rd.nombre, y: rd.y, items: rd.items.map(function (i) { return [i.n, i.q]; }) }).then(function (j) { if (j && j.ok) { st.recetas = j.recetas; st.insumos = j.insumos; st.rd = null; st.loaded.productos = false; render(true); var rr = j.recetas.filter(function (x) { return x.nombre.toLowerCase() === rd.nombre.toLowerCase(); })[0]; toast("Receta guardada ✓" + (rr ? " · " + money(rr.costo) + " por cookie" : "")); } else { toast(j && j.msg || "No se pudo guardar"); render(true); } }).catch(function () { render(true); });
+        return;
+      }
+      var rdl = t.closest("[data-rdel]"); if (rdl) {
+        if (rdl.classList.contains("arm")) api("delReceta", { nombre: st.rd.orig }).then(function (j) { if (j && j.ok) { st.recetas = j.recetas; st.rd = null; st.loaded.productos = false; render(true); toast("Receta eliminada"); } else toast(j && j.msg || "No se pudo"); });
+        else { rdl.classList.add("arm"); rdl.textContent = "¿Seguro? Tocá de nuevo"; clearTimeout(armTimer); armTimer = setTimeout(function () { rdl.classList.remove("arm"); rdl.textContent = "Eliminar"; }, 3000); }
+        return;
+      }
     }
     var pt = t.closest("[data-pvt]"); if (pt) { st.pvt = pt.getAttribute("data-pvt"); render(true); return; }
     var fc = t.closest("[data-fc]"); if (fc) { st.fc = Number(fc.getAttribute("data-fc")); render(true); return; }

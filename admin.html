@@ -79,17 +79,32 @@ button { cursor:pointer; }
 .btn { border:0; background:var(--blue); color:#fff; border-radius:12px; padding:12px; font-weight:800; }
 .btn:disabled { opacity:.5; }
 .ibtn svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.tour{position:fixed;inset:0;background:rgba(10,20,40,.55);display:flex;align-items:flex-end;justify-content:center;z-index:50;padding:16px}
-.tour .card{background:#fff;border-radius:20px;max-width:420px;width:100%;padding:22px 20px 16px;box-shadow:0 10px 40px rgba(0,0,0,.3)}
-.tour h3{margin:0 0 8px;font-size:1.15rem;color:#0F59C4}
-.tour p{margin:0 0 16px;line-height:1.45;color:#333}
-.tour .dots{display:flex;gap:6px;justify-content:center;margin-bottom:14px}
-.tour .dots i{width:8px;height:8px;border-radius:50%;background:#cfd8e8}
-.tour .dots i.on{background:#0F59C4}
-.tour .row{display:flex;gap:8px}
-.tour .row button{flex:1;padding:12px;border-radius:12px;border:1px solid #0F59C4;background:#fff;color:#0F59C4;font:inherit;font-weight:700}
-.tour .row button.pri{background:#0F59C4;color:#fff}
-.tour .skip{display:block;margin:10px auto 0;border:0;background:none;color:#777;font:inherit;font-size:.85rem}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.kpi{background:#fff;border-radius:16px;padding:14px 8px;text-align:center;border:1px solid #e3eaf6;font:inherit;color:inherit}
+.kpi b{display:block;font-size:1.6rem;color:#0F59C4;line-height:1.1}
+.kpi span{font-size:.78rem;color:#667}
+.hero{background:#0F59C4;color:#fff;border-radius:18px;padding:18px;margin-bottom:12px}
+.hero small{opacity:.8;display:block}.hero b{font-size:1.9rem;display:block;margin:4px 0}
+.menu{background:#fff;border-radius:16px;border:1px solid #e3eaf6;overflow:hidden}
+.mi{display:flex;align-items:center;gap:14px;width:100%;border:0;border-bottom:1px solid #eef2f9;background:none;padding:16px;font:inherit;text-align:left;color:inherit}
+.mi:last-child{border-bottom:0}.mi i{width:40px;height:40px;border-radius:50%;background:#e8f0fd;display:grid;place-items:center;font-style:normal;font-size:1.2rem}
+.mi b{display:block}.mi span{font-size:.82rem;color:#667}
+.back{border:0;background:none;color:#0F59C4;font:inherit;font-weight:700;padding:4px 0 10px}
+.frow{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #eef2f9}
+.frow.t{font-weight:800}
+.yr{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:10px;font-weight:800}
+.yr button{border:0;background:#e8f0fd;color:#0F59C4;width:36px;height:36px;border-radius:50%;font-size:1.1rem}
+.tour{position:fixed;inset:0;z-index:50;touch-action:none}
+.tour .hole{position:absolute;border-radius:14px;box-shadow:0 0 0 9999px rgba(10,20,40,.68);border:2px solid #fff;transition:all .25s;pointer-events:none}
+.tour .tcard{position:absolute;background:#fff;border-radius:18px;padding:16px 16px 12px;box-shadow:0 10px 40px rgba(0,0,0,.35);width:min(340px,calc(100vw - 24px));left:50%;transform:translateX(-50%)}
+.tour .tcard h3{margin:0 0 6px;font-size:1.05rem;color:#0F59C4}
+.tour .tcard p{margin:0 0 12px;line-height:1.4;color:#333;font-size:.94rem}
+.tour .dots{display:flex;gap:6px;justify-content:center;margin-bottom:10px}
+.tour .dots i{width:7px;height:7px;border-radius:50%;background:#cfd8e8}.tour .dots i.on{background:#0F59C4}
+.tour .trow{display:flex;gap:8px}
+.tour .trow button{flex:1;padding:11px;border-radius:12px;border:1px solid #0F59C4;background:#fff;color:#0F59C4;font:inherit;font-weight:700}
+.tour .trow button.pri{background:#0F59C4;color:#fff}
+.tour .skip{display:block;margin:8px auto 0;border:0;background:none;color:#777;font:inherit;font-size:.82rem}
 </style>
 </head>
 <body>
@@ -111,9 +126,10 @@ button { cursor:pointer; }
   </header>
   <main class="wrap" id="view"></main>
   <nav class="nav" id="nav">
-    <button data-v="pedidos" class="on"><svg viewBox="0 0 24 24"><path d="M6 3h12l2 4v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7z"/><path d="M4 7h16M9 11a3 3 0 0 0 6 0"/></svg>Pedidos</button>
+    <button data-v="inicio" class="on"><svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10"/></svg>Inicio</button>
+    <button data-v="pedidos"><svg viewBox="0 0 24 24"><path d="M6 3h12l2 4v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7z"/><path d="M4 7h16M9 11a3 3 0 0 0 6 0"/></svg>Pedidos</button>
     <button data-v="productos"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 9h.01M15 8h.01M10 14h.01M15 14h.01M12 11h.01"/></svg>Productos</button>
-    <button data-v="accesos" id="nav-acc" hidden><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M17 5.5a3 3 0 0 1 0 6M18.5 14.5A6 6 0 0 1 21.5 20"/></svg>Accesos</button>
+    <button data-v="mas"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg>Más</button>
   </nav>
 </div>
 <div id="toast" class="toast" hidden></div>
@@ -124,7 +140,7 @@ button { cursor:pointer; }
   var ENDPOINT = "https://script.google.com/macros/s/AKfycbwRgztSNbcqRVjj6Kji1BbUCoZxAdQlYLYPxf5-266YiG16hzG9J4II1L7qhxlENjmZNA/exec";
   var DEMO = /[?&]demo=1/.test(location.search);
   var $ = function (id) { return document.getElementById(id); };
-  var st = { token: "", me: null, v: "pedidos", fil: "pend", q: "", pedidos: [], productos: [], accesos: [], loaded: {} };
+  var st = { token: "", me: null, v: "inicio", fil: "pend", q: "", pedidos: [], productos: [], accesos: [], packs: [], recetas: [], fin: null, loaded: {} };
   function store(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
   function load(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
@@ -145,6 +161,12 @@ button { cursor:pointer; }
       { r: 3, vi: true, nombre: "Chocomarsh", precio: 2500, ag: false, costo: null, cat: "Clásicas" },
       { r: 4, vi: true, nombre: "Trichoc", precio: 2500, ag: true, costo: 210, cat: "Clásicas" }
     ],
+    packs: [
+      { r: 2, ac: true, tipo: "Pack", nombre: "Pack x3", q: 3, precio: 6500, lim: 0, vence: "", normal: 7500, ahorro: 1000, ganancia: 3200 },
+      { r: 3, ac: false, tipo: "Combo", nombre: "Combo Red + Choco", q: 2, precio: 4500, lim: 20, vence: "31/10/2026", normal: 5000, ahorro: 500, ganancia: 2100 }
+    ],
+    recetas: [{ nombre: "Red Velvet", masa: 2150, q: 13, costo: 480 }, { nombre: "Trichoc", masa: 2600, q: 14, costo: 520 }],
+    fin: { ok: true, anio: "2026", filas: [["Año", "2026"], ["Período (auxiliar)", "202601"], ["Estado de resultados", "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic", "Total"], ["Cookies vendidas", "0", "0", "0", "0", "0", "0", "0", "0", "40", "62", "0", "0", "102"], ["Ventas brutas", "$0", "$0", "$0", "$0", "$0", "$0", "$0", "$0", "$100.000", "$155.000", "$0", "$0", "$255.000"], ["Ventas netas", "$0", "$0", "$0", "$0", "$0", "$0", "$0", "$0", "$95.000", "$150.000", "$0", "$0", "$245.000"], ["Resultado neto", "$0", "$0", "$0", "$0", "$0", "$0", "$0", "$0", "$40.000", "$70.000", "$0", "$0", "$110.000"]] },
     accesos: [{ r: 2, email: "fakundo713@gmail.com", nota: "Dueña/o", permisos: "Dueño", activo: true }]
   };
   function api(op, extra) {
@@ -154,6 +176,10 @@ button { cursor:pointer; }
       if (op === "pedidos") return res({ ok: true, pedidos: d.pedidos });
       if (op === "productos") return res({ ok: true, productos: d.productos });
       if (op === "accesos") return res({ ok: true, accesos: d.accesos });
+      if (op === "packs") return res({ ok: true, packs: d.packs });
+      if (op === "recetas") return res({ ok: true, recetas: d.recetas });
+      if (op === "finanzas" || op === "setAnio") return res(d.fin);
+      if (op === "setPack") return res({ ok: true });
       if (op === "setPedido") { var p = demo.pedidos.filter(function (x) { return x.r === extra.r; })[0]; p[extra.campo] = extra.valor; return res({ ok: true, p: p }); }
       res({ ok: true, accesos: d.accesos });
     }, 150); });
@@ -175,8 +201,8 @@ button { cursor:pointer; }
   function signedOut(msg) { st.token = ""; st.me = null; store("uovo_adm_tok", null); showLogin(msg); try { if (window.google && google.accounts) google.accounts.id.disableAutoSelect(); } catch (e) {} }
   function enter(me) {
     st.me = me; $("login").hidden = true; $("app").hidden = false; $("who").textContent = me.email + " · " + (me.rol || "");
-    $("nav-acc").hidden = me.rol !== "Dueño"; $("demobar").hidden = !DEMO;
-    goto(st.v === "accesos" && me.rol !== "Dueño" ? "pedidos" : st.v);
+    $("demobar").hidden = !DEMO;
+    goto(st.v === "accesos" && me.rol !== "Dueño" ? "mas" : st.v);
   }
   function onCred(resp) {
     st.token = resp.credential; store("uovo_adm_tok", st.token);
@@ -200,16 +226,21 @@ button { cursor:pointer; }
   }
 
   /* ---------- Navegación ---------- */
+  var SUB = ["packs", "recetas", "finanzas", "accesos"];
   function goto(v) {
-    st.v = v;
-    Array.prototype.forEach.call($("nav").querySelectorAll("button"), function (b) { b.classList.toggle("on", b.getAttribute("data-v") === v); });
+    st.v = v; var nk = SUB.indexOf(v) >= 0 ? "mas" : v;
+    Array.prototype.forEach.call($("nav").querySelectorAll("button"), function (b) { b.classList.toggle("on", b.getAttribute("data-v") === nk); });
+    if (v === "mas") st.loaded.mas = true;
     if (!st.loaded[v]) { $("view").innerHTML = '<div class="empty">Cargando…</div>'; fetchView(v); } else render();
     window.scrollTo(0, 0);
   }
   function fetchView(v) {
-    api(v).then(function (j) {
+    var op = v === "inicio" ? "pedidos" : v;
+    api(op).then(function (j) {
       if (!j || !j.ok) { $("view").innerHTML = '<div class="empty">No se pudo cargar. ' + esc(j && j.msg || "") + "</div>"; return; }
-      st[v] = j[v]; st.loaded[v] = true; if (st.v === v) render();
+      if (op === "finanzas") st.fin = j; else st[op] = j[op];
+      st.loaded[v] = true; if (op === "pedidos") { st.loaded.pedidos = true; st.loaded.inicio = true; }
+      if (st.v === v) render();
     }).catch(function () { if (st.v === v) $("view").innerHTML = '<div class="empty">No se pudo cargar.</div>'; });
   }
   $("nav").addEventListener("click", function (e) { var b = e.target.closest("button[data-v]"); if (b) goto(b.getAttribute("data-v")); });
@@ -284,8 +315,66 @@ button { cursor:pointer; }
     return h;
   }
 
+  /* ---------- Inicio ---------- */
+  function mesActual(f) { var m = String(f || "").match(/(\d+)\/(\d+)\/(\d+)/), n = new Date(); return !!m && Number(m[2]) === n.getMonth() + 1 && Number(m[3]) === n.getFullYear(); }
+  function renderInicio() {
+    var c = { pend: 0, coc: 0, list: 0 }, vm = 0, cm = 0, pm = 0;
+    st.pedidos.forEach(function (p) { var e = estadoDe(p); if (c[e] != null) c[e]++; if (e !== "canc" && mesActual(p.fecha)) { vm += p.total; cm += Number(p.cant) || 0; pm++; } });
+    var nom = st.me && st.me.nombre ? String(st.me.nombre).split(" ")[0] : "";
+    return '<div class="hero" id="hero"><small>Hola' + (nom ? ", " + esc(nom) : "") + ' 👋 · ventas del mes</small><b>' + money(vm) + "</b><small>" + pm + " pedidos · " + cm + " cookies</small></div>" +
+      '<div class="nm" style="margin:6px 2px 8px">Pedidos por atender</div><div class="kpis" id="kp-ped">' +
+      [["pend", "Pendientes"], ["coc", "A cocinar"], ["list", "Para entregar"]].map(function (k) { return '<button class="kpi" data-go="pedidos" data-fil="' + k[0] + '"><b>' + c[k[0]] + "</b><span>" + k[1] + "</span></button>"; }).join("") + "</div>" +
+      '<div class="help">Tocá un número para ir directo a esos pedidos. Para Finanzas, Packs, Recetas y Accesos entrá a <b>Más</b>.</div>';
+  }
+  /* ---------- Más ---------- */
+  function renderMas() {
+    var it = [["finanzas", "📊", "Finanzas", "Ventas, costos y resultado por mes"], ["packs", "🎁", "Packs y combos", "Activá, pausá y cambiá precios"], ["recetas", "🧁", "Recetas", "Costo de cada masa y de cada cookie"]];
+    if (st.me && st.me.rol === "Dueño") it.push(["accesos", "🔑", "Accesos", "Quién puede entrar a esta app"]);
+    return '<div class="menu">' + it.map(function (x) { return '<button class="mi" data-go="' + x[0] + '"><i>' + x[1] + "</i><div><b>" + x[2] + "</b><span>" + x[3] + "</span></div></button>"; }).join("") + "</div>";
+  }
+  var BACK = '<button class="back" data-go="mas">‹ Más</button>';
+  /* ---------- Packs ---------- */
+  function renderPacks() {
+    if (!st.packs.length) return BACK + '<div class="empty">No hay packs ni combos. Cargalos en la hoja "Packs y combos".</div>';
+    return BACK + '<div class="help">Activá o pausá cada oferta y cambiá su precio. Se refleja en la tienda.</div>' + st.packs.map(function (p) {
+      return '<article class="card" data-r="' + p.r + '"><div class="row"><div><div class="nm">' + esc(p.nombre) + ' <span class="badge b">' + esc(p.tipo) + '</span></div><div class="meta">' + p.q + " cookies" + (p.normal ? " · normal " + money(p.normal) : "") + (p.ahorro ? " · ahorro " + money(p.ahorro) : "") + (p.ganancia != null ? " · ganancia " + money(p.ganancia) : "") + (p.lim ? " · límite " + p.lim : "") + (p.vence ? " · vence " + esc(p.vence) : "") + "</div></div>" +
+        '<div class="pr"><span>$</span><input class="inp" type="number" inputmode="numeric" min="0" step="50" value="' + p.precio + '" data-pkpr="1"></div></div>' +
+        '<div class="row" style="margin-top:12px"><button class="sw' + (p.ac ? " on" : "") + '" data-pksw="1" style="border:0;background:none;padding:0"><i></i>' + (p.ac ? "Activo" : "Pausado") + "</button></div></article>";
+    }).join("");
+  }
+  function patchPack(r, campo, valor) {
+    var p = st.packs.filter(function (x) { return x.r === r; })[0]; if (!p) return;
+    var key = campo === "ac" ? "ac" : "precio", old = p[key]; p[key] = valor; if (campo === "ac") render(true);
+    (DEMO ? Promise.resolve({ ok: true }) : api("setPack", { r: r, nombre: p.nombre, campo: campo, valor: valor })).then(function (j) {
+      if (!j || !j.ok) { p[key] = old; render(true); toast(j && j.msg || "No se pudo guardar"); } else if (campo === "pr") toast("Precio guardado");
+    }).catch(function () { p[key] = old; render(true); toast("No se pudo guardar"); });
+  }
+  /* ---------- Recetas ---------- */
+  function renderRecetas() {
+    if (!st.recetas.length) return BACK + '<div class="empty">Todavía no hay recetas. Cargalas en la hoja "Recetas".</div>';
+    return BACK + '<div class="help">Costo de cada cookie según su receta. Para editar una receta, usá la hoja "Recetas".</div>' + st.recetas.map(function (x) {
+      return '<article class="card"><div class="row"><div><div class="nm">' + esc(x.nombre) + '</div><div class="meta">Masa ' + money(x.masa) + " · " + x.q + ' cookies por masa</div></div><div class="tot">' + money(x.costo) + '<div class="meta" style="text-align:right">por cookie</div></div></div></article>';
+    }).join("");
+  }
+  /* ---------- Finanzas ---------- */
+  function finHead() { var f = st.fin && st.fin.filas || []; for (var i = 0; i < f.length; i++) if (String(f[i][0]).trim().toLowerCase() === "estado de resultados") return i; return -1; }
+  function renderFinanzas() {
+    var f = st.fin && st.fin.filas || [], hi = finHead();
+    if (hi < 0) return BACK + '<div class="empty">No se encontró el estado de resultados.</div>';
+    var hd = f[hi], cols = []; for (var c = 1; c < hd.length; c++) if (String(hd[c]).trim()) cols.push(c);
+    if (st.fc == null || cols.indexOf(st.fc) < 0) { var cm = new Date().getMonth() + 1; st.fc = cols.indexOf(cm) >= 0 ? cm : cols[0]; }
+    var h = BACK + '<div class="yr" id="fin-year"><button data-yr="-1">‹</button>' + esc(st.fin.anio) + '<button data-yr="1">›</button></div><div class="chips">' +
+      cols.map(function (c) { return '<button class="chip' + (st.fc === c ? " on" : "") + '" data-fc="' + c + '">' + esc(hd[c]) + "</button>"; }).join("") + '</div><div class="card" id="fin-lines">';
+    for (var i = hi + 1; i < f.length; i++) {
+      var lb = String(f[i][0]).trim(); if (!lb) continue;
+      h += '<div class="frow' + (/^(resultado|ventas netas)/i.test(lb) ? " t" : "") + '"><span>' + esc(lb) + "</span><span>" + esc(f[i][st.fc] == null ? "" : f[i][st.fc]) + "</span></div>";
+    }
+    return h + "</div>";
+  }
+
   function render(keepScroll) {
-    var y = window.scrollY, h = st.v === "pedidos" ? renderPedidos() : st.v === "productos" ? renderProductos() : renderAccesos();
+    var y = window.scrollY, V = { inicio: renderInicio, pedidos: renderPedidos, productos: renderProductos, mas: renderMas, packs: renderPacks, recetas: renderRecetas, finanzas: renderFinanzas, accesos: function () { return BACK + renderAccesos(); } };
+    var h = V[st.v]();
     var act = document.activeElement, id = act && act.id, pos = act && act.selectionStart;
     $("view").innerHTML = h;
     if (id === "pq") { var e = $("pq"); e.focus(); try { e.setSelectionRange(pos, pos); } catch (x) {} }
@@ -295,33 +384,64 @@ button { cursor:pointer; }
 
   /* ---------- Asistente (wizard) ---------- */
   var TOUR = {
-    pedidos: [["Tus pedidos", "Acá llegan los pedidos de la tienda, del más nuevo al más viejo. Los filtros de arriba (Pendientes, A cocinar, Listos…) te muestran cada etapa. Con el buscador encontrás a un cliente."],
-      ["Avanzá el estado", "Tocá Aprobado, Hecho y Entregado a medida que avanza el pedido. Se guarda al instante en tu Excel."],
-      ["Hablá con el cliente", "WhatsApp abre el chat con el cliente. Nota te deja escribir un recordatorio del pedido."],
-      ["Cancelar", "Cancelar pedido pide confirmación y se puede reactivar después. Para actualizar la lista usá ↻ arriba."]],
-    productos: [["Tus productos", "Acá ves todas las cookies de la tienda."],
-      ["Agotada y visible", "Agotada marca que no hay stock (el cliente la ve apagada). Visible la muestra u oculta en la tienda."],
-      ["Precio", "Podés cambiar el precio de cada cookie desde acá y se actualiza en la tienda."]],
-    accesos: [["Quién puede entrar", "Acá ves las cuentas de Google con acceso a esta app. Solo vos (Dueño) ves esta pantalla."],
-      ["Dar acceso", "Escribí el email de Google de la persona y agregala. Va a tener acceso total. Entra con esa misma cuenta de Google."],
-      ["Pausar o quitar", "Pausar deja a la persona sin acceso pero sin borrarla; Quitar la elimina."]]
+    inicio: [["#hero", "Tu panel", "Acá ves cuánto vendiste este mes y cuántos pedidos y cookies fueron."],
+      ["#kp-ped", "Pedidos por atender", "Cada número es una etapa. Tocalo y vas directo a esos pedidos."],
+      ["#nav [data-v=mas]", "Más funciones", "Finanzas, Packs y combos, Recetas y Accesos están en Más."],
+      ["#wand", "La varita ✨", "Tocala cuando quieras para ver esta guía de nuevo en cualquier pantalla."]],
+    pedidos: [["#pq", "Buscador", "Escribí un nombre, un código o un sabor para encontrar un pedido."],
+      [".chips", "Etapas", "Filtrá por Pendientes, A cocinar, Listos, Entregados o Cancelados. El número es la cantidad."],
+      [".tgl", "Avanzá el pedido", "Tocá Aprobado, Hecho y Entregado a medida que avanza. Se guarda al instante en tu Excel."],
+      [".acts", "Contacto y notas", "WhatsApp abre el chat con el cliente, Nota guarda un recordatorio y Cancelar pide confirmación."],
+      ["#refresh", "Actualizar", "Si entraron pedidos nuevos, tocá ↻ para traerlos."]],
+    productos: [[".help", "Tus productos", "Cambios acá se ven en la tienda al instante."],
+      [".pr", "Precio", "Tocá el número, escribí el nuevo precio y listo."],
+      ["[data-sw=ag]", "Agotada", "Márcala cuando no hay stock: el cliente la ve apagada."],
+      ["[data-sw=vi]", "Visible", "Mostrá u ocultá la cookie en la tienda."]],
+    mas: [[".menu", "Más funciones", "Entrá a cada una. Arriba a la izquierda, ‹ Más te devuelve acá."]],
+    finanzas: [["#fin-year", "Año", "Cambiá de año con las flechas."],
+      [".chips", "Mes", "Elegí un mes o el total del año."],
+      ["#fin-lines", "Estado de resultados", "Ventas, costos y resultado del período elegido. Se calcula solo desde tus pedidos."]],
+    packs: [[".pr", "Precio", "Cambiá el precio del pack o combo."],
+      ["[data-pksw]", "Activo / Pausado", "Activá o pausá la oferta en la tienda."]],
+    recetas: [[".card", "Costo por cookie", "Cada receta con el costo de la masa y de cada cookie. Para editarlas usá la hoja Recetas."]],
+    accesos: [[".help", "Compartir acceso", "Solo vos ves esta pantalla."],
+      ["#a-mail", "Mail de Google", "Escribí el mail de la persona. Entra con esa cuenta."],
+      ["#a-add", "Dar acceso", "Le das acceso total. Después podés pausarla o quitarla."]]
   };
   function tourSeen(v) { return load("uovo_adm_tour_" + v) === "1"; }
   function openTour(v) {
-    var steps = TOUR[v]; if (!steps) return; store("uovo_adm_tour_" + v, "1");
+    var steps = TOUR[v]; if (!steps || document.querySelector(".tour")) return; store("uovo_adm_tour_" + v, "1");
     var i = 0, el = document.createElement("div"); el.className = "tour";
+    el.innerHTML = '<div class="hole"></div><div class="tcard"></div>';
+    document.body.appendChild(el);
+    var hole = el.firstChild, card = el.lastChild, tgt = null;
+    ["wheel", "touchmove"].forEach(function (ev) { el.addEventListener(ev, function (e) { e.preventDefault(); }, { passive: false }); });
+    function pos() {
+      var vw = window.innerWidth, vh = window.innerHeight, ch = card.offsetHeight, r = tgt && tgt.getBoundingClientRect();
+      if (r && r.width) {
+        hole.style.cssText = "left:" + (r.left - 6) + "px;top:" + (r.top - 6) + "px;width:" + (r.width + 12) + "px;height:" + (r.height + 12) + "px";
+        var below = vh - (r.bottom + 6), top;
+        if (below >= ch + 16) top = r.bottom + 14; else if (r.top - 6 >= ch + 16) top = r.top - 14 - ch; else top = vh - ch - 12;
+        card.style.top = Math.max(8, top) + "px";
+      } else { hole.style.cssText = "left:50%;top:50%;width:0;height:0"; card.style.top = Math.max(8, (vh - ch) / 2) + "px"; }
+    }
     function paint() {
       var s = steps[i], last = i === steps.length - 1, dots = "";
       for (var k = 0; k < steps.length; k++) dots += '<i class="' + (k === i ? "on" : "") + '"></i>';
-      el.innerHTML = '<div class="card"><h3>' + esc(s[0]) + "</h3><p>" + esc(s[1]) + '</p><div class="dots">' + dots + '</div><div class="row">' + (i ? '<button data-t="b">Atrás</button>' : "") + '<button class="pri" data-t="n">' + (last ? "Listo" : "Siguiente") + '</button></div>' + (last ? "" : '<button class="skip" data-t="x">Saltar</button>') + "</div>";
+      card.innerHTML = "<h3>" + esc(s[1]) + "</h3><p>" + esc(s[2]) + '</p><div class="dots">' + dots + '</div><div class="trow">' + (i ? '<button data-t="b">Atrás</button>' : "") + '<button class="pri" data-t="n">' + (last ? "Listo" : "Siguiente") + "</button></div>" + (last ? "" : '<button class="skip" data-t="x">Saltar guía</button>');
+      tgt = document.querySelector(s[0]);
+      if (tgt) { try { tgt.scrollIntoView({ block: "center" }); } catch (e) {} }
+      pos(); setTimeout(pos, 350);
     }
     el.addEventListener("click", function (e) {
       var t = e.target.getAttribute && e.target.getAttribute("data-t");
-      if (t === "n") { if (i < steps.length - 1) { i++; paint(); } else el.remove(); }
+      if (t === "n") { if (i < steps.length - 1) { i++; paint(); } else close(); }
       else if (t === "b") { i--; paint(); }
-      else if (t === "x" || e.target === el) el.remove();
+      else if (t === "x") close();
     });
-    paint(); document.body.appendChild(el);
+    function close() { el.remove(); window.removeEventListener("resize", pos); }
+    window.addEventListener("resize", pos);
+    paint();
   }
   function maybeTour() { if (!tourSeen(st.v) && !document.querySelector(".tour")) openTour(st.v); }
   $("wand").addEventListener("click", function () { openTour(st.v); });
@@ -330,13 +450,18 @@ button { cursor:pointer; }
   var armTimer = null;
   $("view").addEventListener("input", function (e) { if (e.target.id === "pq") { st.q = e.target.value; render(); } });
   $("view").addEventListener("change", function (e) {
-    var c = e.target.closest(".card"); if (!c || !e.target.matches("[data-pr]")) return;
+    var c = e.target.closest(".card"); if (!c) return;
+    if (e.target.matches("[data-pkpr]")) { var pv = Number(e.target.value); if (!(pv >= 0)) { toast("Precio inválido"); render(true); return; } patchPack(Number(c.getAttribute("data-r")), "pr", pv); return; }
+    if (!e.target.matches("[data-pr]")) return;
     var v = Number(e.target.value); if (!(v >= 0)) { toast("Precio inválido"); render(true); return; }
     patchProducto(Number(c.getAttribute("data-r")), "pr", v);
   });
   $("view").addEventListener("click", function (e) {
     var t = e.target;
     var f = t.closest("[data-f]"); if (f) { st.fil = f.getAttribute("data-f"); render(); return; }
+    var go = t.closest("[data-go]"); if (go) { var gf = go.getAttribute("data-fil"); if (gf) st.fil = gf; goto(go.getAttribute("data-go")); return; }
+    var fc = t.closest("[data-fc]"); if (fc) { st.fc = Number(fc.getAttribute("data-fc")); render(true); return; }
+    var yr = t.closest("[data-yr]"); if (yr) { var ny = Number(st.fin.anio) + Number(yr.getAttribute("data-yr")); api("setAnio", { valor: ny }).then(function (j) { if (j && j.ok) { st.fin = j; render(true); } else toast(j && j.msg || "No se pudo"); }); return; }
     if (t.closest("#a-add")) {
       var em = $("a-mail").value.trim(), nt = $("a-nota").value.trim(); if (!em) return;
       t.closest("#a-add").disabled = true;
@@ -361,6 +486,8 @@ button { cursor:pointer; }
       var sw = t.closest("[data-sw]"); if (!sw) return;
       var pr = st.productos.filter(function (x) { return x.r === r; })[0], k = sw.getAttribute("data-sw");
       patchProducto(r, k, !pr[k]);
+    } else if (st.v === "packs") {
+      if (t.closest("[data-pksw]")) { var pk = st.packs.filter(function (x) { return x.r === r; })[0]; patchPack(r, "ac", !pk.ac); }
     } else if (st.v === "accesos") {
       if (t.closest("[data-ac]")) {
         var a = st.accesos.filter(function (x) { return x.r === r; })[0];

@@ -482,7 +482,43 @@ button { cursor:pointer; }
   }
   /* ---------- Finanzas ---------- */
   function finHead() { var f = st.fin && st.fin.filas || []; for (var i = 0; i < f.length; i++) if (String(f[i][0]).trim().toLowerCase() === "estado de resultados") return i; return -1; }
+  function iso(d) { return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
+  function finPreset(k) {
+    var t = new Date(), d0 = new Date(t.getFullYear(), t.getMonth(), t.getDate()), a = new Date(d0), b = new Date(d0);
+    if (k === "sem") a.setDate(a.getDate() - ((a.getDay() + 6) % 7));
+    else if (k === "7") a.setDate(a.getDate() - 6);
+    else if (k === "30") a.setDate(a.getDate() - 29);
+    else if (k === "mes") a.setDate(1);
+    else if (k === "mp") { a = new Date(t.getFullYear(), t.getMonth() - 1, 1); b = new Date(t.getFullYear(), t.getMonth(), 0); }
+    else if (k === "anio") a = new Date(t.getFullYear(), 0, 1);
+    st.fd = iso(a); st.fh = iso(b); st.fp = k;
+  }
   function renderFinanzas() {
+    if (!st.fm) st.fm = "r";
+    var tabs = '<div class="chips"><button class="chip' + (st.fm === "r" ? " on" : "") + '" data-fm="r">Por fechas</button><button class="chip' + (st.fm === "m" ? " on" : "") + '" data-fm="m">Estado mensual</button></div>';
+    if (st.fm === "m") return tabs + renderFinMes();
+    if (!st.fd) finPreset("mes");
+    if (!st.loaded.pedidos && !st.pfetch) { st.pfetch = 1; api("pedidos").then(function (j) { if (j && j.ok) { st.pedidos = j.pedidos; st.loaded.pedidos = true; if (st.v === "finanzas") render(true); } }).catch(function () {}); }
+    var P = [["hoy", "Hoy"], ["sem", "Esta semana"], ["7", "7 días"], ["30", "30 días"], ["mes", "Este mes"], ["mp", "Mes pasado"], ["anio", "Este año"]];
+    var h = tabs + '<div class="chips" id="fin-pre">' + P.map(function (x) { return '<button class="chip' + (st.fp === x[0] ? " on" : "") + '" data-fpre="' + x[0] + '">' + x[1] + "</button>"; }).join("") + "</div>" +
+      '<div class="card" id="fin-rng" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><label class="meta">Desde<input class="inp" type="date" id="fin-d" value="' + esc(st.fd) + '"></label><label class="meta">Hasta<input class="inp" type="date" id="fin-h" value="' + esc(st.fh) + '"></label></div>';
+    if (!st.loaded.pedidos) return h + '<div class="empty">Cargando pedidos…</div>';
+    var a = new Date(st.fd + "T00:00:00"), b = new Date(st.fh + "T23:59:59"), v = 0, ck = 0, n = 0, pg = {}, cn = 0, pen = 0;
+    if (a > b) { var tmp = a; a = b; b = tmp; }
+    st.pedidos.forEach(function (p) {
+      if (p.te) return; var d = pf(p.fecha); if (!d || d < a || d > b) return;
+      if (p.cc || p.cl) { cn++; return; }
+      v += Number(p.total) || 0; ck += Number(p.cant) || 0; n++; var k = p.pago || "Sin definir"; pg[k] = (pg[k] || 0) + (Number(p.total) || 0);
+      if (!p.ap) pen += Number(p.total) || 0;
+    });
+    var dias = Math.round((b - a) / 864e5) + 1;
+    h += '<div class="hero" id="fin-res"><small>' + dias + (dias === 1 ? " día" : " días") + '</small><b>' + money(v) + '</b><small>Vendido en el período</small></div>' +
+      '<div class="kpis"><div class="kpi"><b>' + n + '</b><span>Pedidos</span></div><div class="kpi"><b>' + ck + '</b><span>Cookies</span></div><div class="kpi"><b>' + money(n ? v / n : 0) + '</b><span>Ticket prom.</span></div></div>';
+    h += '<div class="card" id="fin-lines"><div class="frow"><span>Sin aprobar aún</span><span>' + money(pen) + '</span></div><div class="frow"><span>Cancelados (no suman)</span><span>' + cn + '</span></div>';
+    Object.keys(pg).sort(function (x, y) { return pg[y] - pg[x]; }).forEach(function (k) { h += '<div class="frow"><span>' + esc(k) + '</span><span>' + money(pg[k]) + '</span></div>'; });
+    return h + '</div><div class="meta" style="margin:6px 2px">Costos y resultado neto: pestaña «Estado mensual».</div>';
+  }
+  function renderFinMes() {
     var f = st.fin && st.fin.filas || [], hi = finHead();
     if (hi < 0) return '<div class="empty">No se encontró el estado de resultados.</div>';
     var hd = f[hi], cols = []; for (var c = 1; c < hd.length; c++) if (String(hd[c]).trim()) cols.push(c);
@@ -791,7 +827,7 @@ button { cursor:pointer; }
     { t: "Cargar una compra de insumos (precio de la harina, etc.)", k: "insumo insumos compra compre proveedor harina manteca precio kilo packaging cantidad", go: "proveedores", p: ["Tocá Más → Proveedores e insumos.", "Buscá el insumo (Insumos o Packaging).", "Cargá proveedor, cantidad comprada y precio total pagado. El costo por unidad se calcula solo.", "Ejemplo: 1 kg = 1000 g a $1800."] },
     { t: "Agregar un insumo nuevo", k: "agregar nuevo insumo ingrediente packaging sumar", go: "proveedores", p: ["Tocá Más → Proveedores e insumos.", "Abajo, en 'Agregar insumo', escribí nombre y unidad (g, ml, unidad).", "Tocá Agregar y cargale la compra."] },
     { t: "Cargar o sacar una reseña", k: "reseña reseñas resena resenas opinion opiniones comentario puntuacion estrellas cliente testimonio google", go: "resenas", p: ["Tocá Más → Reseñas.", "＋ Nueva reseña: nombre, puntuación (1 a 5), comentario y foto opcional.", "Con el interruptor Visible/Oculta la mostrás o sacás de la tienda.", "Para borrarla del todo: Editar → Eliminar."] },
-    { t: "Ver cuánto gané (Finanzas)", k: "finanzas ganancia gane ganado ventas resultado plata mes anio costos balance", go: "finanzas", p: ["Tocá Finanzas abajo.", "Elegí el año y el mes (o el total).", "Arriba ves lo que te quedó y abajo a dónde fue la plata."] },
+    { t: "Ver cuánto gané (Finanzas)", k: "finanzas ganancia gane ganado ventas resultado plata mes anio costos balance", go: "finanzas", p: ["Tocá Finanzas abajo.", "Elegí un atajo (Hoy, Esta semana…) o las fechas Desde/Hasta en el calendario.", "Arriba ves lo que te quedó y abajo a dónde fue la plata."] },
     { t: "Cambiar textos de la tienda", k: "texto textos cambiar frase titulo descripcion pagina web tienda quienes somos whatsapp", go: "textos", p: ["Tocá Más → Textos de la página.", "Buscá el texto con el buscador.", "Cambialo y salí del campo: se guarda y se ve en la tienda."] },
     { t: "Dar acceso a otra persona", k: "acceso accesos compartir persona usuario mail dar invitar socio empleado", go: "accesos", p: ["Tocá Más → Accesos (solo el dueño lo ve).", "Escribí el mail de Google de la persona.", "Marcá qué secciones puede usar y tocá Dar acceso. Entra con esa cuenta."] },
     { t: "Quitar o pausar un acceso", k: "quitar sacar saco quito borrar borro eliminar elimino pausar pauso acceso accesos bloquear persona", go: "accesos", p: ["Tocá Más → Accesos.", "Usá el interruptor para pausar, o Quitar acceso para borrarlo."] },
@@ -1044,6 +1080,7 @@ button { cursor:pointer; }
   var armTimer = null;
   $("view").addEventListener("input", function (e) { if (e.target.id === "pq") { st.q = e.target.value; render(); } if (e.target.id === "cq") { st.cq = e.target.value; render(true); } if (e.target.id === "pvq") { st.pvq = e.target.value; render(true); } });
   $("view").addEventListener("change", function (e) {
+    if (e.target.id === "fin-d" || e.target.id === "fin-h") { if (e.target.value) { if (e.target.id === "fin-d") st.fd = e.target.value; else st.fh = e.target.value; st.fp = ""; render(true); } return; }
     var c = e.target.closest(".card"); if (!c && !e.target.closest("#pk-ed")) return;
     var tg = e.target;
     if (st.rd && tg.matches("[data-rnom]")) { st.rd.nombre = tg.value; return; }
@@ -1123,6 +1160,8 @@ button { cursor:pointer; }
     if (t.closest("#pv-plus")) { st.pvnew = !st.pvnew; render(true); var an = $("ai-n"); if (an) an.focus(); return; }
     if (t.closest("#ai-x")) { st.pvnew = false; render(true); return; }
     var pt = t.closest("[data-pvt]"); if (pt) { st.pvt = pt.getAttribute("data-pvt"); render(true); return; }
+    var fm = t.closest("[data-fm]"); if (fm) { st.fm = fm.getAttribute("data-fm"); render(true); return; }
+    var fpre = t.closest("[data-fpre]"); if (fpre) { var pk = fpre.getAttribute("data-fpre"); if (pk === "hoy") { finPreset("7"); st.fd = st.fh; st.fp = "hoy"; } else finPreset(pk); render(true); return; }
     var fc = t.closest("[data-fc]"); if (fc) { st.fc = Number(fc.getAttribute("data-fc")); render(true); return; }
     var yr = t.closest("[data-yr]"); if (yr) { var ny = Number(st.fin.anio) + Number(yr.getAttribute("data-yr")); api("setAnio", { valor: ny }).then(function (j) { if (j && j.ok) { st.fin = j; render(true); } else toast(j && j.msg || "No se pudo"); }); return; }
     var npb = t.closest("[data-npm]"); if (npb) { var na = npb.getAttribute("data-npm"), ni = st.npm.indexOf(na); if (ni >= 0) { if (st.npm.length > 1) st.npm.splice(ni, 1); else { toast("Elegí al menos una"); return; } } else st.npm.push(na); npb.classList.toggle("on", st.npm.indexOf(na) >= 0); return; }

@@ -133,6 +133,7 @@ button { cursor:pointer; }
 .vzb textarea{width:100%;min-height:74px}
 .vzr{display:flex;gap:8px;margin:10px 0}
 .vzr .btn,.vzr .sm{flex:1}
+.vzin{display:flex;align-items:flex-end;gap:8px}.vzin textarea{flex:1;min-height:46px;max-height:120px;resize:none;margin:0}.vzin button{flex:none;width:46px;height:46px;border-radius:50%;border:0;display:flex;align-items:center;justify-content:center;font-size:1.2rem;padding:0}.vzmic{background:#eef3fb;color:#0F59C4}.vzmic.on{background:#b3261e;color:#fff;animation:pu 1s infinite}.vzsend{background:#0F59C4;color:#fff}.vzsend svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .mic.on{background:#b3261e;border-color:#b3261e;color:#fff;animation:pu 1s infinite}
 @keyframes pu{50%{opacity:.6}}
 .va{display:flex;gap:8px;align-items:flex-start;padding:9px 10px;border:1px solid #e3eaf6;border-radius:12px;margin-bottom:6px;font-size:.92rem}
@@ -1116,13 +1117,8 @@ button { cursor:pointer; }
   }
   function helpShow(tx) {
     var res = $("vz-res"), b = helpFind(tx), h = "";
-    if (!b.length || b[0][0] < 1.5) {
-      h = '<div class="vq">No estoy seguro de qué necesitás. ¿Es alguno de estos temas?</div><div class="chips" style="flex-wrap:wrap">' + KB.slice(0, 12).map(function (e) { return '<button class="chip" data-vz="topic" data-i="' + KB.indexOf(e) + '">' + esc(e.t) + "</button>"; }).join("") + "</div>";
-    } else {
-      h = helpCard(b[0][1]);
-      var o = b.slice(1, 4).filter(function (x) { return x[0] >= 1.5; });
-      if (o.length) h += '<div class="meta" style="margin:8px 0 4px">También podría ser:</div><div class="chips" style="flex-wrap:wrap">' + o.map(function (x) { return '<button class="chip" data-vz="topic" data-i="' + KB.indexOf(x[1]) + '">' + esc(x[1].t) + "</button>"; }).join("") + "</div>";
-    }
+    if (!b.length || b[0][0] < 1.5) h = '<div class="vq">No entendí bien qué querés hacer. Contame un poco más, por ejemplo: «cómo cambio el precio de una cookie» o «dónde veo lo que vendí este mes».</div>';
+    else h = helpCard(b[0][1]);
     res.innerHTML = h;
   }
   function helpCard(e) {
@@ -1187,10 +1183,11 @@ button { cursor:pointer; }
     VZ.prev = ""; VZ.acc = []; VC = {};
     var el = document.createElement("div"); el.className = "vz";
     el.innerHTML = '<div class="vzb"><h3><span>🎙️ Asistente</span><button data-vz="close" aria-label="Cerrar">✕</button></h3>' +
-      '<textarea class="inp" id="vz-t" rows="3" placeholder="Preguntame: ¿cómo cambio un precio?"></textarea>' +
-      '<div class="vzr">' + (SR ? '<button class="sm mic" data-vz="mic" id="vz-mic">🎙️ Hablar</button>' : "") + '<button class="btn" data-vz="go" id="vz-go">Interpretar</button></div><div id="vz-res"></div></div>';
+      '<div class="vzin">' + (SR ? '<button class="vzmic" data-vz="mic" id="vz-mic" aria-label="Hablar">🎙️</button>' : "") + '<textarea class="inp" id="vz-t" rows="1" placeholder="Escribí o hablá: ¿cómo cambio un precio?"></textarea><button class="vzsend" data-vz="go" id="vz-go" aria-label="Enviar"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div><div id="vz-res" style="margin-top:12px"></div></div>';
     document.body.appendChild(el); VZ.el = el;
     el.addEventListener("click", function (e) { if (e.target === el) vzClose(); });
+    var ta = $("vz-t"); ta.addEventListener("keydown", function (e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); vzGo(); } });
+    ta.addEventListener("input", function () { ta.style.height = "auto"; ta.style.height = Math.min(120, ta.scrollHeight) + "px"; });
     if (SR) vzMic();
   }
   function vzMic() {
@@ -1199,14 +1196,15 @@ button { cursor:pointer; }
     if (VZ.listening) { try { VZ.rec.stop(); } catch (e) {} return; }
     var r = new SR(); r.lang = "es-AR"; r.interimResults = true; r.continuous = false; VZ.rec = r;
     var base = t.value ? t.value.replace(/\s*$/, " ") : "";
-    r.onstart = function () { VZ.listening = true; if (b) { b.classList.add("on"); b.textContent = "● Escuchando…"; } };
+    r.onstart = function () { VZ.listening = true; if (b) b.classList.add("on"); };
     r.onresult = function (ev) { var tx = ""; for (var i = 0; i < ev.results.length; i++) tx += ev.results[i][0].transcript; if (VZ.el) t.value = base + tx; };
     r.onerror = function (ev) { if (VZ.el && ev.error === "not-allowed") $("vz-res").innerHTML = '<div class="va er">No hay permiso para el micrófono. Escribí la orden o habilitalo en el navegador.</div>'; };
-    r.onend = function () { VZ.listening = false; var b2 = $("vz-mic"); if (b2) { b2.classList.remove("on"); b2.textContent = "🎙️ Hablar"; } if (VZ.el && t.value.trim() && !VZ.busy && !VZ.acc.length) vzGo(); };
+    r.onend = function () { VZ.listening = false; var b2 = $("vz-mic"); if (b2) b2.classList.remove("on"); };
     try { r.start(); } catch (e) {}
   }
   function vzGo() {
     var t = $("vz-t"), res = $("vz-res"); if (!t || VZ.busy) return;
+    if (VZ.listening) { try { VZ.rec.stop(); } catch (e) {} }
     var tx = t.value.trim(); if (!tx) return;
     var nv = navIntent(tx);
     if (nv) { if (nv === "fotos") { vzClose(); goto("productos"); toast("Tocá el clip 📎 de la cookie para sus fotos"); return; } if (!allowed(nv)) { $("vz-res").innerHTML = '<div class="va er">No tenés acceso a esa sección.</div>'; return; } vzClose(); goto(nv); toast("Abriendo " + NAMES[nv]); return; }

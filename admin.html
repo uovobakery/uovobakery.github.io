@@ -512,7 +512,7 @@ button { cursor:pointer; }
       v += Number(p.total) || 0; ck += Number(p.cant) || 0; n++; var k = p.pago || "Sin definir"; pg[k] = (pg[k] || 0) + (Number(p.total) || 0);
       if (!p.ap) pen += Number(p.total) || 0;
     });
-    var dias = Math.round((b - a) / 864e5) + 1;
+    var dias = Math.ceil((b - a) / 864e5 - 0.01);
     h += '<div class="hero" id="fin-res"><small>' + dias + (dias === 1 ? " día" : " días") + '</small><b>' + money(v) + '</b><small>Vendido en el período</small></div>' +
       '<div class="kpis"><div class="kpi"><b>' + n + '</b><span>Pedidos</span></div><div class="kpi"><b>' + ck + '</b><span>Cookies</span></div><div class="kpi"><b>' + money(n ? v / n : 0) + '</b><span>Ticket prom.</span></div></div>';
     h += '<div class="card" id="fin-lines"><div class="frow"><span>Sin aprobar aún</span><span>' + money(pen) + '</span></div><div class="frow"><span>Cancelados (no suman)</span><span>' + cn + '</span></div>';

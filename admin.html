@@ -249,7 +249,7 @@ button { cursor:pointer; }
   function signedOut(msg) { st.token = ""; st.me = null; store("uovo_adm_tok", null); showLogin(msg); try { if (window.google && google.accounts) google.accounts.id.disableAutoSelect(); } catch (e) {} }
   function enter(me) {
     st.me = me; $("login").hidden = true; $("app").hidden = false; $("who").textContent = me.email + " · " + (me.rol || "");
-    $("demobar").hidden = !DEMO; $("vfab").hidden = false; setTimeout(driveWelcome, 1500);
+    $("demobar").hidden = !DEMO; $("vfab").hidden = false; st.vz = false; if (me.rol === "Dueño") api("vozEstado").then(function (j) { st.vz = !!(j && j.clave); }).catch(function () {}); setTimeout(driveWelcome, 1500);
     goto(st.v === "accesos" && me.rol !== "Dueño" ? "mas" : st.v);
   }
   function onCred(resp) {
@@ -660,7 +660,7 @@ button { cursor:pointer; }
       ["#kp-ped", "Pedidos por atender", "Cada número es una etapa. Tocalo y vas directo a esos pedidos."],
       ["#atajos", "Atajos", "Creá un producto, abrí Packs, Textos o Insumos con un toque."],
       ["#nav [data-v=mas]", "Más funciones", "Textos, Proveedores, Recetas, Packs y Accesos están en Más."],
-      ["#vfab", "Asistente de voz 🎙️", "Tocá el micrófono y decí, por ejemplo: «poné la Red Velvet a 2800» o «marcá agotada la Trichoc»."],
+      ["#vfab", "Asistente de voz 🎙️", "Tocá el micrófono y preguntale lo que no te acuerdes: «¿cómo cambio un precio?». Te explica paso a paso y te lleva ahí."],
       ["#wand", "La varita ✨", "Tocala cuando quieras para ver esta guía de nuevo en cualquier pantalla."]],
     pedidos: [["#pq", "Buscador", "Escribí un nombre, un código o un sabor para encontrar un pedido."],
       [".chips", "Etapas", "Filtrá por Pendientes, A cocinar, Listos, Entregados o Cancelados. El número es la cantidad."],
@@ -745,6 +745,60 @@ button { cursor:pointer; }
     var c = list.filter(function (x) { a = nrm(get(x)); return a && (a.indexOf(n) >= 0 || n.indexOf(a) >= 0); });
     return c.length === 1 ? c[0] : null;
   }
+
+  /* ---------- Bot de ayuda (sin IA, gratis) ---------- */
+  var KB = [
+    { t: "Cambiar el precio de una cookie", k: "precio cambiar cambio modificar subir bajar aumentar cookie producto valor cuanto", go: "productos", p: ["Tocá Productos abajo.", "Buscá la cookie y tocá el número del precio.", "Escribí el precio nuevo y salí del campo: se guarda solo y se ve en la tienda."] },
+    { t: "Marcar una cookie como agotada", k: "agotada agotado stock sin quedan terminada acabo apagar", go: "productos", p: ["Tocá Productos.", "En la cookie, tocá el interruptor Agotada.", "En la tienda se ve apagada y no se puede pedir. Volvé a tocarlo cuando haya stock."] },
+    { t: "Ocultar o mostrar una cookie en la tienda", k: "ocultar esconder mostrar visible aparece tienda sacar", go: "productos", p: ["Tocá Productos.", "Usá el interruptor Visible de la cookie.", "Apagado = no aparece en la tienda."] },
+    { t: "Crear un producto nuevo", k: "crear nuevo nueva agregar sumar producto cookie sabor", go: "productos", p: ["Tocá Productos y después ＋ Nuevo producto (también está en Inicio → Atajos).", "Completá nombre, descripción, precio, categoría e ingredientes.", "Tocá guardar. Después podés ponerle fotos con el clip 📎 y una receta en Más → Recetas."] },
+    { t: "Editar descripción, categoría o ingredientes", k: "editar descripcion categoria ingredientes texto producto", go: "productos", p: ["Tocá Productos.", "En la cookie, tocá Editar.", "Cambiá los campos; se guardan al salir de cada uno."] },
+    { t: "Subir fotos o videos", k: "foto fotos video videos imagen subir cargar clip portada principal orden drive", go: "productos", p: ["Tocá Productos y el clip 📎 de la cookie (o editá un pack y tocá Fotos).", "La primera vez, permití el acceso a Drive.", "Tocá Agregar y elegí fotos o videos. Se suben a tu Drive solos.", "Ordenalos con las flechas: la 1ª es la principal y la 2ª es la que se ve al pasar el mouse o deslizar."] },
+    { t: "Avanzar un pedido (aprobar, hecho, entregado)", k: "pedido aprobar aprobado hecho entregado entregar avanzar estado marcar cocinar listo", go: "pedidos", p: ["Tocá Pedidos.", "Elegí la etapa arriba (Pendientes, A cocinar, Listos…).", "En el pedido tocá Aprobado, Hecho o Entregado según avance. Se guarda en tu Excel."] },
+    { t: "Cancelar un pedido", k: "cancelar cancelacion anular pedido", go: "pedidos", p: ["Tocá Pedidos y buscá el pedido.", "Tocá Cancelar pedido; te pide confirmar tocando de nuevo.", "Si te arrepentís, el pedido queda con el botón Reactivar."] },
+    { t: "Escribir una nota en un pedido", k: "nota notas anotar recordatorio comentario pedido", go: "pedidos", p: ["Tocá Pedidos.", "En el pedido tocá Nota.", "Escribí y aceptá: queda guardada en el pedido."] },
+    { t: "Escribirle al cliente por WhatsApp", k: "whatsapp wsp avisar contactar cliente mensaje escribir", go: "pedidos", p: ["Tocá Pedidos.", "En el pedido tocá WhatsApp: abre el chat con ese cliente."] },
+    { t: "Buscar un pedido", k: "buscar busqueda encontrar pedido cliente codigo nombre", go: "pedidos", p: ["Tocá Pedidos.", "Escribí en el buscador un nombre, código o sabor.", "Con 'Todos' arriba buscás en todas las etapas."] },
+    { t: "Crear un pack o combo", k: "pack combo crear nuevo promo promocion oferta", go: "packs", p: ["Tocá Más → Packs y combos.", "Elegí ＋ Pack (X cookies a un precio) o ＋ Combo (cookies fijas).", "Completá cantidad/cookies, precio, límite y vencimiento (opcionales) y guardá."] },
+    { t: "Activar, pausar o cambiar precio de un pack", k: "pack combo activar pausar activo pausado precio oferta", go: "packs", p: ["Tocá Más → Packs y combos.", "Usá el interruptor Activo/Pausado.", "Para el precio, tocá el número y escribí el nuevo."] },
+    { t: "Cargar o editar una receta", k: "receta recetas masa insumos cantidades costo cookie", go: "recetas", p: ["Tocá Más → Recetas.", "＋ Nueva receta, o Editar en una existente.", "Elegí el producto, cuántas cookies salen de una masa y los insumos con la cantidad total de esa masa.", "Guardá: el costo por cookie se calcula solo."] },
+    { t: "Cargar una compra de insumos (precio de la harina, etc.)", k: "insumo insumos compra compre proveedor harina manteca precio kilo packaging cantidad", go: "proveedores", p: ["Tocá Más → Proveedores e insumos.", "Buscá el insumo (Insumos o Packaging).", "Cargá proveedor, cantidad comprada y precio total pagado. El costo por unidad se calcula solo.", "Ejemplo: 1 kg = 1000 g a $1800."] },
+    { t: "Agregar un insumo nuevo", k: "agregar nuevo insumo ingrediente packaging sumar", go: "proveedores", p: ["Tocá Más → Proveedores e insumos.", "Abajo, en 'Agregar insumo', escribí nombre y unidad (g, ml, unidad).", "Tocá Agregar y cargale la compra."] },
+    { t: "Ver cuánto gané (Finanzas)", k: "finanzas ganancia gane ganado ventas resultado plata mes anio costos balance", go: "finanzas", p: ["Tocá Finanzas abajo.", "Elegí el año y el mes (o el total).", "Arriba ves lo que te quedó y abajo a dónde fue la plata."] },
+    { t: "Cambiar textos de la tienda", k: "texto textos cambiar frase titulo descripcion pagina web tienda quienes somos whatsapp", go: "textos", p: ["Tocá Más → Textos de la página.", "Buscá el texto con el buscador.", "Cambialo y salí del campo: se guarda y se ve en la tienda."] },
+    { t: "Dar acceso a otra persona", k: "acceso accesos compartir persona usuario mail dar invitar socio empleado", go: "accesos", p: ["Tocá Más → Accesos (solo el dueño lo ve).", "Escribí el mail de Google de la persona.", "Tocá Dar acceso total. Entra con esa cuenta."] },
+    { t: "Quitar o pausar un acceso", k: "quitar sacar pausar acceso accesos bloquear persona", go: "accesos", p: ["Tocá Más → Accesos.", "Usá el interruptor para pausar, o Quitar acceso para borrarlo."] },
+    { t: "Ver la guía de una pantalla", k: "guia ayuda tutorial varita wizard explicar pantalla", go: "", p: ["Tocá la varita ✨ arriba a la derecha.", "Te marca cada parte de la pantalla actual con una explicación."] },
+    { t: "Actualizar los datos", k: "actualizar refrescar recargar nuevos pedidos no aparece", go: "", p: ["Tocá ↻ arriba a la derecha para traer los datos más nuevos."] },
+    { t: "Instalar la app en el celular", k: "instalar celular icono pantalla inicio app descargar", go: "", p: ["Abrí esta página en Chrome (Android) o Safari (iPhone).", "Android: menú ⋮ → Instalar app. iPhone: Compartir → Agregar a pantalla de inicio."] },
+    { t: "Salir de la app", k: "salir cerrar sesion logout desloguear cuenta", go: "", p: ["Tocá ⎋ arriba a la derecha."] },
+    { t: "Dictar órdenes por voz", k: "voz dictar ordenes ia clave api asistente comandos", go: "voz", p: ["Es opcional y necesita una clave de API de Anthropic (con costo mínimo por uso).", "Si no la cargás, el micrófono funciona igual como ayuda."] }
+  ];
+  function helpFind(tx) {
+    var w = nrm(tx).split(" ").filter(function (x) { return x.length > 2; }), best = [];
+    KB.forEach(function (e) {
+      var kw = e._k || (e._k = (nrm(e.k) + " " + nrm(e.t)).split(" ")), sc = 0;
+      w.forEach(function (x) { for (var i = 0; i < kw.length; i++) { if (kw[i] === x) { sc += 2; return; } if (x.length > 4 && kw[i].length > 4 && (kw[i].indexOf(x.slice(0, 5)) === 0)) { sc += 1; return; } } });
+      if (sc) best.push([sc, e]);
+    });
+    best.sort(function (a, b) { return b[0] - a[0]; });
+    return best;
+  }
+  function helpShow(tx) {
+    var res = $("vz-res"), b = helpFind(tx), h = "";
+    if (!b.length || b[0][0] < 2) {
+      h = '<div class="vq">No estoy seguro de qué necesitás. ¿Es alguno de estos temas?</div><div class="chips" style="flex-wrap:wrap">' + KB.slice(0, 12).map(function (e) { return '<button class="chip" data-vz="topic" data-i="' + KB.indexOf(e) + '">' + esc(e.t) + "</button>"; }).join("") + "</div>";
+    } else {
+      h = helpCard(b[0][1]);
+      var o = b.slice(1, 4).filter(function (x) { return x[0] >= 2; });
+      if (o.length) h += '<div class="meta" style="margin:8px 0 4px">También podría ser:</div><div class="chips" style="flex-wrap:wrap">' + o.map(function (x) { return '<button class="chip" data-vz="topic" data-i="' + KB.indexOf(x[1]) + '">' + esc(x[1].t) + "</button>"; }).join("") + "</div>";
+    }
+    res.innerHTML = h;
+  }
+  function helpCard(e) {
+    return '<div class="va ok" style="display:block"><b>' + esc(e.t) + "</b><ol style=\"margin:8px 0 0;padding-left:20px;line-height:1.5\">" + e.p.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ol></div>" + (e.go ? '<div class="vzr"><button class="btn" data-vz="goto" data-v="' + e.go + '">Llevame ahí</button></div>' : "");
+  }
+
   var VC = {};
   function vget(key, op, pick) {
     if (VC[key]) return Promise.resolve(VC[key]);
@@ -782,8 +836,8 @@ button { cursor:pointer; }
     if (VZ.el) return;
     VZ.prev = ""; VZ.acc = []; VC = {};
     var el = document.createElement("div"); el.className = "vz";
-    el.innerHTML = '<div class="vzb"><h3><span>🎙️ Asistente de voz</span><button data-vz="close" aria-label="Cerrar">✕</button></h3>' +
-      '<textarea class="inp" id="vz-t" rows="3" placeholder="Hablá o escribí. Ej: poné la Red Velvet a 2800"></textarea>' +
+    el.innerHTML = '<div class="vzb"><h3><span>🎙️ Asistente</span><button data-vz="close" aria-label="Cerrar">✕</button></h3>' +
+      '<textarea class="inp" id="vz-t" rows="3" placeholder="Preguntame: ¿cómo cambio un precio?"></textarea>' +
       '<div class="vzr">' + (SR ? '<button class="sm mic" data-vz="mic" id="vz-mic">🎙️ Hablar</button>' : "") + '<button class="btn" data-vz="go" id="vz-go">Interpretar</button></div><div id="vz-res"></div></div>';
     document.body.appendChild(el); VZ.el = el;
     el.addEventListener("click", function (e) { if (e.target === el) vzClose(); });
@@ -804,6 +858,7 @@ button { cursor:pointer; }
   function vzGo() {
     var t = $("vz-t"), res = $("vz-res"); if (!t || VZ.busy) return;
     var tx = t.value.trim(); if (!tx) return;
+    if (!st.vz || /\?|^\s*(como|cómo|donde|dónde|que|qué|para qu|cuando|cuándo|ayuda|puedo|se puede)/i.test(tx)) { VZ.prev = ""; helpShow(tx); return; }
     var full = (VZ.prev ? VZ.prev + ". " : "") + tx;
     VZ.busy = true; res.innerHTML = '<div class="empty" style="padding:14px">Pensando…</div>';
     api("voz", { texto: full }).then(function (j) {
@@ -855,7 +910,7 @@ button { cursor:pointer; }
     var b = e.target.closest && e.target.closest("[data-vz]"); if (!b) return;
     var a = b.getAttribute("data-vz");
     if (a === "close") vzClose(); else if (a === "mic") vzMic(); else if (a === "go") vzGo(); else if (a === "no") { VZ.acc = []; VZ.prev = ""; $("vz-res").innerHTML = ""; $("vz-t").value = ""; }
-    else if (a === "apply") vzApply(); else if (a === "new") { VZ.acc = []; VZ.prev = ""; VC = {}; $("vz-t").value = ""; $("vz-res").innerHTML = ""; vzMic(); }
+    else if (a === "topic") { $("vz-res").innerHTML = helpCard(KB[Number(b.getAttribute("data-i"))]); } else if (a === "goto") { var gv = b.getAttribute("data-v"); vzClose(); goto(gv); } else if (a === "apply") vzApply(); else if (a === "new") { VZ.acc = []; VZ.prev = ""; VC = {}; $("vz-t").value = ""; $("vz-res").innerHTML = ""; vzMic(); }
   });
   $("vfab").addEventListener("click", vzOpen);
   function renderVozCfg() {

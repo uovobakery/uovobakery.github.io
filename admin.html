@@ -135,7 +135,7 @@ button { cursor:pointer; }
 .vzr .btn,.vzr .sm{flex:1}
 .ska{text-align:right;min-width:78px;padding:6px 10px;border-radius:12px;line-height:1.15}.ska b{display:block;font-size:1.15rem}.ska span{font-size:.72rem}.ska small{display:block;font-size:.66rem;opacity:.8}.skb{background:#EAF2FD;color:#0F59C4}.skg{background:#E3F4E8;color:#1B7A3A}.sky{background:#FFF1D6;color:#B26A00}.skr{background:#FBE9E7;color:#B3261E}.skn{background:#F0F2F5;color:#7a869a}
 .sw{position:relative;overflow:hidden;border-radius:16px;margin-bottom:12px}.sw .card{margin-bottom:0;position:relative;transition:transform .2s;touch-action:pan-y}.swb{position:absolute;right:0;top:0;bottom:0;width:84px;background:#b3261e;color:#fff;border:0;font-size:1.4rem}
-.bk{display:flex;align-items:center;gap:10px;margin-bottom:2px}.bk .back{padding-right:0}.crumb{font-size:1.05rem;color:#0A1E3F}.crumb:before{content:"·";margin-right:10px;color:#9fb0cc}.vzin input.inp{flex:1;min-height:46px;margin:0}.pen{border:0;background:#eef3fb;border-radius:50%;width:34px;height:34px;color:#0F59C4;flex:none}
+.bk{position:relative;display:flex;align-items:center;justify-content:center;min-height:40px;margin-bottom:10px}.bk .back{position:absolute;left:0;top:50%;transform:translateY(-50%);padding-right:0}.crumb{font-size:.95rem;font-weight:700;color:#fff;background:#0F59C4;padding:7px 18px;border-radius:999px;box-shadow:0 2px 6px rgba(15,89,196,.25)}.vzin input.inp{flex:1;min-height:46px;margin:0}.pen{border:0;background:#eef3fb;border-radius:50%;width:34px;height:34px;color:#0F59C4;flex:none}
 .vzin{display:flex;align-items:flex-end;gap:8px}.vzin textarea{flex:1;min-height:46px;max-height:120px;resize:none;margin:0}.vzin button{flex:none;width:46px;height:46px;border-radius:50%;border:0;display:flex;align-items:center;justify-content:center;font-size:1.2rem;padding:0}.vzmic{background:#eef3fb;color:#0F59C4}.vzmic.on{background:#b3261e;color:#fff;animation:pu 1s infinite}.vzsend{background:#0F59C4;color:#fff}.vzsend svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .mic.on{background:#b3261e;border-color:#b3261e;color:#fff;animation:pu 1s infinite}
 @keyframes pu{50%{opacity:.6}}
@@ -516,9 +516,9 @@ button { cursor:pointer; }
     var h = BACK + '<button class="btn" id="rnew" data-rnew="1" style="margin-bottom:12px">＋ Nueva receta</button>';
     if (st.rd && !st.rd.orig) h += '<div class="card" id="rd-ed">' + editorR() + "</div>";
     if (!st.recetas.length && !st.rd) return h + '<div class="empty">Todavía no hay recetas.</div>';
-    return h + '<div class="help">Costo de cada cookie según su receta. Tocá Editar para cambiar insumos y cantidades.</div>' + st.recetas.map(function (x) {
+    return h + '<div class="help">Cuánto rinde cada masa y qué insumos lleva. Los costos están en Finanzas › Costos.</div>' + st.recetas.map(function (x) {
       var ed = st.rd && st.rd.orig === x.nombre;
-      return '<article class="card" data-rn="' + esc(x.nombre) + '"><div class="row"><div><div class="nm">' + esc(x.nombre) + '</div><div class="meta">Masa ' + money(x.masa) + " · " + x.y + ' cookies por masa</div></div><div class="tot">' + money(x.costo) + '<div class="meta" style="text-align:right">por cookie</div></div></div>' +
+      return '<article class="card" data-rn="' + esc(x.nombre) + '"><div class="row"><div><div class="nm">' + esc(x.nombre) + '</div><div class="meta">Una masa rinde ' + x.y + ' cookies · ' + (x.items ? x.items.length : 0) + ' insumos</div></div></div>' +
         '<div class="row" style="margin-top:10px"><button class="sm" data-redit="1">' + (ed ? "Cerrar" : "Editar") + "</button></div>" + (ed ? editorR() : "") + "</article>";
     }).join("");
   }
@@ -624,8 +624,9 @@ button { cursor:pointer; }
     if (!st.fm || st.fm === "m") st.fm = "r";
     if (!st.fd) finPreset("mes");
     finLoads();
-    var T = [["r", "Ventas"], ["res", "Resultados"], ["pat", "Patrimonio"], ["rep", "Reportes"]];
+    var T = [["r", "Ventas"], ["res", "Resultados"], ["pat", "Patrimonio"], ["cos", "Costos"], ["rep", "Reportes"]];
     var h = '<div class="chips">' + T.map(function (x) { return '<button class="chip' + (st.fm === x[0] ? " on" : "") + '" data-fm="' + x[0] + '">' + x[1] + "</button>"; }).join("") + "</div>";
+    if (st.fm === "cos") return h + renderFinCos();
     if (st.fm === "pat") h += '<div class="card" id="fin-rng"><label class="meta">Situación al día<input class="inp" type="date" id="fin-h" value="' + esc(st.fh) + '"></label></div>';
     else h += '<div class="card" id="fin-rng" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><label class="meta">Desde<input class="inp" type="date" id="fin-d" value="' + esc(st.fd) + '"></label><label class="meta">Hasta<input class="inp" type="date" id="fin-h" value="' + esc(st.fh) + '"></label></div>';
     var P = [["hoy", "Hoy"], ["sem", "Esta semana"], ["7", "7 días"], ["30", "30 días"], ["mes", "Este mes"], ["mp", "Mes pasado"], ["anio", "Este año"]];
@@ -635,6 +636,16 @@ button { cursor:pointer; }
     if (st.fm === "res") return h + renderFinRes();
     if (st.fm === "pat") return h + renderFinPat();
     return h + renderFinRep();
+  }
+  function renderFinCos() {
+    if (!st.recetas.length && !st.rcf) { st.rcf = 1; api("recetas2").then(function (j) { if (j && j.ok) { st.recetas = j.recetas; st.insumos = j.insumos; } if (st.v === "finanzas") render(true); }).catch(function () {}); }
+    if (!st.prov && !st.pvf) { st.pvf = 1; api("proveedores").then(function (j) { if (j && j.ok) st.prov = j.proveedores; if (st.v === "finanzas") render(true); }).catch(function () {}); }
+    var h = '<div class="card"><div class="nm" style="margin-bottom:6px">Costo de cada cookie</div>';
+    h += st.recetas.length ? st.recetas.map(function (x) { return frow(esc(x.nombre) + '<div class="meta">Masa ' + money(x.masa) + " · " + x.y + " cookies</div>", money(x.costo), 0); }).join("") : '<div class="meta">Cargá recetas para verlo.</div>';
+    h += '<div class="meta" style="margin-top:8px">Se calcula con el último precio que cargaste en Proveedores.</div></div>';
+    var L = ((st.prov && st.prov.a) || []).concat((st.prov && st.prov.p) || []).filter(function (x) { return x.costo > 0; });
+    h += '<div class="card"><div class="nm" style="margin-bottom:6px">Costo de cada insumo</div>' + (L.length ? L.map(function (x) { return frow(esc(x.ins) + '<div class="meta">' + (x.cant ? "Última compra " + fm(x.cant) + " " + esc(x.uni) + " a " + money(x.precio) : "") + "</div>", "$" + fm(Math.round(x.costo * 100) / 100) + " / " + esc(x.uni), 0); }).join("") : '<div class="meta">Todavía no cargaste compras con precio.</div>') + "</div>";
+    return h;
   }
   function frow(l, v, t, neg) { return '<div class="frow' + (t ? " t" : "") + '"><span>' + l + '</span><span class="' + (neg ? "rd" : "") + '">' + v + "</span></div>"; }
   function renderFinRes() {
@@ -766,8 +777,8 @@ button { cursor:pointer; }
     });
     return bs >= 1 ? best : null;
   }
-  function stkParse(tx) {
-    var T = nrm(tx), tipo = /gast|\buse\b|usamos|consum|descont|\bresta|saque/.test(T) ? "consumo" : /quedan|quedaron|\btengo\b|\bhay\b|ajust|\bcont[e]\b|inventario/.test(T) ? "ajuste" : "compra";
+  function stkParse(tx, mode) {
+    var T = nrm(tx), tipo = mode === "prov" ? "compra" : /gast|\buse\b|usamos|consum|descont|\bresta|saque/.test(T) ? "consumo" : /quedan|quedaron|\btengo\b|\bhay\b|ajust|\bcont[e]\b|inventario/.test(T) || mode === "stock" ? "ajuste" : "compra";
     var out = [];
     String(tx).split(/[;,]|\s+y\s+|\.\s+/).forEach(function (seg) {
       var it = stkMatch(seg); if (!it) return;
@@ -788,6 +799,15 @@ button { cursor:pointer; }
       out.push({ ins: it.ins, uni: it.uni, tipo: tipo, cant: Math.round(n * 1e6) / 1e6, precio: Math.round(tot * 100) / 100, warn: warn });
     });
     return out;
+  }
+  function skBar(ph, hint) {
+    var h = '<div class="vzin" id="sk-quick">' + (SR ? '<button class="vzmic" data-sk="mic" id="sk-mic" aria-label="Hablar">🎙️</button>' : "") + '<input class="inp" id="sk-q" placeholder="' + ph + '" autocomplete="off" value="' + esc(st.skq && st.skq.text || "") + '"><button class="vzsend" data-sk="parse" aria-label="Enviar"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>';
+    h += '<div class="meta" style="margin:6px 4px 10px">' + hint + "</div>";
+    var md = st.v === "proveedores" ? "prov" : "stock";
+    if (st.skq && st.skq.items && (st.skq.mode || "stock") === md) {
+      h += '<div class="card">' + (st.skq.items.length ? st.skq.items.map(function (i) { return '<div class="frow"><span>' + stkLine(i) + "</span></div>"; }).join("") + '<div style="display:flex;gap:8px;margin-top:8px"><button class="btn" data-sk="ok">Confirmar</button><button class="sm" data-sk="no">Cancelar</button></div>' : '<div class="meta">No encontré el insumo o la cantidad. ' + (md === "prov" ? "Probá: «compré 1 kilo de manteca a 3000»." : "Probá: «gasté 500 g de harina».") + '</div><button class="sm" data-sk="no" style="margin-top:8px">Cerrar</button>') + "</div>";
+    }
+    return h;
   }
   function stkLine(i) {
     return (i.tipo === "compra" ? "🛒 Compra" : i.tipo === "consumo" ? "➖ Gasto" : "🔢 Contado") + " · <b>" + esc(i.ins) + "</b> · " + (i.tipo === "ajuste" ? "quedan " : i.tipo === "compra" ? "+" : "−") + fm(i.cant) + " " + esc(i.uni) + (i.precio ? " · $" + fm(i.precio) : i.tipo === "compra" ? " · sin precio" : "") + (i.warn ? " ⚠️ revisá la unidad" : "");
@@ -826,18 +846,14 @@ button { cursor:pointer; }
     if (st.alertas && !st.loaded.pedidos && !st.pfetch) { st.pfetch = 1; api("pedidos").then(function (j) { if (j && j.ok) { st.pedidos = j.pedidos; st.loaded.pedidos = true; if (st.v === "stock") render(true); } }).catch(function () {}); }
     var on = !!st.alertas, q = nrm(st.sks);
     var L = st.stock.filter(function (x) { return (!q || nrm(x.ins).indexOf(q) >= 0) && (st.skf !== "alert" || x.nivel !== "ok") && (st.skf !== "p" || x.t === "p") && (st.skf !== "a" || x.t === "a"); });
-    var h = BACK + '<div class="vzin" id="sk-quick">' + (SR ? '<button class="vzmic" data-sk="mic" id="sk-mic" aria-label="Hablar">🎙️</button>' : "") + '<input class="inp" id="sk-q" placeholder="Ej: harina 1 kilo 3000 pesos" autocomplete="off" value="' + esc(st.skq && st.skq.text || "") + '"><button class="vzsend" data-sk="parse" aria-label="Enviar"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>';
-    h += '<div class="meta" style="margin:6px 4px 10px">Compré · gasté · me quedan… (ej. «manteca 2 kilos 9000», «gasté 500 g de harina»)</div>';
-    if (st.skq && st.skq.items) {
-      h += '<div class="card">' + (st.skq.items.length ? st.skq.items.map(function (i) { return '<div class="frow"><span>' + stkLine(i) + "</span></div>"; }).join("") + '<div style="display:flex;gap:8px;margin-top:8px"><button class="btn" data-sk="ok">Confirmar</button><button class="sm" data-sk="no">Cancelar</button></div>' : '<div class="meta">No encontré el insumo o la cantidad. Probá: «harina 1 kilo 3000 pesos».</div><button class="sm" data-sk="no" style="margin-top:8px">Cerrar</button>') + "</div>";
-    }
+    var h = BACK + skBar('Ej: gasté 500 g de harina', 'Gasté · me quedan… (ej. «gasté 500 g de harina», «manteca 2 kilos»). Las compras se cargan en Proveedores.');
     if (on) { var d = stkDemand(); if (d.length && st.skf === "alert") h += '<div class="card skr"><div class="nm">Faltan para los pedidos en curso</div>' + d.map(function (x) { return '<div class="frow"><span>' + esc(x.ins) + '</span><span class="rd">necesitás ' + fm(x.need) + " " + esc(x.uni) + " · tenés " + fm(x.have) + "</span></div>"; }).join("") + "</div>"; }
     h += '<input class="search" id="sk-s" type="search" placeholder="Buscar insumo…" value="' + esc(st.sks || "") + '"><div class="chips">' + [["all", "Todos"]].concat(on ? [["alert", "Alertas"]] : []).concat([["a", "Insumos"], ["p", "Packaging"]]).map(function (c) { return '<button class="chip' + ((st.skf || "all") === c[0] ? " on" : "") + '" data-skf="' + c[0] + '">' + c[1] + "</button>"; }).join("") + "</div>";
     if (!L.length) h += '<div class="empty">' + (st.skf === "alert" ? "Sin alertas 🎉" : "Sin resultados.") + "</div>";
     h += L.map(function (x) {
       var open = st.skx === x.ins;
       var lv = !x.mov ? "n" : x.nivel === "rojo" ? "r" : x.nivel === "amarillo" ? "y" : x.min !== "" ? "g" : "b";
-      var b = '<article class="card" data-ins="' + esc(x.ins) + '"><div class="row" data-skx="' + esc(x.ins) + '" style="align-items:center;gap:10px;cursor:pointer"><div style="min-width:0;flex:1"><div class="nm">' + esc(x.ins) + '</div><div class="meta">' + (x.costo ? "repos. $" + fm(x.costo) + "/" + esc(x.uni) : "&nbsp;") + '</div></div><div class="ska sk' + lv + '"><b>' + (x.mov ? fm(x.stock) : "—") + "</b><span>" + (x.mov ? esc(x.uni) : "sin cargar") + "</span>" + (x.min !== "" ? "<small>pedir en " + fm(x.min) + "</small>" : "") + "</div></div>";
+      var b = '<article class="card" data-ins="' + esc(x.ins) + '"><div class="row" data-skx="' + esc(x.ins) + '" style="align-items:center;gap:10px;cursor:pointer"><div style="min-width:0;flex:1"><div class="nm">' + esc(x.ins) + '</div><div class="meta">' + esc(x.t === "p" ? "Packaging" : "Insumo") + '</div></div><div class="ska sk' + lv + '"><b>' + (x.mov ? fm(x.stock) : "—") + "</b><span>" + (x.mov ? esc(x.uni) : "sin cargar") + "</span>" + (x.min !== "" ? "<small>pedir en " + fm(x.min) + "</small>" : "") + "</div></div>";
       if (open) {
         var mv = []; (st.movs || []).forEach(function (m, i) { if (String(m[1]).toLowerCase() === x.ins.toLowerCase()) mv.push([m, i]); }); mv = mv.slice(-5).reverse();
         b += '<div class="add" style="margin-top:10px"><div class="meta" style="margin-bottom:-4px">Las compras se suman solas desde Proveedores e insumos. Acá solo ajustás.</div>' +
@@ -1038,8 +1054,9 @@ button { cursor:pointer; }
   function renderProv() {
     if (st.us == null && !st.usf) { st.usf = 1; api("usos").then(function (j) { st.us = j && j.ok ? j.usos : []; if (st.v === "proveedores") render(true); }).catch(function () { st.us = []; }); }
     if (!st.prov) return BACK + '<div class="empty">Cargando…</div>';
+    if (!st.stock && !st.stkf3) { st.stkf3 = 1; api("stock").then(function (j) { st.stock = j && j.ok ? j.stock : []; }).catch(function () {}); }
     var q = nrm(st.pvq), L = (st.prov[st.pvt] || []).filter(function (x) { return !q || nrm(x.ins).indexOf(q) >= 0 || nrm(x.prov).indexOf(q) >= 0; });
-    var h = BACK + '<div style="display:flex;gap:8px;margin-bottom:10px"><input class="search" id="pvq" type="search" placeholder="Buscar insumo o proveedor…" value="' + esc(st.pvq) + '" style="margin:0;flex:1"><button class="btn" id="pv-plus" aria-label="Agregar insumo" style="width:52px;padding:0;font-size:1.5rem">＋</button></div>';
+    var h = BACK + skBar('Ej: compré 1 kg de manteca a 3000', 'Dictá o escribí tus compras, varias juntas: «1 kg de manteca a 3000, 2 kg de azúcar a 7000». Se cargan y suman al stock.') + '<div style="display:flex;gap:8px;margin-bottom:10px"><input class="search" id="pvq" type="search" placeholder="Buscar insumo o proveedor…" value="' + esc(st.pvq) + '" style="margin:0;flex:1"><button class="btn" id="pv-plus" aria-label="Agregar insumo" style="width:52px;padding:0;font-size:1.5rem">＋</button></div>';
     h += '<div class="chips"><button class="chip' + (st.pvt === "a" ? " on" : "") + '" data-pvt="a">Insumos</button><button class="chip' + (st.pvt === "p" ? " on" : "") + '" data-pvt="p">Packaging</button></div>';
     if (st.pvnew) h += '<div class="card" id="pv-new"><div class="nm" style="margin-bottom:6px">Nuevo ' + (st.pvt === "a" ? "insumo" : "packaging") + '</div><div class="add"><input class="inp" id="ai-n" placeholder="Nombre" value="' + esc(st.pvq) + '"><input class="inp" id="ai-u" list="pv-units" placeholder="Unidad (g, kg, ml, l, unidad)" value="' + (st.pvt === "a" ? "g" : "unidad") + '"><datalist id="pv-units"><option value="g"><option value="kg"><option value="ml"><option value="l"><option value="unidad"></datalist><div style="display:flex;gap:8px"><button class="btn" id="ai-ok">Agregar</button><button class="sm" id="ai-x">Cancelar</button></div></div></div>';
     if (!L.length) h += '<div class="empty">' + (q ? "No hay resultados. Tocá ＋ para agregarlo." : "Sin elementos.") + "</div>";
@@ -1302,7 +1319,7 @@ button { cursor:pointer; }
     var nv = navIntent(tx);
     if (nv) { if (nv === "fotos") { vzClose(); goto("productos"); toast("Tocá el clip 📎 de la cookie para sus fotos"); return; } if (!allowed(nv)) { $("vz-res").innerHTML = '<div class="va er">No tenés acceso a esa sección.</div>'; return; } vzClose(); goto(nv); toast("Abriendo " + NAMES[nv]); return; }
     if (allowed("proveedores") && !/\?|^\s*(como|cómo|donde|dónde|que|qué|para qu|cuando|cuándo|ayuda|puedo|se puede)/i.test(tx)) {
-      var sdone = false; stkLoad(function () { var si = stkParse(tx); if (si.length) { sdone = true; st.skq = { text: tx, items: si }; vzClose(); goto("stock"); toast("Revisá y confirmá"); } else if (!sdone) vzGo2(tx); }); return;
+      var sdone = false; stkLoad(function () { var si = stkParse(tx); if (si.length) { sdone = true; st.skq = { text: tx, items: si, mode: si[0].tipo === "compra" ? "stock" : "stock" }; vzClose(); goto("stock"); toast("Revisá y confirmá"); } else if (!sdone) vzGo2(tx); }); return;
     }
     vzGo2(tx); return; }
   function vzGo2(tx) {
@@ -1355,7 +1372,7 @@ button { cursor:pointer; }
       if (any) { st.loaded = {}; var v = st.v; fetchView(v); st.loaded.mas = true; }
     });
   }
-  document.addEventListener("keydown", function (e) { if (e.key === "Enter" && e.target && e.target.id === "sk-q") { e.preventDefault(); var kt = e.target.value.trim(); if (kt) { st.skq = { text: kt, items: stkParse(kt) }; render(true); } } });
+  document.addEventListener("keydown", function (e) { if (e.key === "Enter" && e.target && e.target.id === "sk-q") { e.preventDefault(); var kt = e.target.value.trim(); if (kt) { var mdk = st.v === "proveedores" ? "prov" : "stock"; st.skq = { text: kt, items: stkParse(kt, mdk), mode: mdk }; render(true); } } });
   document.addEventListener("click", function (e) {
     var b = e.target.closest && e.target.closest("[data-vz]"); if (!b) return;
     var a = b.getAttribute("data-vz");
@@ -1560,9 +1577,9 @@ button { cursor:pointer; }
     var sk = t.closest("[data-sk]");
     if (sk) {
       var ka = sk.getAttribute("data-sk");
-      if (ka === "parse") { if (st.skrec) { try { st.skrec.stop(); } catch (e) {} } var kt = $("sk-q").value.trim(); st.skq = { text: kt, items: stkParse(kt) }; render(true); return; }
+      if (ka === "parse") { if (st.skrec) { try { st.skrec.stop(); } catch (e) {} } var kt = $("sk-q").value.trim(), mdk = st.v === "proveedores" ? "prov" : "stock"; st.skq = { text: kt, items: stkParse(kt, mdk), mode: mdk }; render(true); return; }
       if (ka === "no") { st.skq = null; render(true); return; }
-      if (ka === "ok") { if (skb()) return; sk.disabled = true; sk.textContent = "Guardando…"; var its = st.skq && st.skq.items || []; stkApply(its).then(function (r) { st.skq = null; render(true); toast(r.fail ? r.fail : "Cargado ✓ (" + r.ok + ")"); }); return; }
+      if (ka === "ok") { if (skb()) return; sk.disabled = true; sk.textContent = "Guardando…"; var its = st.skq && st.skq.items || []; stkApply(its).then(function (r) { st.skq = null; if (st.v === "proveedores" && !DEMO) api("proveedores").then(function (j) { if (j && j.ok) st.prov = j.proveedores; render(true); }).catch(function () {}); render(true); toast(r.fail ? r.fail : "Compra cargada ✓ (" + r.ok + ")"); }); return; }
       if (ka === "mic") {
         if (!SR) { toast("Tu navegador no tiene dictado. Escribilo."); return; }
         if (st.skrec) { try { st.skrec.stop(); } catch (e) {} return; }

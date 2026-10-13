@@ -221,6 +221,7 @@ button { cursor:pointer; }
     if (DEMO) return new Promise(function (res) { setTimeout(function () {
       var d = JSON.parse(JSON.stringify(demo));
       if (op === "me") return res({ ok: true, email: "demo@uovo.com", nombre: "Demo", rol: (location.search.match(/rol=([\w,]+)/) || [])[1] || "Dueño" });
+      if (op === "session") return res({ ok: true, session: "S1.demo" });
       if (op === "pedidos") return res({ ok: true, pedidos: d.pedidos });
       if (op === "productos") return res({ ok: true, productos: d.productos });
       if (op === "accesos") return res({ ok: true, accesos: d.accesos });
@@ -271,15 +272,15 @@ button { cursor:pointer; }
     $("app").hidden = true; $("login").hidden = false;
     var e = $("lerr"); e.hidden = !msg; e.textContent = msg || "";
   }
-  function signedOut(msg) { st.token = ""; st.me = null; store("uovo_adm_tok", null); showLogin(msg); try { if (window.google && google.accounts) google.accounts.id.disableAutoSelect(); } catch (e) {} }
+  function signedOut(msg) { st.token = ""; st.me = null; store("uovo_adm_tok", null); store("uovo_adm_me", null); try { Object.keys(localStorage).forEach(function (k) { if (k.indexOf("uovo_c_") === 0) localStorage.removeItem(k); }); } catch (e) {} showLogin(msg); setTimeout(function () { if (!clientId) clientId = load("uovo_adm_cid"); if (clientId) initGoogle(); }, 0); try { if (window.google && google.accounts) google.accounts.id.disableAutoSelect(); } catch (e) {} }
   function enter(me) {
-    st.me = me; $("login").hidden = true; $("app").hidden = false; $("who").textContent = me.email + " · " + (me.rol || "");
+    st.me = me; if (!DEMO) store("uovo_adm_me", JSON.stringify(me)); $("login").hidden = true; $("app").hidden = false; $("who").textContent = me.email + " · " + (me.rol || "");
     $("demobar").hidden = !DEMO; $("vfab").hidden = false; st.vz = false; if (me.rol === "Dueño") api("vozEstado").then(function (j) { st.vz = !!(j && j.clave); }).catch(function () {}); setTimeout(driveWelcome, 1500);
     applyPerms(); goto(allowed(st.v) ? st.v : firstView());
   }
   function onCred(resp) {
     st.token = resp.credential; store("uovo_adm_tok", st.token);
-    api("me").then(function (j) { if (j && j.ok) enter(j); else showLogin("No se pudo ingresar."); }).catch(function () {});
+    api("me").then(function (j) { if (j && j.ok) { enter(j); api("session").then(function (k) { if (k && k.ok && k.session) { st.token = k.session; store("uovo_adm_tok", k.session); } }).catch(function () {}); } else showLogin("No se pudo ingresar."); }).catch(function () {});
   }
   function initGoogle() {
     if (!window.google || !google.accounts) { setTimeout(initGoogle, 300); return; }
@@ -288,13 +289,24 @@ button { cursor:pointer; }
   }
   function boot() {
     if (DEMO) { st.token = "demo"; api("me").then(enter); return; }
-    var tok = load("uovo_adm_tok");
-    fetch(ENDPOINT).then(function (r) { return r.json(); }).then(function (j) {
-      clientId = String(j && j.config && j.config.google_client_id || "").trim();
+    var tok = load("uovo_adm_tok"), cme = null, cid = load("uovo_adm_cid");
+    try { cme = JSON.parse(load("uovo_adm_me") || "null"); } catch (e) {}
+    if (tok && cme && cme.ok) { st.token = tok; clientId = cid; enter(cme); }
+    function cfg() {
+      return fetch(ENDPOINT).then(function (r) { return r.json(); }).then(function (j) {
+        clientId = String(j && j.config && j.config.google_client_id || "").trim();
+        if (clientId) store("uovo_adm_cid", clientId);
+      });
+    }
+    if (tok) {
+      st.token = tok;
+      if (!(cme && cme.ok)) api("me").then(function (m) { if (m && m.ok) enter(m); else { showLogin(); cfg().then(initGoogle); } }).catch(function () { showLogin(); cfg().then(initGoogle).catch(function () {}); });
+      else api("me").then(function (m) { if (m && m.ok) { st.me = m; store("uovo_adm_me", JSON.stringify(m)); applyPerms(); } }).catch(function () {});
+      return;
+    }
+    cfg().then(function () {
       if (!clientId) { showLogin("Falta configurar el ID de cliente de Google en la hoja Config."); return; }
-      if (tok) { st.token = tok; api("me").then(function (m) { if (m && m.ok) enter(m); else showLogin(); }).catch(function () { showLogin(); initGoogle(); }); }
-      else { showLogin(); }
-      initGoogle();
+      showLogin(); initGoogle();
     }).catch(function () { showLogin("No se pudo conectar. Revisá tu conexión."); });
   }
 
@@ -318,12 +330,16 @@ button { cursor:pointer; }
     var op = v === "inicio" ? "pedidos" : v === "resenas" ? "resenas" : v === "productos" ? "catalogo" : v === "recetas" ? "recetas2" : v === "packs" ? "packs2" : v;
     if ((v === "recetas" || v === "packs") && !st.loaded.productos) api("catalogo").then(function (j) { if (j && j.ok) { st.productos = j.catalogo; st.loaded.productos = true; } }).catch(function () {});
     if (v === "inicio" && !st.loaded.productos) api("catalogo").then(function (j) { if (j && j.ok) { st.productos = j.catalogo; st.loaded.productos = true; if (st.v === "inicio") render(true); } }).catch(function () {});
-    api(op).then(function (j) {
+    var ck = "uovo_c_" + op, hit = null; if (!DEMO) { try { hit = JSON.parse(load(ck) || "null"); } catch (e) {} }
+    var hnd = function (j, fc) {
+      if (fc && !(j && j.ok)) return;
       if (!j || !j.ok) { $("view").innerHTML = '<div class="empty">No se pudo cargar. ' + esc(j && j.msg || "") + "</div>"; return; }
       if (op === "finanzas") st.fin = j; else if (op === "catalogo") st.productos = j.catalogo; else if (op === "proveedores") st.prov = j.proveedores; else if (op === "config") st.cfg = j.config; else if (op === "recetas2") { st.recetas = j.recetas; st.insumos = j.insumos; } else if (op === "packs2") { st.packs = j.packs; st.ppro = j.productos; } else if (op === "resenas") { st.rvs = j.resenas; } else st[op] = j[op];
       st.loaded[v] = true; if (op === "pedidos") { st.loaded.pedidos = true; st.loaded.inicio = true; }
       if (st.v === v) render();
-    }).catch(function () { if (st.v === v) $("view").innerHTML = '<div class="empty">No se pudo cargar.</div>'; });
+    };
+    if (hit && hit.ok && !st.loaded[v]) hnd(hit, true);
+    api(op).then(function (j) { if (j && j.ok && !DEMO) store(ck, JSON.stringify(j)); hnd(j); }).catch(function () { if (st.v === v && !st.loaded[v]) $("view").innerHTML = '<div class="empty">No se pudo cargar.</div>'; });
   }
   $("nav").addEventListener("click", function (e) { var b = e.target.closest("button[data-v]"); if (b) goto(b.getAttribute("data-v")); });
   $("refresh").addEventListener("click", function () { st.loaded = {}; goto(st.v); });

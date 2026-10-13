@@ -442,8 +442,8 @@ button { cursor:pointer; }
     st.pedidos.forEach(function (p) {
       var e = estadoDe(p), d = pf(p.fecha); if (c[e] != null) c[e]++;
       if (e === "canc" || e === "test") return;
-      if (!p.ap) { vpv += Number(p.total) || 0; npv++; }
-      if (d) { if (d.getMonth() === cm && d.getFullYear() === cy) { if (p.ap) { vm += p.total; ck += Number(p.cant) || 0; pm++; } else vsa += p.total; } else if (p.ap && (d.getMonth() === (cm + 11) % 12) && d.getFullYear() === (cm ? cy : cy - 1)) vp += p.total; }
+      if (!p.en) { vpv += Number(p.total) || 0; npv++; }
+      if (d) { if (d.getMonth() === cm && d.getFullYear() === cy) { if (p.en) { vm += p.total; ck += Number(p.cant) || 0; pm++; } else vsa += p.total; } else if (p.en && (d.getMonth() === (cm + 11) % 12) && d.getFullYear() === (cm ? cy : cy - 1)) vp += p.total; }
       if (e === "pend" && d && now - d > 864e5) viejos++;
       if (e !== "ent") { var k = p.entrega || "Sin fecha"; ent[k] = ent[k] || { n: 0, q: 0 }; ent[k].n++; ent[k].q += Number(p.cant) || 0; }
     });
@@ -451,8 +451,8 @@ button { cursor:pointer; }
     var nom = st.me && st.me.nombre ? String(st.me.nombre).split(" ")[0] : "";
     var vs = vp > 0 ? Math.round((vm - vp) / vp * 100) : null;
     var MN = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
-    var h = '<div class="hero" id="hero" data-go="finanzas" style="cursor:pointer"><small>Hola' + (nom ? ", " + esc(nom) : "") + ' 👋 · vendido en ' + MN[cm] + ' ' + cy + ' (pedidos aprobados)</small><b>' + money(vm) + "</b><small>" + pm + " pedidos · " + ck + " cookies" + (vs != null ? " · " + (vs >= 0 ? "▲ " : "▼ ") + Math.abs(vs) + "% vs mes anterior" : "") + "</small></div>" +
-      '<button class="card" id="porvenir" data-go="pedidos" data-fil="pend" style="width:100%;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px"><div><div class="meta">Por venir · pedidos sin aprobar</div><b style="font-size:1.35rem;color:#0F59C4">' + money(vpv) + '</b></div><span style="color:var(--soft)">' + npv + (npv === 1 ? " pedido" : " pedidos") + " ›</span></button>" +
+    var h = '<div class="hero" id="hero" data-go="finanzas" style="cursor:pointer"><small>Hola' + (nom ? ", " + esc(nom) : "") + ' 👋 · vendido en ' + MN[cm] + ' ' + cy + ' (pedidos entregados)</small><b>' + money(vm) + "</b><small>" + pm + " pedidos · " + ck + " cookies" + (vs != null ? " · " + (vs >= 0 ? "▲ " : "▼ ") + Math.abs(vs) + "% vs mes anterior" : "") + "</small></div>" +
+      '<button class="card" id="porvenir" data-go="pedidos" data-fil="todos" style="width:100%;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px"><div><div class="meta">Por venir · pendientes y en marcha (sin entregar)</div><b style="font-size:1.35rem;color:#0F59C4">' + money(vpv) + '</b></div><span style="color:var(--soft)">' + npv + (npv === 1 ? " pedido" : " pedidos") + " ›</span></button>" +
       '<div class="kpis" id="kp-ped">' + [["pend", "Pendientes"], ["coc", "A cocinar"], ["list", "Para entregar"]].map(function (k) { return '<button class="kpi" data-go="pedidos" data-fil="' + k[0] + '"><b>' + c[k[0]] + "</b><span>" + k[1] + "</span></button>"; }).join("") + "</div>";
     var al = [];
     if (viejos) al.push(["⏰ " + viejos + (viejos === 1 ? " pedido sin aprobar hace más de 24 h" : " pedidos sin aprobar hace más de 24 h"), "pedidos", "pend"]);

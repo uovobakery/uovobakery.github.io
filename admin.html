@@ -134,7 +134,7 @@ button { cursor:pointer; }
 .vzr{display:flex;gap:8px;margin:10px 0}
 .vzr .btn,.vzr .sm{flex:1}
 .ska{text-align:right;min-width:78px;padding:6px 10px;border-radius:12px;line-height:1.15}.ska b{display:block;font-size:1.15rem}.ska span{font-size:.72rem}.ska small{display:block;font-size:.66rem;opacity:.8}.skb{background:#EAF2FD;color:#0F59C4}.skg{background:#E3F4E8;color:#1B7A3A}.sky{background:#FFF1D6;color:#B26A00}.skr{background:#FBE9E7;color:#B3261E}.skn{background:#F0F2F5;color:#7a869a}
-.sw{position:relative;overflow:hidden;border-radius:16px;margin-bottom:12px}.sw .card{margin-bottom:0;position:relative;transition:transform .2s;touch-action:pan-y}.swb{position:absolute;right:0;top:0;bottom:0;width:84px;background:#b3261e;color:#fff;border:0;font-size:1.4rem}
+.sw{position:relative;overflow:hidden;border-radius:16px;margin-bottom:12px}.sw .card{margin-bottom:0;position:relative;transition:transform .2s;touch-action:pan-y}.swb{position:absolute;right:0;top:0;bottom:0;width:84px;background:#d93a2f;color:#fff;border:0;display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:opacity .15s}.sw.sx .swb{opacity:1;visibility:visible}
 .bk{position:relative;display:flex;align-items:center;justify-content:center;min-height:40px;margin-bottom:10px}.bk .back{position:absolute;left:0;top:50%;transform:translateY(-50%);padding-right:0}.crumb{font-size:.95rem;font-weight:700;color:#fff;background:#0F59C4;padding:7px 18px;border-radius:999px;box-shadow:0 2px 6px rgba(15,89,196,.25)}.vzin input.inp{flex:1;min-height:46px;margin:0}.pen{border:0;background:#eef3fb;border-radius:50%;width:34px;height:34px;color:#0F59C4;flex:none}
 .vzin{display:flex;align-items:flex-end;gap:8px}.vzin textarea{flex:1;min-height:46px;max-height:120px;resize:none;margin:0}.vzin button{flex:none;width:46px;height:46px;border-radius:50%;border:0;display:flex;align-items:center;justify-content:center;font-size:1.2rem;padding:0}.vzmic{background:#eef3fb;color:#0F59C4}.vzmic.on{background:#b3261e;color:#fff;animation:pu 1s infinite}.vzsend{background:#0F59C4;color:#fff}.vzsend svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .mic.on{background:#b3261e;border-color:#b3261e;color:#fff;animation:pu 1s infinite}
@@ -276,7 +276,7 @@ button { cursor:pointer; }
   }
   function signedOut(msg) { st.token = ""; st.me = null; store("uovo_adm_tok", null); store("uovo_adm_me", null); try { Object.keys(localStorage).forEach(function (k) { if (k.indexOf("uovo_c_") === 0) localStorage.removeItem(k); }); } catch (e) {} showLogin(msg); setTimeout(function () { if (!clientId) clientId = load("uovo_adm_cid"); if (clientId) initGoogle(); }, 0); try { if (window.google && google.accounts) google.accounts.id.disableAutoSelect(); } catch (e) {} }
   function enter(me) {
-    st.me = me; if (!DEMO) store("uovo_adm_me", JSON.stringify(me)); $("login").hidden = true; $("app").hidden = false; $("who").textContent = me.email + " · " + (me.rol || "");
+    st.me = me; if (!DEMO) { store("uovo_adm_me", JSON.stringify(me)); var sv0 = load("uovo_adm_v"); if (sv0 && st.v === "inicio" && !st.entered) st.v = sv0; } st.entered = 1; $("login").hidden = true; $("app").hidden = false; $("who").textContent = me.email + " · " + (me.rol || "");
     $("demobar").hidden = !DEMO; $("vfab").hidden = false; st.vz = false; if (me.rol === "Dueño") api("vozEstado").then(function (j) { st.vz = !!(j && j.clave); }).catch(function () {}); setTimeout(driveWelcome, 1500);
     applyPerms(); goto(allowed(st.v) ? st.v : firstView());
   }
@@ -316,7 +316,7 @@ button { cursor:pointer; }
   var SUB = ["packs", "recetas", "textos", "proveedores", "stock", "puntos", "cupones", "accesos", "voz", "resenas"];
   function goto(v) {
     if (!allowed(v)) v = firstView();
-    st.v = v; var nk = SUB.indexOf(v) >= 0 ? "mas" : v;
+    st.v = v; store("uovo_adm_v", v); var nk = SUB.indexOf(v) >= 0 ? "mas" : v;
     Array.prototype.forEach.call($("nav").querySelectorAll("button"), function (b) { b.classList.toggle("on", b.getAttribute("data-v") === nk); });
     if (v === "mas") st.loaded.mas = true;
     if (!st.loaded[v]) { $("view").innerHTML = '<div class="empty">Cargando…</div>'; fetchView(v); } else render();
@@ -362,7 +362,7 @@ button { cursor:pointer; }
     var h = '<input class="search" id="pq" type="search" placeholder="Buscar por nombre, código o pedido…" value="' + esc(st.q) + '">' +
       '<div class="chips">' + FILS.map(function (f) { var n = f[0] === "todos" ? st.pedidos.length : (cnt[f[0]] || 0); return '<button class="chip' + (st.fil === f[0] ? " on" : "") + '" data-f="' + f[0] + '">' + f[1] + "<b>" + n + "</b></button>"; }).join("") + "</div>";
     if (!list.length) h += '<div class="empty">No hay pedidos en esta vista.</div>';
-    if (list.length) h += '<div style="text-align:right;margin:-2px 2px 8px"><button class="sm red" data-dlote="1" style="font-size:.76rem">🗑 Eliminar estos ' + list.length + "</button></div>";
+    if (list.length) h += '<div style="text-align:right;margin:-2px 2px 8px"><button class="sm red" data-dlote="1" style="font-size:.76rem">Eliminar estos ' + list.length + "</button></div>";
     h += list.map(function (p) {
       var c = p.cc || p.cl, wa = waLink(p.tel), e = estadoDe(p), sb = ESTL[e], open = st.pdx === p.r;
       var b = '<article class="card pc' + (c ? " dim" : "") + '" data-r="' + p.r + '"><button class="row" data-pdx="' + p.r + '" style="width:100%;border:0;background:none;padding:0;text-align:left;align-items:center;gap:10px"><div style="min-width:0;flex:1"><div class="nm" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(p.nombre) + (p.notas ? " 📝" : "") + '</div><div class="id">' + esc(p.id) + " · " + (Number(p.cant) || 0) + " cookies" + (p.entrega ? " · " + esc(p.entrega) : "") + '</div></div><div style="text-align:right"><div class="tot" style="font-size:1rem">' + money(p.total) + '</div><span style="display:inline-block;font-size:.68rem;font-weight:800;padding:2px 8px;border-radius:999px;background:' + sb[1] + ";color:" + sb[2] + '">' + sb[0] + "</span></div></button>";
@@ -373,10 +373,11 @@ button { cursor:pointer; }
           '<textarea class="inp" rows="2" data-pnota="1" placeholder="Nota del pedido…" style="margin-top:8px">' + esc(p.notas) + "</textarea>" +
           (c ? '<div style="margin-top:8px"><span class="badge">' + (p.cl ? "Cancelado por el cliente" : "Cancelado por nosotros") + "</span></div>" :
             ('<div class="tgl"><button class="tg' + (p.ap ? " on" : "") + '" data-t="ap">' + (p.ap ? "✓ " : "") + 'Aprobado</button><button class="tg' + (p.he ? " on" : "") + '" data-t="he">' + (p.he ? "✓ " : "") + 'Hecho</button><button class="tg' + (p.en ? " on" : "") + '" data-t="en">' + (p.en ? "✓ " : "") + "Entregado</button></div>")) +
-          '<div class="row" style="margin-top:10px;align-items:center"><button class="sm red" data-dpe="1">🗑 Eliminar pedido</button>' +
+          '<div class="row" style="margin-top:10px;align-items:center"><button class="sm red" data-dpe="1">Eliminar pedido</button>' +
           (p.cl ? "" : (p.cc ? '<button class="sm" data-t="cc" data-v="0">Reactivar</button>' : '<button class="sm red" data-cc="1">Cancelar pedido</button>')) + "</div>";
       }
-      return '<div class="sw" data-sw="' + p.r + '"><button class="swb" data-swdel="' + p.r + '" aria-label="Eliminar">🗑</button>' + b + "</article></div>";
+      var so = String(st.swo) === String(p.r); b = so ? b.replace('<article class="card pc', '<article data-open="1" style="transform:translateX(-84px)" class="card pc') : b;
+      return '<div class="sw' + (so ? " sx" : "") + '" data-sw="' + p.r + '"><button class="swb" data-swdel="' + p.r + '" aria-label="Eliminar"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>' + b + "</article></div>";
     }).join("");
     return h;
   }
@@ -1184,7 +1185,7 @@ button { cursor:pointer; }
     { t: "Editar descripción, categoría o ingredientes", k: "editar descripcion categoria ingredientes texto producto", go: "productos", p: ["Tocá Productos.", "En la cookie, tocá Editar.", "Cambiá los campos; se guardan al salir de cada uno."] },
     { t: "Subir fotos o videos", k: "foto fotos video videos imagen subir cargar clip portada principal orden drive", go: "productos", p: ["Tocá Productos y el clip 📎 de la cookie (o editá un pack y tocá Fotos).", "La primera vez, permití el acceso a Drive.", "Tocá Agregar y elegí fotos o videos. Se suben a tu Drive solos.", "Ordenalos con las flechas: la 1ª es la principal y la 2ª es la que se ve al pasar el mouse o deslizar."] },
     { t: "Avanzar un pedido (aprobar, hecho, entregado)", k: "pedido aprobar aprobado hecho entregado entregar avanzar estado marcar cocinar listo", go: "pedidos", p: ["Tocá Pedidos.", "Elegí la etapa arriba (Pendientes, A cocinar, Listos…).", "Tocá el pedido para abrirlo.", "Tocá Aprobado, Hecho o Entregado según avance. Se guarda en tu Excel."] },
-    { t: "Eliminar pedidos (por ejemplo los de prueba)", k: "eliminar borrar sacar pedidos prueba test limpiar cancelados", go: "pedidos", p: ["Tocá Pedidos.", "Para uno solo: abrilo y tocá 🗑 Eliminar pedido.", "Para varios: elegí la etapa (ej. Cancelados) y tocá «Eliminar estos N».", "Se borran para siempre y dejan de contar en todo."] },
+    { t: "Eliminar pedidos (por ejemplo los de prueba)", k: "eliminar borrar sacar pedidos prueba test limpiar cancelados", go: "pedidos", p: ["Tocá Pedidos.", "Para uno solo: abrilo y tocá Eliminar pedido.", "Para varios: elegí la etapa (ej. Cancelados) y tocá «Eliminar estos N».", "Se borran para siempre y dejan de contar en todo."] },
     { t: "Cancelar un pedido", k: "cancelar cancelacion anular pedido", go: "pedidos", p: ["Tocá Pedidos y buscá el pedido.", "Tocá Cancelar pedido; te pide confirmar tocando de nuevo.", "Si te arrepentís, el pedido queda con el botón Reactivar."] },
     { t: "Escribir una nota en un pedido", k: "nota notas anotar recordatorio comentario pedido", go: "pedidos", p: ["Tocá Pedidos.", "Tocá el pedido para abrirlo.", "Escribí en el campo Nota: se guarda sola al salir del campo."] },
     { t: "Escribirle al cliente por WhatsApp", k: "whatsapp wsp avisar contactar cliente mensaje escribir", go: "pedidos", p: ["Tocá Pedidos.", "Tocá el pedido para abrirlo.", "Tocá el botón con el teléfono (💬): abre el chat con ese cliente."] },
@@ -1666,16 +1667,16 @@ button { cursor:pointer; }
   if ("serviceWorker" in navigator && !DEMO) navigator.serviceWorker.register("admin-sw.js").catch(function () {});
   (function () {
     var sx = 0, sy = 0, el = null, dx = 0, dir = 0;
-    function closeAll(except) { Array.prototype.forEach.call(document.querySelectorAll(".sw .pc"), function (c) { if (c !== except) { c.style.transform = ""; c.removeAttribute("data-open"); } }); }
+    function closeAll(except) { Array.prototype.forEach.call(document.querySelectorAll(".sw .pc"), function (c) { if (c !== except) { c.style.transform = ""; c.removeAttribute("data-open"); c.parentNode.classList.remove("sx"); } }); if (!except) st.swo = null; }
     document.addEventListener("touchstart", function (e) { var c = e.target.closest && e.target.closest(".sw .pc"); if (!c || e.target.closest("input,textarea,button.tg,a")) { el = null; closeAll(null); return; } closeAll(c); el = c; sx = e.touches[0].clientX; sy = e.touches[0].clientY; dx = 0; dir = 0; c.style.transition = "none"; }, { passive: true });
-    document.addEventListener("touchmove", function (e) { if (!el) return; var x = e.touches[0].clientX - sx, y = e.touches[0].clientY - sy; if (!dir) { if (Math.abs(x) > 8 || Math.abs(y) > 8) dir = Math.abs(x) > Math.abs(y) ? 1 : 2; else return; } if (dir !== 1) return; var base = el.getAttribute("data-open") ? -84 : 0; dx = Math.max(-84, Math.min(0, base + x)); el.style.transform = "translateX(" + dx + "px)"; }, { passive: true });
-    document.addEventListener("touchend", function () { if (!el) return; el.style.transition = ""; if (dir === 1) { if (dx < -42) { el.style.transform = "translateX(-84px)"; el.setAttribute("data-open", "1"); } else { el.style.transform = ""; el.removeAttribute("data-open"); } el.setAttribute("data-swd", Date.now()); } el = null; }, { passive: true });
+    document.addEventListener("touchmove", function (e) { if (!el) return; var x = e.touches[0].clientX - sx, y = e.touches[0].clientY - sy; if (!dir) { if (Math.abs(x) > 8 || Math.abs(y) > 8) dir = Math.abs(x) > Math.abs(y) ? 1 : 2; else return; } if (dir !== 1) return; var base = el.getAttribute("data-open") ? -84 : 0; dx = Math.max(-84, Math.min(0, base + x)); el.style.transform = "translateX(" + dx + "px)"; el.parentNode.classList.add("sx"); }, { passive: true });
+    document.addEventListener("touchend", function () { if (!el) return; el.style.transition = ""; if (dir === 1) { if (dx < -30) { el.style.transform = "translateX(-84px)"; el.setAttribute("data-open", "1"); el.parentNode.classList.add("sx"); st.swo = el.parentNode.getAttribute("data-sw"); } else { el.style.transform = ""; el.removeAttribute("data-open"); el.parentNode.classList.remove("sx"); st.swo = null; } el.setAttribute("data-swd", Date.now()); } el = null; }, { passive: true });
     document.addEventListener("click", function (e) {
       var c = e.target.closest && e.target.closest(".sw .pc"); if (c && Date.now() - Number(c.getAttribute("data-swd") || 0) < 350) { e.stopPropagation(); e.preventDefault(); return; }
-      if (c && c.getAttribute("data-open")) { c.style.transform = ""; c.removeAttribute("data-open"); e.stopPropagation(); e.preventDefault(); return; }
+      if (c && c.getAttribute("data-open")) { c.style.transform = ""; c.removeAttribute("data-open"); c.parentNode.classList.remove("sx"); st.swo = null; e.stopPropagation(); e.preventDefault(); return; }
       var d = e.target.closest && e.target.closest("[data-swdel]"); if (!d) return; e.stopPropagation();
       var r = Number(d.getAttribute("data-swdel")), p = st.pedidos.filter(function (x) { return x.r === r; })[0]; if (!p) return;
-      if (!d.classList.contains("arm")) { d.classList.add("arm"); d.innerHTML = '<span style="font-size:.7rem">¿Seguro?<br>Tocá</span>'; setTimeout(function () { d.classList.remove("arm"); d.textContent = "🗑"; }, 3500); return; }
+      if (!d.classList.contains("arm")) { d.classList.add("arm"); d.innerHTML = '<span style="font-size:.7rem">¿Seguro?<br>Tocá</span>'; setTimeout(function () { d.classList.remove("arm"); d.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>'; }, 3500); return; }
       delPedidos([{ r: p.r, id: p.id }]);
     }, true);
   })();

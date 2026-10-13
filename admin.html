@@ -133,6 +133,8 @@ button { cursor:pointer; }
 .vzb textarea{width:100%;min-height:74px}
 .vzr{display:flex;gap:8px;margin:10px 0}
 .vzr .btn,.vzr .sm{flex:1}
+.ska{text-align:right;min-width:78px;padding:6px 10px;border-radius:12px;line-height:1.15}.ska b{display:block;font-size:1.15rem}.ska span{font-size:.72rem}.ska small{display:block;font-size:.66rem;opacity:.8}.skb{background:#EAF2FD;color:#0F59C4}.skg{background:#E3F4E8;color:#1B7A3A}.sky{background:#FFF1D6;color:#B26A00}.skr{background:#FBE9E7;color:#B3261E}.skn{background:#F0F2F5;color:#7a869a}
+.sw{position:relative;overflow:hidden;border-radius:16px;margin-bottom:12px}.sw .card{margin-bottom:0;position:relative;transition:transform .2s;touch-action:pan-y}.swb{position:absolute;right:0;top:0;bottom:0;width:84px;background:#b3261e;color:#fff;border:0;font-size:1.4rem}
 .bk{display:flex;align-items:center;gap:10px;margin-bottom:2px}.bk .back{padding-right:0}.crumb{font-size:1.05rem;color:#0A1E3F}.crumb:before{content:"·";margin-right:10px;color:#9fb0cc}.vzin input.inp{flex:1;min-height:46px;margin:0}.pen{border:0;background:#eef3fb;border-radius:50%;width:34px;height:34px;color:#0F59C4;flex:none}
 .vzin{display:flex;align-items:flex-end;gap:8px}.vzin textarea{flex:1;min-height:46px;max-height:120px;resize:none;margin:0}.vzin button{flex:none;width:46px;height:46px;border-radius:50%;border:0;display:flex;align-items:center;justify-content:center;font-size:1.2rem;padding:0}.vzmic{background:#eef3fb;color:#0F59C4}.vzmic.on{background:#b3261e;color:#fff;animation:pu 1s infinite}.vzsend{background:#0F59C4;color:#fff}.vzsend svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .mic.on{background:#b3261e;border-color:#b3261e;color:#fff;animation:pu 1s infinite}
@@ -187,7 +189,7 @@ button { cursor:pointer; }
   var AREAS = [["pedidos", "Pedidos"], ["productos", "Productos"], ["packs", "Packs"], ["recetas", "Recetas"], ["proveedores", "Insumos"], ["textos", "Textos"], ["finanzas", "Finanzas"], ["resenas", "Reseñas"]];
   function can(a) { var r = st.me && st.me.rol; if (!r) return false; if (r === "Dueño" || r === "Total") return true; return String(r).toLowerCase().split(/[,;\s]+/).indexOf(a) >= 0; }
   function permList(p) { if (!p || p === "Dueño" || p === "Total") return AREAS.map(function (x) { return x[0]; }); return String(p).toLowerCase().split(/[,;\s]+/); }
-  var VAREA = { inicio: "pedidos", pedidos: "pedidos", productos: "productos", finanzas: "finanzas", packs: "packs", recetas: "recetas", proveedores: "proveedores", stock: "proveedores", cupones: "packs", textos: "textos", resenas: "resenas" };
+  var VAREA = { inicio: "pedidos", pedidos: "pedidos", productos: "productos", finanzas: "finanzas", packs: "packs", recetas: "recetas", proveedores: "proveedores", stock: "proveedores", puntos: "proveedores", cupones: "packs", textos: "textos", resenas: "resenas" };
   function allowed(v) { if (v === "mas") return true; if (v === "accesos" || v === "voz") return !!(st.me && st.me.rol === "Dueño"); return can(VAREA[v]); }
   function firstView() { var o = ["inicio", "pedidos", "productos", "finanzas", "mas"]; for (var i = 0; i < o.length; i++) if (allowed(o[i])) return o[i]; return "mas"; }
   function applyPerms() { Array.prototype.forEach.call($("nav").querySelectorAll("button"), function (b) { b.hidden = !allowed(b.getAttribute("data-v")); }); }
@@ -311,7 +313,7 @@ button { cursor:pointer; }
   }
 
   /* ---------- Navegación ---------- */
-  var SUB = ["packs", "recetas", "textos", "proveedores", "stock", "cupones", "accesos", "voz", "resenas"];
+  var SUB = ["packs", "recetas", "textos", "proveedores", "stock", "puntos", "cupones", "accesos", "voz", "resenas"];
   function goto(v) {
     if (!allowed(v)) v = firstView();
     st.v = v; var nk = SUB.indexOf(v) >= 0 ? "mas" : v;
@@ -327,7 +329,7 @@ button { cursor:pointer; }
     if (v === "textos") { fetchTextos(); return; }
     if (v === "voz") { api("vozEstado").then(function (j) { st.vz = !!(j && j.clave); st.loaded.voz = true; if (st.v === "voz") render(); }).catch(function () {}); return; }
     if (v === "inicio" && allowed("proveedores") && !st.stkf) { st.stkf = 1; api("stock").then(function (j) { if (j && j.ok) { st.stock = j.stock; st.alertas = !!j.alertas; if (st.alertas) api("recetas2").then(function (k) { if (k && k.ok) { st.recetas = k.recetas; st.insumos = k.insumos; if (st.v === "inicio") render(true); } }).catch(function () {}); if (st.v === "inicio") render(true); } }).catch(function () {}); }
-    var op = v === "inicio" ? "pedidos" : v === "resenas" ? "resenas" : v === "productos" ? "catalogo" : v === "recetas" ? "recetas2" : v === "packs" ? "packs2" : v;
+    var op = v === "puntos" ? "stock" : v === "inicio" ? "pedidos" : v === "resenas" ? "resenas" : v === "productos" ? "catalogo" : v === "recetas" ? "recetas2" : v === "packs" ? "packs2" : v;
     if ((v === "recetas" || v === "packs") && !st.loaded.productos) api("catalogo").then(function (j) { if (j && j.ok) { st.productos = j.catalogo; st.loaded.productos = true; } }).catch(function () {});
     if (v === "inicio" && !st.loaded.productos) api("catalogo").then(function (j) { if (j && j.ok) { st.productos = j.catalogo; st.loaded.productos = true; if (st.v === "inicio") render(true); } }).catch(function () {});
     var ck = "uovo_c_" + op, hit = null; if (!DEMO) { try { hit = JSON.parse(load(ck) || "null"); } catch (e) {} }
@@ -374,7 +376,7 @@ button { cursor:pointer; }
           '<div class="row" style="margin-top:10px;align-items:center"><button class="sm red" data-dpe="1">🗑 Eliminar pedido</button>' +
           (p.cl ? "" : (p.cc ? '<button class="sm" data-t="cc" data-v="0">Reactivar</button>' : '<button class="sm red" data-cc="1">Cancelar pedido</button>')) + "</div>";
       }
-      return b + "</article>";
+      return '<div class="sw" data-sw="' + p.r + '"><button class="swb" data-swdel="' + p.r + '" aria-label="Eliminar">🗑</button>' + b + "</article></div>";
     }).join("");
     return h;
   }
@@ -462,7 +464,7 @@ button { cursor:pointer; }
   /* ---------- Más ---------- */
   function renderMas() {
     var mi = function (x) { return '<button class="mi" data-go="' + x[0] + '"><i>' + x[1] + "</i><div><b>" + x[2] + "</b><span>" + x[3] + "</span></div></button>"; };
-    var neg = [["textos", "✏️", "Textos de la página", "Cambiá los textos de la tienda"], ["proveedores", "🧾", "Proveedores e insumos", "Precios de lo que comprás"], ["stock", "📦", "Stock", "Cuánto te queda y qué reponer"], ["recetas", "🧁", "Recetas", "Costo de cada masa y cookie"], ["packs", "🎁", "Packs y combos", "Activá, pausá y cambiá precios"], ["cupones", "🏷️", "Cupones", "Descuentos para tus clientes"]].filter(function (x) { return allowed(x[0]); });
+    var neg = [["textos", "✏️", "Textos de la página", "Cambiá los textos de la tienda"], ["proveedores", "🧾", "Proveedores e insumos", "Precios de lo que comprás"], ["stock", "📦", "Stock", "Cuánto te queda y qué reponer"], ["puntos", "🎯", "Puntos de pedido", "Cuándo avisarte para reponer cada insumo"], ["recetas", "🧁", "Recetas", "Costo de cada masa y cookie"], ["packs", "🎁", "Packs y combos", "Activá, pausá y cambiá precios"], ["cupones", "🏷️", "Cupones", "Descuentos para tus clientes"]].filter(function (x) { return allowed(x[0]); });
     var app = [["resenas", "⭐", "Reseñas", "Lo que dicen tus clientes"]].filter(function (x) { return allowed(x[0]); });
     if (st.me && st.me.rol === "Dueño") { app.push(["voz", "🎙️", "Asistente de voz", "Dictá lo que querés hacer"]); app.push(["accesos", "🔑", "Accesos", "Quién puede entrar a esta app"]); }
     if (st.alertas === undefined && !st.stkf && allowed("proveedores")) { st.stkf = 1; api("stock").then(function (j) { if (j && j.ok) { st.stock = j.stock; st.alertas = !!j.alertas; if (st.v === "mas") render(true); } }).catch(function () {}); }
@@ -790,11 +792,12 @@ button { cursor:pointer; }
   function stkLine(i) {
     return (i.tipo === "compra" ? "🛒 Compra" : i.tipo === "consumo" ? "➖ Gasto" : "🔢 Contado") + " · <b>" + esc(i.ins) + "</b> · " + (i.tipo === "ajuste" ? "quedan " : i.tipo === "compra" ? "+" : "−") + fm(i.cant) + " " + esc(i.uni) + (i.precio ? " · $" + fm(i.precio) : i.tipo === "compra" ? " · sin precio" : "") + (i.warn ? " ⚠️ revisá la unidad" : "");
   }
+  function skb() { return st.skbusy && Date.now() - st.skbusy < 15000; }
   function stkLoad(cb) { if (st.stock) return cb(); api("stock").then(function (j) { st.stock = j && j.ok ? j.stock : []; cb(); }).catch(function () { st.stock = []; cb(); }); }
   function stkApply(items) {
-    if (st.skbusy) { toast("Guardando… esperá un segundo"); return Promise.resolve({ ok: 0, fail: "" }); }
-    st.skbusy = 1; var chain = Promise.resolve(), ok = 0, fail = "";
-    items.forEach(function (i) { chain = chain.then(function () { return api("stockMov", { ins: i.ins, tipo: i.tipo, cant: i.cant, precio: i.precio }).then(function (j) { if (j && j.ok) { st.stock = j.stock; if (j.alertas != null) st.alertas = !!j.alertas; ok++; } else fail = (j && j.msg) || "No se pudo guardar"; }); }); });
+    if (skb()) { toast("Guardando… esperá un segundo"); return Promise.resolve({ ok: 0, fail: "" }); }
+    st.skbusy = Date.now(); var chain = Promise.resolve(), ok = 0, fail = "";
+    items.forEach(function (i) { chain = chain.then(function () { return api("stockMov", { ins: i.ins, tipo: i.tipo, cant: i.cant, precio: i.precio, rid: i.rid || (i.rid = Date.now() + "-" + Math.random().toString(36).slice(2)) }).then(function (j) { if (j && j.ok) { st.stock = j.stock; if (j.alertas != null) st.alertas = !!j.alertas; ok++; } else fail = (j && j.msg) || "No se pudo guardar"; }); }); });
     st.movs = null; st.movf = 0;
     return chain.then(function (r0) { st.skbusy = 0; return r0; }, function (e0) { st.skbusy = 0; throw e0; }).then(function () { if (items.some(function (i) { return i.tipo === "compra" && i.precio > 0; })) { VC.prov = null; if (!DEMO) api("proveedores").then(function (j) { if (j && j.ok) st.prov = j.proveedores; }).catch(function () {}); } return { ok: ok, fail: fail }; });
   }
@@ -832,19 +835,26 @@ button { cursor:pointer; }
     h += '<input class="search" id="sk-s" type="search" placeholder="Buscar insumo…" value="' + esc(st.sks || "") + '"><div class="chips">' + [["all", "Todos"]].concat(on ? [["alert", "Alertas"]] : []).concat([["a", "Insumos"], ["p", "Packaging"]]).map(function (c) { return '<button class="chip' + ((st.skf || "all") === c[0] ? " on" : "") + '" data-skf="' + c[0] + '">' + c[1] + "</button>"; }).join("") + "</div>";
     if (!L.length) h += '<div class="empty">' + (st.skf === "alert" ? "Sin alertas 🎉" : "Sin resultados.") + "</div>";
     h += L.map(function (x) {
-      var open = st.skx === x.ins, cl = on && x.nivel === "rojo" ? " skr" : on && x.nivel === "amarillo" ? " sky" : "";
-      var bd = on && x.nivel === "rojo" ? '<span class="badge r">' + (x.stock <= 0 ? "SIN STOCK" : "BAJO") + "</span>" : on && x.nivel === "amarillo" ? '<span class="badge y">POR AGOTARSE</span>' : "";
-      var b = '<article class="card' + cl + '" data-ins="' + esc(x.ins) + '"><div class="row" style="align-items:center;gap:10px"><div style="min-width:0;flex:1"><div class="nm">' + esc(x.ins) + '</div><div class="meta">' + (x.mov ? "<b>" + fm(x.stock) + " " + esc(x.uni) + "</b>" : "Sin stock cargado") + (x.min !== "" ? " · mín " + fm(x.min) : "") + (x.costo ? " · repos. $" + fm(x.costo) + "/" + esc(x.uni) : "") + "</div></div>" + bd + '<button class="pen" data-skx="' + esc(x.ins) + '" aria-label="Editar">' + (open ? "✕" : "✏️") + "</button></div>";
+      var open = st.skx === x.ins;
+      var lv = !x.mov ? "n" : x.nivel === "rojo" ? "r" : x.nivel === "amarillo" ? "y" : x.min !== "" ? "g" : "b";
+      var b = '<article class="card" data-ins="' + esc(x.ins) + '"><div class="row" data-skx="' + esc(x.ins) + '" style="align-items:center;gap:10px;cursor:pointer"><div style="min-width:0;flex:1"><div class="nm">' + esc(x.ins) + '</div><div class="meta">' + (x.costo ? "repos. $" + fm(x.costo) + "/" + esc(x.uni) : "&nbsp;") + '</div></div><div class="ska sk' + lv + '"><b>' + (x.mov ? fm(x.stock) : "—") + "</b><span>" + (x.mov ? esc(x.uni) : "sin cargar") + "</span>" + (x.min !== "" ? "<small>pedir en " + fm(x.min) + "</small>" : "") + "</div></div>";
       if (open) {
         var mv = []; (st.movs || []).forEach(function (m, i) { if (String(m[1]).toLowerCase() === x.ins.toLowerCase()) mv.push([m, i]); }); mv = mv.slice(-5).reverse();
-        b += '<div class="add" style="margin-top:10px"><div style="display:flex;gap:8px"><input class="inp" data-skc placeholder="Compré (ej. 1 kg)"><input class="inp" data-skp inputmode="decimal" placeholder="Precio total $"></div><button class="sm" data-skb="compra">Cargar compra (suma)</button>' +
+        b += '<div class="add" style="margin-top:10px"><div class="meta" style="margin-bottom:-4px">Las compras se suman solas desde Proveedores e insumos. Acá solo ajustás.</div>' +
           '<div style="display:flex;gap:8px"><input class="inp" data-skg placeholder="Gasté (ej. 500 g)" style="flex:1"><button class="sm" data-skb="consumo">Restar</button></div>' +
           '<div style="display:flex;gap:8px"><input class="inp" data-skn placeholder="Contado real (ej. 2 kg)" style="flex:1"><button class="sm" data-skb="ajuste">Ajustar</button></div>' +
-          '<div class="meta" style="margin-bottom:-4px">Avisarme cuando queden menos de (' + esc(x.uni) + ')</div><input class="inp" data-skm inputmode="decimal" placeholder="Mínimo" value="' + (x.min !== "" ? esc(String(x.min).replace(".", ",")) : "") + '"></div>';
+          '</div>';
         if (mv.length) b += '<div class="meta" style="margin:10px 0 2px">Últimos movimientos (tocá ✕ para deshacer)</div>' + mv.map(function (z) { var m = z[0]; return '<div class="frow"><span>' + esc(String(m[0]).slice(0, 10)) + " · " + esc(m[2]) + " " + (m[3] > 0 ? "+" : "") + fm(m[3]) + (m[4] ? " · $" + fm(m[4]) : "") + '</span><button class="sm red" data-mdel="' + (z[1] + 2) + '" data-mi="' + esc(x.ins) + '" style="padding:2px 8px">✕</button></div>'; }).join("");
       }
       return b + "</article>";
     }).join("");
+    return h;
+  }
+  function renderPuntos() {
+    if (!st.stock) return BACK + '<div class="empty">Cargando…</div>';
+    var q = nrm(st.sks), L = st.stock.filter(function (x) { return !q || nrm(x.ins).indexOf(q) >= 0; });
+    var h = BACK + '<div class="meta" style="margin:4px 4px 10px">Cuando el stock llegue a este número, se pone en amarillo (cerca) y rojo (por debajo). Dejalo vacío para no usarlo.</div><input class="search" id="sk-s" type="search" placeholder="Buscar insumo…" value="' + esc(st.sks || "") + '">';
+    h += L.map(function (x) { return '<article class="card" data-ins="' + esc(x.ins) + '"><div class="row" style="align-items:center;gap:10px"><div style="min-width:0;flex:1"><div class="nm">' + esc(x.ins) + '</div><div class="meta">' + (x.mov ? "Tenés " + fm(x.stock) + " " + esc(x.uni) : "Sin stock cargado") + '</div></div><input class="inp" data-skm inputmode="decimal" placeholder="Pedir en (' + esc(x.uni) + ')" style="width:120px" value="' + (x.min !== "" ? esc(String(x.min).replace(".", ",")) : "") + '"></div></article>'; }).join("");
     return h;
   }
   function stkBtn(card, tipo) {
@@ -853,7 +863,7 @@ button { cursor:pointer; }
     if (!qn && !(tipo === "ajuste" && /^\s*0+\s*$/.test(raw))) { toast("Poné una cantidad (ej. 1 kg)"); return; }
     var pr = tipo === "compra" ? parseAR(card.querySelector("[data-skp]").value) : 0;
     if (tipo === "compra" && !(pr > 0)) { if (!confirm("¿Cargar la compra sin precio? El costo no se actualiza.")) return; pr = 0; }
-    if (st.skbusy) { toast("Guardando… esperá un segundo"); return; }
+    if (skb()) { toast("Guardando… esperá un segundo"); return; }
     stkApply([{ ins: ins, tipo: tipo, cant: qn ? qn.n : 0, precio: pr || 0 }]).then(function (r) { render(true); toast(r.ok ? "Guardado ✓" : r.fail); });
   }
 
@@ -1036,13 +1046,13 @@ button { cursor:pointer; }
     h += L.map(function (x) {
       var open = st.pvx === x.r, c = x.costo ? "$" + (Math.round(x.costo * 100) / 100).toLocaleString("es-AR") + " / " + esc(x.uni) : "sin precio";
       var b = '<article class="card" data-r="' + x.r + '" data-ins="' + esc(x.ins) + '"><button class="row" data-pvx="' + x.r + '" style="width:100%;border:0;background:none;padding:0;text-align:left;align-items:center"><div style="min-width:0"><div class="nm">' + esc(x.ins) + '</div><div class="meta">' + (x.prov ? esc(x.prov) + " · " : "") + c + '</div></div><span style="color:var(--soft);font-size:1.1rem">' + (open ? "▴" : "▾") + "</span></button>";
-      if (open) b += '<div class="add" style="margin-top:10px"><div class="meta" style="margin-bottom:-4px">Unidad en que cargás recetas (ej. g, ml, unidad)</div><input class="inp" data-pv="uni" list="pv-units" value="' + esc(x.uni) + '" placeholder="Unidad"><input class="inp" data-pv="prov" placeholder="Proveedor" value="' + esc(x.prov) + '"><div style="display:flex;gap:8px"><input class="inp" data-pv="cant" type="text" inputmode="decimal" placeholder="Cantidad (podés escribir 1 kg)" value="' + (x.cant ? esc(String(x.cant).replace(".", ",")) + "" : "") + '"><input class="inp" data-pv="precio" type="text" inputmode="decimal" placeholder="Precio total $" value="' + (x.precio || "") + '"></div><div class="meta">Cantidad guardada en <b>' + esc(x.uni) + '</b>. Si escribís «1 kg» o «2 l» lo convierto solo. ' + (x.fecha ? "Última compra: " + esc(x.fecha) + "." : "") + "</div>" + usosHtml(x) + "</div>";
+      if (open) b += '<div class="add" style="margin-top:10px"><div class="meta" style="margin-bottom:-4px">Unidad en que cargás recetas (ej. g, ml, unidad)</div><input class="inp" data-pv="uni" list="pv-units" value="' + esc(x.uni) + '" placeholder="Unidad"><input class="inp" data-pv="prov" placeholder="Proveedor" value="' + esc(x.prov) + '"><div class="meta" style="margin-bottom:-4px">🛒 Nueva compra (suma al stock solo)</div><div style="display:flex;gap:8px"><input class="inp" data-pc="cant" type="text" inputmode="decimal" placeholder="Compré (ej. 1 kg)"><input class="inp" data-pc="precio" type="text" inputmode="decimal" placeholder="Precio total $"></div><button class="btn" data-pbuy="1">Registrar compra</button><div class="meta">' + (x.cant ? "Última compra: " + fm(x.cant) + " " + esc(x.uni) + " a $" + fm(x.precio) : "Sin compras cargadas") + (x.fecha ? " (" + esc(x.fecha) + ")" : "") + ". Podés escribir «1 kg» o «2 l». Si dejás la cantidad vacía, solo corrijo el precio.</div>" + usosHtml(x) + "</div>";
       return b + "</article>";
     }).join("");
     return h;
   }
   function render(keepScroll) {
-    var y = window.scrollY, V = { inicio: renderInicio, pedidos: renderPedidos, productos: renderProductos, mas: renderMas, packs: renderPacks, recetas: renderRecetas, finanzas: renderFinanzas, textos: renderTextos, proveedores: renderProv, stock: renderStock, cupones: renderCupones, accesos: function () { return BACK + renderAccesos(); }, voz: renderVozCfg, resenas: renderResenas };
+    var y = window.scrollY, V = { inicio: renderInicio, pedidos: renderPedidos, productos: renderProductos, mas: renderMas, packs: renderPacks, recetas: renderRecetas, finanzas: renderFinanzas, textos: renderTextos, proveedores: renderProv, stock: renderStock, puntos: renderPuntos, cupones: renderCupones, accesos: function () { return BACK + renderAccesos(); }, voz: renderVozCfg, resenas: renderResenas };
     var h = V[st.v]();
     if (SUB.indexOf(st.v) >= 0 && h.indexOf(BACK) === 0 && NAMES[st.v]) h = '<div class="bk">' + BACK + '<b class="crumb">' + NAMES[st.v] + "</b></div>" + h.slice(BACK.length);
     var act = document.activeElement, id = act && act.id, pos = act && act.selectionStart;
@@ -1516,6 +1526,17 @@ button { cursor:pointer; }
         return;
       }
     }
+    var pbb = t.closest("[data-pbuy]"); if (pbb) {
+      var pc = pbb.closest("[data-ins]"), pin = pc.getAttribute("data-ins"), px0 = (st.prov[st.pvt] || []).filter(function (z) { return z.ins === pin; })[0]; if (!px0) return;
+      var rawc = pc.querySelector("[data-pc=cant]").value.trim(), rawp = pc.querySelector("[data-pc=precio]").value, prc = parseAR(rawp);
+      if (!(prc > 0)) { toast("Poné el precio total"); return; }
+      if (skb()) { toast("Guardando… esperá un segundo"); return; }
+      if (!rawc) { (DEMO ? Promise.resolve({ ok: true }) : api("setProveedor", { t: st.pvt, r: px0.r, ins: pin, campo: "precio", valor: String(prc) })).then(function (j) { if (j && j.ok) { if (DEMO) { px0.precio = prc; px0.costo = px0.cant ? prc / px0.cant : px0.costo; } else st.prov = j.proveedores; render(true); toast("Precio corregido ✓ (el stock no cambia)"); } else toast(j && j.msg || "No se pudo"); }).catch(function () {}); return; }
+      var qq = parseQty(rawc, px0.uni); if (!qq || !(qq.n > 0)) { toast("Poné la cantidad (ej. 1 kg)"); return; }
+      pbb.disabled = true; pbb.textContent = "Guardando…";
+      stkApply([{ ins: pin, tipo: "compra", cant: qq.n, precio: prc }]).then(function (r) { VC.prov = null; if (DEMO) { px0.cant = qq.n; px0.precio = prc; px0.costo = prc / qq.n; px0.fecha = "13/10/2026"; render(true); toast(r.ok ? "Compra registrada ✓ (stock +" + fm(qq.n) + " " + px0.uni + ")" : r.fail); return; } api("proveedores").then(function (j) { if (j && j.ok) st.prov = j.proveedores; render(true); toast(r.ok ? "Compra registrada ✓ (stock +" + fm(qq.n) + " " + px0.uni + ")" : r.fail); }).catch(function () { render(true); }); }).catch(function () { render(true); toast("No se pudo guardar"); });
+      return;
+    }
     var px = t.closest("[data-pvx]"); if (px) { var pr1 = Number(px.getAttribute("data-pvx")); st.pvx = st.pvx === pr1 ? 0 : pr1; render(true); return; }
     if (t.closest("#pv-plus")) { st.pvnew = !st.pvnew; render(true); var an = $("ai-n"); if (an) an.focus(); return; }
     if (t.closest("#ai-x")) { st.pvnew = false; render(true); return; }
@@ -1532,7 +1553,7 @@ button { cursor:pointer; }
     }
     var ru = t.closest("[data-runi]"); if (ru) { st.runi = Number(ru.getAttribute("data-runi")); render(true); return; }
     var mo = t.closest("[data-mo]"); if (mo) { var mk = mo.getAttribute("data-mo"); st.mo = st.mo || {}; st.mo[mk] = st.mo[mk] ? 0 : 1; render(true); return; }
-    var mdl = t.closest("[data-mdel]"); if (mdl) { if (st.skbusy) return; st.skbusy = 1; api("delMov", { r: Number(mdl.getAttribute("data-mdel")), ins: mdl.getAttribute("data-mi") }).then(function (j) { st.skbusy = 0; if (j && j.ok) { st.stock = j.stock; st.movs = null; st.movf = 0; render(true); toast("Movimiento deshecho ✓"); } else toast(j && j.msg || "No se pudo"); }).catch(function () { st.skbusy = 0; }); return; }
+    var mdl = t.closest("[data-mdel]"); if (mdl) { if (skb()) return; st.skbusy = Date.now(); mdl.disabled = true; mdl.textContent = "…"; api("delMov", { r: Number(mdl.getAttribute("data-mdel")), ins: mdl.getAttribute("data-mi") }).then(function (j) { st.skbusy = 0; if (j && j.ok) { st.stock = j.stock; st.movs = null; st.movf = 0; render(true); toast("Movimiento deshecho ✓"); } else { toast(j && j.msg || "No se pudo"); st.movs = null; st.movf = 0; render(true); } }).catch(function () { st.skbusy = 0; st.movs = null; st.movf = 0; toast("No se pudo deshacer. Reintentá."); render(true); }); return; }
     var skx = t.closest("[data-skx]"); if (skx) { var kn = skx.getAttribute("data-skx"); st.skx = st.skx === kn ? "" : kn; render(true); return; }
     var skf = t.closest("[data-skf]"); if (skf) { st.skf = skf.getAttribute("data-skf"); render(true); return; }
     var skb = t.closest("[data-skb]"); if (skb) { stkBtn(skb.closest("[data-ins]"), skb.getAttribute("data-skb")); return; }
@@ -1541,7 +1562,7 @@ button { cursor:pointer; }
       var ka = sk.getAttribute("data-sk");
       if (ka === "parse") { if (st.skrec) { try { st.skrec.stop(); } catch (e) {} } var kt = $("sk-q").value.trim(); st.skq = { text: kt, items: stkParse(kt) }; render(true); return; }
       if (ka === "no") { st.skq = null; render(true); return; }
-      if (ka === "ok") { if (st.skbusy) return; sk.disabled = true; sk.textContent = "Guardando…"; var its = st.skq && st.skq.items || []; stkApply(its).then(function (r) { st.skq = null; render(true); toast(r.fail ? r.fail : "Cargado ✓ (" + r.ok + ")"); }); return; }
+      if (ka === "ok") { if (skb()) return; sk.disabled = true; sk.textContent = "Guardando…"; var its = st.skq && st.skq.items || []; stkApply(its).then(function (r) { st.skq = null; render(true); toast(r.fail ? r.fail : "Cargado ✓ (" + r.ok + ")"); }); return; }
       if (ka === "mic") {
         if (!SR) { toast("Tu navegador no tiene dictado. Escribilo."); return; }
         if (st.skrec) { try { st.skrec.stop(); } catch (e) {} return; }
@@ -1626,6 +1647,21 @@ button { cursor:pointer; }
   });
 
   if ("serviceWorker" in navigator && !DEMO) navigator.serviceWorker.register("admin-sw.js").catch(function () {});
+  (function () {
+    var sx = 0, sy = 0, el = null, dx = 0, dir = 0;
+    function closeAll(except) { Array.prototype.forEach.call(document.querySelectorAll(".sw .pc"), function (c) { if (c !== except) { c.style.transform = ""; c.removeAttribute("data-open"); } }); }
+    document.addEventListener("touchstart", function (e) { var c = e.target.closest && e.target.closest(".sw .pc"); if (!c || e.target.closest("input,textarea,button.tg,a")) { el = null; closeAll(null); return; } closeAll(c); el = c; sx = e.touches[0].clientX; sy = e.touches[0].clientY; dx = 0; dir = 0; c.style.transition = "none"; }, { passive: true });
+    document.addEventListener("touchmove", function (e) { if (!el) return; var x = e.touches[0].clientX - sx, y = e.touches[0].clientY - sy; if (!dir) { if (Math.abs(x) > 8 || Math.abs(y) > 8) dir = Math.abs(x) > Math.abs(y) ? 1 : 2; else return; } if (dir !== 1) return; var base = el.getAttribute("data-open") ? -84 : 0; dx = Math.max(-84, Math.min(0, base + x)); el.style.transform = "translateX(" + dx + "px)"; }, { passive: true });
+    document.addEventListener("touchend", function () { if (!el) return; el.style.transition = ""; if (dir === 1) { if (dx < -42) { el.style.transform = "translateX(-84px)"; el.setAttribute("data-open", "1"); } else { el.style.transform = ""; el.removeAttribute("data-open"); } el.setAttribute("data-swd", Date.now()); } el = null; }, { passive: true });
+    document.addEventListener("click", function (e) {
+      var c = e.target.closest && e.target.closest(".sw .pc"); if (c && Date.now() - Number(c.getAttribute("data-swd") || 0) < 350) { e.stopPropagation(); e.preventDefault(); return; }
+      if (c && c.getAttribute("data-open")) { c.style.transform = ""; c.removeAttribute("data-open"); e.stopPropagation(); e.preventDefault(); return; }
+      var d = e.target.closest && e.target.closest("[data-swdel]"); if (!d) return; e.stopPropagation();
+      var r = Number(d.getAttribute("data-swdel")), p = st.pedidos.filter(function (x) { return x.r === r; })[0]; if (!p) return;
+      if (!d.classList.contains("arm")) { d.classList.add("arm"); d.innerHTML = '<span style="font-size:.7rem">¿Seguro?<br>Tocá</span>'; setTimeout(function () { d.classList.remove("arm"); d.textContent = "🗑"; }, 3500); return; }
+      delPedidos([{ r: p.r, id: p.id }]);
+    }, true);
+  })();
   boot();
 })();
 </script>

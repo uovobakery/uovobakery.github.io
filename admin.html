@@ -664,6 +664,7 @@ button { cursor:pointer; }
   var RPG = [["dia", "Día"], ["semana", "Semana"], ["mes", "Mes"], ["pago", "Medio de pago"], ["cliente", "Cliente"], ["cupon", "Cupón"], ["sabor", "Sabor"], ["insumo", "Insumo"]];
   function repBuilder(R) {
     var m = st.rpm || "ventas", g = st.rpg || "dia";
+    if (g === "sabor" && (m === "ventas" || m === "ticket")) { m = "cookies"; st.rpm = m; }
     if (m === "compras" && ["dia", "semana", "mes", "insumo"].indexOf(g) < 0) g = "insumo";
     if (m !== "compras" && g === "insumo") g = "dia";
     var rows = {}, order = {}, tot = 0, cnt = 0, fmt = function (v) { return m === "ventas" || m === "ticket" || m === "compras" ? money(v) : fm(v); };

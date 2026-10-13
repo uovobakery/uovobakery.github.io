@@ -349,19 +349,21 @@ button { cursor:pointer; }
 
   /* ---------- Pedidos ---------- */
   function estadoDe(p) { if (p.cc || p.cl) return "canc"; if (p.en) return "ent"; if (p.he) return "list"; if (p.ap) return "coc"; return "pend"; }
-  var FILS = [["pend", "Pendientes"], ["coc", "A cocinar"], ["list", "Listos"], ["ent", "Entregados"], ["canc", "Cancelados"], ["todos", "Todos"]];
+  function filOk(p) { if (st.fil === "apr") return !!p.ap && !p.cc && !p.cl; return st.fil === "todos" || estadoDe(p) === st.fil; }
+  var FILS = [["pend", "Pendientes"], ["apr", "Aprobados"], ["coc", "A cocinar"], ["list", "Listos"], ["ent", "Entregados"], ["canc", "Cancelados"], ["todos", "Todos"]];
   var ESTL = { pend: ["Pendiente", "#FFF1D6", "#B26A00"], coc: ["A cocinar", "#EAF2FD", "#0F59C4"], list: ["Listo", "#E3F4E8", "#1B7A3A"], ent: ["Entregado", "#E3F4E8", "#1B7A3A"], canc: ["Cancelado", "#FBE9E7", "#B3261E"], test: ["Test", "#EDE7F6", "#5E35B1"] };
   function waLink(t) { var d = String(t || "").replace(/\D/g, ""); if (!d) return ""; if (d.indexOf("54") !== 0) d = "549" + d.replace(/^0+/, ""); return "https://wa.me/" + d; }
   function renderPedidos() {
     var cnt = {}; st.pedidos.forEach(function (p) { var e = estadoDe(p); cnt[e] = (cnt[e] || 0) + 1; });
     var q = st.q.trim().toLowerCase();
     var list = st.pedidos.filter(function (p) {
-      if (st.fil !== "todos" && estadoDe(p) !== st.fil) return false;
+      if (!filOk(p)) return false;
       return !q || (p.nombre + " " + p.id + " " + p.pedido + " " + p.tel).toLowerCase().indexOf(q) >= 0;
     });
     var h = '<input class="search" id="pq" type="search" placeholder="Buscar por nombre, código o pedido…" value="' + esc(st.q) + '">' +
-      '<div class="chips">' + FILS.map(function (f) { var n = f[0] === "todos" ? st.pedidos.length : (cnt[f[0]] || 0); return '<button class="chip' + (st.fil === f[0] ? " on" : "") + '" data-f="' + f[0] + '">' + f[1] + "<b>" + n + "</b></button>"; }).join("") + "</div>";
+      '<div class="chips">' + FILS.map(function (f) { var n = f[0] === "todos" ? st.pedidos.length : f[0] === "apr" ? st.pedidos.filter(function (p) { return p.ap && !p.cc && !p.cl; }).length : (cnt[f[0]] || 0); return '<button class="chip' + (st.fil === f[0] ? " on" : "") + '" data-f="' + f[0] + '">' + f[1] + "<b>" + n + "</b></button>"; }).join("") + "</div>";
     if (!list.length) h += '<div class="empty">No hay pedidos en esta vista.</div>';
+    else h += '<div class="meta" style="margin:0 4px 8px">' + list.length + " pedidos · " + money(list.reduce(function (a, p) { return a + (Number(p.total) || 0); }, 0)) + " · de todas las fechas (pedidos hechos entre " + esc(list[list.length - 1].fecha) + " y " + esc(list[0].fecha) + ")</div>";
     if (list.length) h += '<div style="text-align:right;margin:-2px 2px 8px"><button class="sm red" data-dlote="1" style="font-size:.76rem">Eliminar estos ' + list.length + "</button></div>";
     h += list.map(function (p) {
       var c = p.cc || p.cl, wa = waLink(p.tel), e = estadoDe(p), sb = ESTL[e], open = st.pdx === p.r;
@@ -386,7 +388,7 @@ button { cursor:pointer; }
     (DEMO ? Promise.resolve({ ok: true, n: rows.length }) : api("delPedidos", { rows: rows })).then(function (j) {
       if (!j || !j.ok) { toast(j && j.msg || "No se pudo eliminar"); render(true); return; }
       if (DEMO) { var ids = {}; rows.forEach(function (x) { ids[x.id] = 1; }); st.pedidos = st.pedidos.filter(function (p) { return !ids[p.id]; }); st.pdx = 0; render(); toast("Eliminados: " + j.n); }
-      else api("pedidos").then(function (k) { if (k && k.ok) st.pedidos = k.pedidos; st.pdx = 0; render(); toast("Eliminados: " + j.n); });
+      else { store("uovo_c_pedidos", null); st.swo = null; api("pedidos").then(function (k) { if (k && k.ok) st.pedidos = k.pedidos; st.pdx = 0; render(); toast("Eliminados: " + j.n + (j.pedidos && j.pedidos > j.n ? " de " + j.pedidos : "")); }); }
     }).catch(function () { render(true); toast("No se pudo eliminar"); });
   }
   function patchPedido(r, campo, valor, undo) {
@@ -1622,7 +1624,7 @@ button { cursor:pointer; }
     var tl = t.closest("[data-dlote]"); if (tl && st.v === "pedidos") {
       if (!tl.classList.contains("arm")) { tl.classList.add("arm"); tl.dataset.txt = tl.textContent; tl.textContent = "¿Seguro? Se borran para siempre"; clearTimeout(armTimer); armTimer = setTimeout(function () { tl.classList.remove("arm"); tl.textContent = tl.dataset.txt; }, 3500); return; }
       var q2 = st.q.trim().toLowerCase();
-      var rows = st.pedidos.filter(function (p) { if (st.fil !== "todos" && estadoDe(p) !== st.fil) return false; return !q2 || (p.nombre + " " + p.id + " " + p.pedido + " " + p.tel).toLowerCase().indexOf(q2) >= 0; }).map(function (p) { return { r: p.r, id: p.id }; });
+      var rows = st.pedidos.filter(function (p) { if (!filOk(p)) return false; return !q2 || (p.nombre + " " + p.id + " " + p.pedido + " " + p.tel).toLowerCase().indexOf(q2) >= 0; }).map(function (p) { return { r: p.r, id: p.id }; });
       delPedidos(rows); return;
     }
     var dpe = t.closest("[data-dpe]"); if (dpe) {
@@ -1668,7 +1670,7 @@ button { cursor:pointer; }
   (function () {
     var sx = 0, sy = 0, el = null, dx = 0, dir = 0;
     function closeAll(except) { Array.prototype.forEach.call(document.querySelectorAll(".sw .pc"), function (c) { if (c !== except) { c.style.transform = ""; c.removeAttribute("data-open"); c.parentNode.classList.remove("sx"); } }); if (!except) st.swo = null; }
-    document.addEventListener("touchstart", function (e) { var c = e.target.closest && e.target.closest(".sw .pc"); if (!c || e.target.closest("input,textarea,button.tg,a")) { el = null; closeAll(null); return; } closeAll(c); el = c; sx = e.touches[0].clientX; sy = e.touches[0].clientY; dx = 0; dir = 0; c.style.transition = "none"; }, { passive: true });
+    document.addEventListener("touchstart", function (e) { if (e.target.closest && e.target.closest(".swb")) { el = null; return; } var c = e.target.closest && e.target.closest(".sw .pc"); if (!c || e.target.closest("input,textarea,button.tg,a")) { el = null; closeAll(null); return; } closeAll(c); el = c; sx = e.touches[0].clientX; sy = e.touches[0].clientY; dx = 0; dir = 0; c.style.transition = "none"; }, { passive: true });
     document.addEventListener("touchmove", function (e) { if (!el) return; var x = e.touches[0].clientX - sx, y = e.touches[0].clientY - sy; if (!dir) { if (Math.abs(x) > 8 || Math.abs(y) > 8) dir = Math.abs(x) > Math.abs(y) ? 1 : 2; else return; } if (dir !== 1) return; var base = el.getAttribute("data-open") ? -84 : 0; dx = Math.max(-84, Math.min(0, base + x)); el.style.transform = "translateX(" + dx + "px)"; el.parentNode.classList.add("sx"); }, { passive: true });
     document.addEventListener("touchend", function () { if (!el) return; el.style.transition = ""; if (dir === 1) { if (dx < -30) { el.style.transform = "translateX(-84px)"; el.setAttribute("data-open", "1"); el.parentNode.classList.add("sx"); st.swo = el.parentNode.getAttribute("data-sw"); } else { el.style.transform = ""; el.removeAttribute("data-open"); el.parentNode.classList.remove("sx"); st.swo = null; } el.setAttribute("data-swd", Date.now()); } el = null; }, { passive: true });
     document.addEventListener("click", function (e) {

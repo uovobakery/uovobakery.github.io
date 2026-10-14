@@ -1105,13 +1105,9 @@ body.selmode .nav{visibility:hidden}
       var b = '<article class="card pc" data-ins="' + esc(x.ins) + '"><div class="row" data-skx="' + esc(x.ins) + '" style="align-items:center;gap:10px;cursor:pointer"><div style="min-width:0;flex:1"><div class="nm">' + esc(x.ins) + '</div><div class="meta">' + esc(x.t === "p" ? "Packaging" : "Insumo") + '</div></div><div class="ska sk' + lv + '"><b>' + (x.mov ? fm(x.stock) : "—") + "</b><span>" + (x.mov ? esc(x.uni) : "sin cargar") + "</span>" + (x.min !== "" ? "<small>pedir en " + fm(x.min) + "</small>" : "") + "</div></div>";
       hd = b;
       if (open) {
-        var mv = []; (st.movs || []).forEach(function (m, i) { if (String(m[1]).toLowerCase() === x.ins.toLowerCase()) mv.push([m, i]); }); mv = mv.slice(-5).reverse();
-        b += '<div class="add" style="margin-top:10px"><div class="meta" style="margin-bottom:-4px">Todo se guarda en la unidad de Proveedores (100 g, 1 kg → se convierte solo).</div>' +
-          '<div style="display:flex;gap:8px"><input class="inp" data-skc placeholder="Sumar (ej. 1 kg o 100 g)" style="flex:1"><button class="sm" data-skb="compra">Sumar</button></div>' +
-          '<div style="display:flex;gap:8px"><input class="inp" data-skg placeholder="Restar / gasté (ej. 500 g)" style="flex:1"><button class="sm" data-skb="consumo">Restar</button></div>' +
-          '<div style="display:flex;gap:8px"><input class="inp" data-skn placeholder="Contado real (ej. 2 kg)" style="flex:1"><button class="sm" data-skb="ajuste">Ajustar</button></div>' +
-          '</div>';
-        if (mv.length) b += '<div class="meta" style="margin:10px 0 2px">Últimos movimientos (tocá ✕ para deshacer)</div>' + mv.map(function (z) { var m = z[0]; return '<div class="frow"><span>' + esc(String(m[0]).slice(0, 10)) + " · " + esc(m[2]) + " " + (m[3] > 0 ? "+" : "") + fm(m[3]) + (m[4] ? " · $" + fm(m[4]) : "") + '</span><button class="sm red" data-mdel="' + (z[1] + 2) + '" data-mi="' + esc(x.ins) + '" style="padding:2px 8px">✕</button></div>'; }).join("");
+        var mv = []; (st.movs || []).forEach(function (m, i) { if (String(m[1]).toLowerCase() === x.ins.toLowerCase()) mv.push([m, i]); }); mv = mv.slice(-3).reverse();
+        b += '<div class="add" style="margin-top:10px"><input class="inp" data-skc inputmode="decimal" placeholder="Cantidad (ej. 500 g, 1 kg)"><div style="display:flex;gap:8px"><button class="sm" data-skb="compra" style="flex:1">＋ Sumar</button><button class="sm" data-skb="consumo" style="flex:1">− Restar</button><button class="sm" data-skb="ajuste" style="flex:1">= Contado</button></div></div>';
+        if (mv.length) b += '<div class="meta" style="margin:10px 0 2px">Últimos movimientos</div>' + mv.map(function (z) { var m = z[0]; return '<div class="frow"><span>' + esc(String(m[0]).slice(0, 10)) + " · " + esc(m[2]) + " " + (m[3] > 0 ? "+" : "") + fm(m[3]) + (m[4] ? " · $" + fm(m[4]) : "") + '</span><button class="sm red" data-mdel="' + (z[1] + 2) + '" data-mi="' + esc(x.ins) + '" style="padding:2px 8px">✕</button></div>'; }).join("");
       }
       if (open) { st.popHtml = b + "</article>"; b = hd; }
       return swrap("stk", x.ins, b + "</article>", true, true, "＋<br>Sumar", "−<br>Restar");
@@ -1127,7 +1123,7 @@ body.selmode .nav{visibility:hidden}
   }
   function stkBtn(card, tipo) {
     var ins = card.getAttribute("data-ins"), x = st.stock.filter(function (z) { return z.ins === ins; })[0]; if (!x) return;
-    var sel = tipo === "compra" ? "[data-skc]" : tipo === "consumo" ? "[data-skg]" : "[data-skn]", raw = card.querySelector(sel).value, qn = parseQty(raw, x.uni);
+    var sel = "[data-skc]", raw = card.querySelector(sel).value, qn = parseQty(raw, x.uni);
     if (!qn && !(tipo === "ajuste" && /^\s*0+\s*$/.test(raw))) { toast("Poné una cantidad (ej. 1 kg)"); return; }
     if (skb()) { toast("Guardando… esperá un segundo"); return; }
     stkFlow([{ ins: ins, tipo: tipo, cant: qn ? qn.n : 0, precio: 0, uni: x.uni }], function (r) { if (!r) return; render(true); toast(r.ok ? "Guardado ✓" : r.fail); });
@@ -1314,7 +1310,7 @@ body.selmode .nav{visibility:hidden}
       var open = st.pop && st.pop.k === "prv" && st.pop.key === x.r, hd, c = x.costo ? "$" + (Math.round(x.costo * 100) / 100).toLocaleString("es-AR") + " / " + esc(x.uni) : "sin precio";
       var b = '<article class="card pc" data-r="' + x.r + '" data-ins="' + esc(x.ins) + '"><button class="row" data-pvx="' + x.r + '" style="width:100%;border:0;background:none;padding:0;text-align:left;align-items:center"><div style="min-width:0"><div class="nm">' + esc(x.ins) + '</div><div class="meta">' + (x.prov ? esc(x.prov) + " · " : "") + c + '</div></div><span style="color:var(--soft);font-size:1.1rem">' + (open ? "▴" : "▾") + "</span></button>";
       hd = b;
-      if (open) b += '<div class="add" style="margin-top:10px"><div class="meta" style="margin-bottom:-4px">Unidad en que cargás recetas (ej. g, ml, unidad)</div><input class="inp" data-pv="nombre" placeholder="Nombre" value="' + esc(x.ins) + '"><input class="inp" data-pv="uni" list="pv-units" value="' + esc(x.uni) + '" placeholder="Unidad"><input class="inp" data-pv="prov" placeholder="Proveedor" value="' + esc(x.prov) + '"><div class="meta" style="margin-bottom:-4px">🛒 Nueva compra (suma al stock solo)</div><div style="display:flex;gap:8px"><input class="inp" data-pc="cant" type="text" inputmode="decimal" placeholder="Compré (ej. 1 kg)"><input class="inp" data-pc="precio" type="text" inputmode="decimal" placeholder="Precio total $"></div><button class="btn" data-pbuy="1">Registrar compra</button><div class="meta">' + (x.cant ? "Última compra: " + fm(x.cant) + " " + esc(x.uni) + " a $" + fm(x.precio) : "Sin compras cargadas") + (x.fecha ? " (" + esc(x.fecha) + ")" : "") + ". Podés escribir «1 kg» o «2 l». Si dejás la cantidad vacía, solo corrijo el precio.</div>" + usosHtml(x) + "</div>";
+      if (open) b += '<div class="add" style="margin-top:10px"><div class="meta" style="margin-bottom:-4px">Nombre</div><input class="inp" data-pv="nombre" placeholder="Nombre" value="' + esc(x.ins) + '"><div style="display:flex;gap:8px"><div style="flex:1"><div class="meta">Unidad</div><input class="inp" data-pv="uni" list="pv-units" value="' + esc(x.uni) + '" placeholder="g, ml, unidad"></div><div style="flex:2"><div class="meta">Proveedor</div><input class="inp" data-pv="prov" placeholder="Proveedor" value="' + esc(x.prov) + '"></div></div><div class="meta" style="margin-bottom:-4px">Nueva compra</div><div style="display:flex;gap:8px"><input class="inp" data-pc="cant" type="text" inputmode="decimal" placeholder="Cantidad (1 kg)"><input class="inp" data-pc="precio" type="text" inputmode="decimal" placeholder="Precio total $"></div><button class="btn" data-pbuy="1">Registrar compra</button>' + (x.cant ? '<div class="meta">Última: ' + fm(x.cant) + " " + esc(x.uni) + " a $" + fm(x.precio) + (x.fecha ? " · " + esc(x.fecha) : "") + "</div>" : "") + "</div>";
       if (open) { st.popHtml = b + "</article>"; b = hd; }
       return swrap("prv", x.r, b + "</article>", true, true, "＋<br>Compra", "🗑<br>Borrar").replace('style="" data-swa="prv:rm', 'style="background:#d93a2f" data-swa="prv:rm');
     }).join("");
@@ -1921,12 +1917,12 @@ body.selmode .nav{visibility:hidden}
       if (ka === "mic") {
         if (!SR) { toast("Tu navegador no tiene dictado. Escribilo."); return; }
         if (st.skmic) { skMicStop(); return; }
-        var rr = new SR(); rr.lang = "es-AR"; rr.interimResults = true; rr.continuous = true; st.skrec = rr; st.skmic = true;
+        var rr = new SR(); rr.lang = "es-AR"; rr.interimResults = false; rr.continuous = false; st.skrec = rr; st.skmic = true;
         var base0 = $("sk-q").value ? $("sk-q").value.replace(/\s*$/, " ") : "", fin0 = "";
         rr.onstart = function () { var m0 = $("sk-mic"); if (m0) m0.classList.add("on"); };
-        rr.onresult = function (ev) { var itm = ""; for (var i = ev.resultIndex; i < ev.results.length; i++) { var tt = ev.results[i][0].transcript; if (ev.results[i].isFinal) fin0 += tt + " "; else itm += tt; } var q0 = $("sk-q"); if (q0) q0.value = (base0 + fin0 + itm).replace(/\s+/g, " ").trim(); };
+        rr.onresult = function (ev) { var tx = ""; for (var i = 0; i < ev.results.length; i++) tx += ev.results[i][0].transcript + " "; var q0 = $("sk-q"); if (q0) q0.value = (base0 + tx).replace(/\s+/g, " ").trim(); };
         rr.onerror = function (ev) { if (ev && (ev.error === "not-allowed" || ev.error === "service-not-allowed")) { st.skmic = false; toast("Dale permiso al micrófono"); } };
-        rr.onend = function () { if (st.skmic) { setTimeout(function () { if (!st.skmic) return; try { rr.start(); } catch (e) { skMicStop(); } }, 150); return; } st.skrec = null; var m1 = $("sk-mic"); if (m1) m1.classList.remove("on"); };
+        rr.onend = function () { if (st.skmic) { var q9 = $("sk-q"); base0 = q9 && q9.value ? q9.value.replace(/\s*$/, " ") : ""; setTimeout(function () { if (!st.skmic) return; try { rr.start(); } catch (e) { skMicStop(); } }, 150); return; } st.skrec = null; var m1 = $("sk-mic"); if (m1) m1.classList.remove("on"); };
         try { rr.start(); } catch (e) { st.skrec = null; st.skmic = false; } return;
       }
     }

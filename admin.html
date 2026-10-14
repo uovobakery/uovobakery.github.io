@@ -614,7 +614,7 @@ body.selmode .nav{visibility:hidden}
       if (!p.en) { vpv += Number(p.total) || 0; npv++; }
       if (d) { if (d.getMonth() === cm && d.getFullYear() === cy) { if (p.en) { vm += p.total; ck += Number(p.cant) || 0; pm++; } else vsa += p.total; } else if (p.en && (d.getMonth() === (cm + 11) % 12) && d.getFullYear() === (cm ? cy : cy - 1)) vp += p.total; }
       if (e === "pend" && d && now - d > 864e5) viejos++;
-      if (e !== "ent") { var k = p.entrega || "Sin fecha"; ent[k] = ent[k] || { n: 0, q: 0 }; ent[k].n++; ent[k].q += Number(p.cant) || 0; }
+      if (e !== "ent") { var k = p.entrega || "Sin fecha"; ent[k] = ent[k] || { n: 0, q: 0 }; ent[k].n++; ent[k].q += Number(p.cant) || 0; ent[k].f = ent[k].f || {}; var fi = pedItems(p).cookies; Object.keys(fi).forEach(function (n0) { ent[k].f[n0] = (ent[k].f[n0] || 0) + fi[n0]; }); }
     });
     var ag = st.productos.filter(function (p) { return p.ag; }).length;
     var nom = st.me && st.me.nombre ? String(st.me.nombre).split(" ")[0] : "";
@@ -634,7 +634,7 @@ body.selmode .nav{visibility:hidden}
     }
     if (al.length) h += '<div class="menu" id="alertas" style="margin-bottom:12px">' + al.map(function (x) { return '<button class="mi" ' + (x[1] === "@ag" ? 'data-agpop="1"' : 'data-go="' + x[1] + '" data-fil="' + x[2] + '"') + ' style="padding:12px 16px"><div><b style="font-weight:600">' + x[0] + "</b></div></button>"; }).join("") + "</div>";
     var ks = Object.keys(ent).sort(function (a, b) { return ent[b].n - ent[a].n; }).slice(0, 3);
-    if (ks.length) h += '<div class="nm" style="margin:6px 2px 8px">Entregas</div>' + ks.map(function (k) { return '<button class="card" data-entpop="' + esc(k) + '" style="width:100%;text-align:left;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;margin-bottom:8px"><div><div class="nm" style="font-size:1rem">' + esc(k === "Sin fecha" ? "Sin fecha de entrega" : k) + '</div><div class="meta" style="margin:0">' + ent[k].n + (ent[k].n === 1 ? " pedido" : " pedidos") + " · " + ent[k].q + ' cookies</div></div><span style="color:var(--soft)">›</span></button>'; }).join("");
+    if (ks.length) h += '<div class="nm" style="margin:6px 2px 8px">Para cocinar</div>' + ks.map(function (k) { var f = ent[k].f || {}; return '<div class="card" style="padding:12px 16px;margin-bottom:8px"><div class="nm" style="font-size:1rem;margin-bottom:4px">' + esc(k === "Sin fecha" ? "Sin fecha de entrega" : k) + '</div>' + Object.keys(f).sort(function (a, b) { return f[b] - f[a]; }).map(function (n0) { return '<div class="frow"><span>' + esc(n0) + "</span><b>" + f[n0] + "</b></div>"; }).join("") + "</div>"; }).join("");
     h += '<div class="nm" style="margin:6px 2px 8px">Atajos</div><div class="kpis four" id="atajos" style="grid-template-columns:repeat(4,1fr)">' + [["proveedores", "🧾", "Insumos"], ["stock", "📦", "Stock"], ["recetas", "🧁", "Recetas"], ["packs", "🎁", "Packs y combos"], ["cupones", "🏷️", "Cupones"], ["textos", "✏️", "Textos página"], ["resenas", "⭐", "Reseñas"]].filter(function (x) { return allowed(x[0]); }).map(function (x) { return '<button class="kpi" data-go="' + x[0] + '"' + (x[3] ? ' data-newp="1"' : "") + '><b style="font-size:1.4rem">' + x[1] + '</b><span style="font-size:.68rem;line-height:1.15">' + x[2] + "</span></button>"; }).join("") + "</div>";
     return curH + h;
   }

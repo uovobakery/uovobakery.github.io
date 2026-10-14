@@ -178,6 +178,13 @@ body{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
 body.selmode .nav{visibility:hidden}
 .mi{transition:background .12s}.mi:active{background:#f0f5ff}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.swb,.swl{font-weight:700;font-size:.78rem;letter-spacing:.2px;text-align:center;padding:4px;line-height:1.2}
+.swb.k1{background:#475569}.swb.k2{background:#b7791f}.swb.k3{background:#d93a2f}
+#selbar{background:#0C2247;border-radius:18px;gap:8px}
+#selbar .sba button{flex-direction:row;justify-content:center;min-width:0;padding:11px 14px;border-radius:12px;font-size:.8rem;font-weight:700;white-space:nowrap;background:rgba(255,255,255,.1)}
+#selbar .sba button i{display:none}
+#selbar .sbh button{border-radius:10px;font-size:.8rem}
+.sp-seg{display:flex;gap:6px;margin:6px 0}.sp-seg button{flex:1;border:1px solid #dde6f4;background:#fff;border-radius:12px;padding:10px;font-weight:700;color:#0C2247}.sp-seg button.on{background:#0C2247;color:#fff;border-color:#0C2247}
 </style>
 </head>
 <body>
@@ -428,12 +435,12 @@ body.selmode .nav{visibility:hidden}
           (p.cl ? "" : (p.cc ? '<button class="sm" data-t="cc" data-v="0">Reactivar</button>' : '<button class="sm red" data-cc="1">Cancelar pedido</button>')) + "</div>";
       }
       var so = String(st.swo) === String(p.r); b = so ? b.replace('<article class="card pc', '<article data-open="r" style="transform:translateX(-84px)" class="card pc') : b;
-      return '<div class="sw' + (so ? " sxr" : "") + '" data-kind="ped" data-sw="' + p.r + '">' + advBtn(p) + '<button class="swb" data-swdel="' + p.r + '" aria-label="Eliminar"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>' + b + "</article></div>";
+      return '<div class="sw' + (so ? " sxr" : "") + '" data-kind="ped" data-sw="' + p.r + '">' + advBtn(p) + '<button class="swb k3" data-swdel="' + p.r + '">Eliminar</button>' + b + "</article></div>";
     }).join("");
     return h;
   }
   function advNext(p) { if (p.cc || p.cl) return null; return !p.ap ? ["ap", "Aprobar"] : !p.he ? ["he", "Hecho"] : !p.en ? ["en", "Entregado"] : null; }
-  function advBtn(p) { var a = advNext(p); return a ? '<button class="swl" data-swa="ped:adv:' + p.r + '">✓<br>' + a[1] + "</button>" : ""; }
+  function advBtn(p) { var a = advNext(p); return a ? '<button class="swl" data-swa="ped:adv:' + p.r + '">' + a[1] + "</button>" : ""; }
   function pedSheet(p) {
     var m = document.createElement("div"); m.className = "modal"; var c = p.cc || p.cl;
     m.innerHTML = '<div class="box" style="width:100%"><h3>Pedido ' + esc(p.id) + '</h3><p>' + esc(p.nombre || "") + '</p><div style="display:flex;flex-direction:column;gap:8px"><button class="btn" style="background:#d93a2f" data-a="del">🗑 Eliminar del todo</button>' + (c ? "" : '<button class="btn" style="background:#e08a00" data-a="cc">✖ Cancelar pedido (queda registrado)</button>') + '<button class="sm" data-a="x">Volver</button></div></div>';
@@ -574,15 +581,42 @@ body.selmode .nav{visibility:hidden}
   }
 
   /* ---------- Productos ---------- */
+  function normArch() { (st.productos || []).forEach(function (p) { if (/^~arch\|/.test(p.cat || "")) { p.arch = true; p.cat = p.cat.slice(6); } }); }
+  function archP(p, on) {
+    var c = p.cat || "", ps = [api("saveProducto", { r: p.r, nombre: p.nombre, campos: { cat: on ? "~arch|" + c : c } })];
+    if (on && p.vi) ps.push(api("setProducto", { r: p.r, nombre: p.nombre, campo: "vi", valor: false }));
+    return (DEMO ? Promise.resolve([{ ok: true }]) : Promise.all(ps)).then(function (R) { if (R.every(function (j) { return j && j.ok; })) { p.arch = on; if (on) p.vi = false; return true; } toast("No se pudo"); return false; }).catch(function () { toast("No se pudo"); return false; });
+  }
+  function visP(p, v) { return (DEMO ? Promise.resolve({ ok: true }) : api("setProducto", { r: p.r, nombre: p.nombre, campo: "vi", valor: v })).then(function (j) { if (j && j.ok) { p.vi = v; return true; } toast("No se pudo"); return false; }).catch(function () { toast("No se pudo"); return false; }); }
+  function simplePop(p) {
+    var m = document.createElement("div"), v = p.vi, ag = p.ag; m.className = "modal";
+    function draw() { m.innerHTML = '<div class="box"><h3>Editar producto</h3><label class="meta">Nombre<input class="inp" id="sp-n" value="' + esc(p.nombre) + '"></label><label class="meta">Precio<input class="inp" id="sp-p" inputmode="numeric" value="' + esc(p.precio) + '"></label><div class="sp-seg"><button data-v="1" class="' + (v ? "on" : "") + '">Visible</button><button data-v="0" class="' + (!v ? "on" : "") + '">Oculto</button></div><div class="sp-seg"><button data-g="0" class="' + (!ag ? "on" : "") + '">Disponible</button><button data-g="1" class="' + (ag ? "on" : "") + '">Agotada</button></div><div style="display:flex;gap:8px;margin-top:10px"><button class="btn" data-ok style="flex:1">Guardar</button><button class="sm" data-no>Cancelar</button></div></div>'; }
+    draw(); document.body.appendChild(m);
+    m.addEventListener("click", function (e) {
+      var t = e.target; e.stopPropagation();
+      if (t === m || t.closest("[data-no]")) { m.remove(); return; }
+      var bv = t.closest("[data-v]"), bg = t.closest("[data-g]");
+      if (bv || bg) { var nn = m.querySelector("#sp-n").value, pp = m.querySelector("#sp-p").value; if (bv) v = bv.getAttribute("data-v") === "1"; else ag = bg.getAttribute("data-g") === "1"; draw(); m.querySelector("#sp-n").value = nn; m.querySelector("#sp-p").value = pp; return; }
+      if (!t.closest("[data-ok]")) return;
+      var nv = m.querySelector("#sp-n").value.trim(), pv = Number(String(m.querySelector("#sp-p").value).replace(/[^\d.]/g, "")) || 0; if (!nv) { toast("Falta el nombre"); return; }
+      var cp = {}; if (nv !== p.nombre) cp.nombre = nv; if (pv !== Number(p.precio)) cp.precio = pv;
+      var ch = Promise.resolve(true), old = p.nombre;
+      if (Object.keys(cp).length) ch = (DEMO ? Promise.resolve({ ok: true }) : api("saveProducto", { r: p.r, nombre: old, campos: cp })).then(function (j) { if (j && j.ok) { if (cp.nombre) { (st.recetas || []).forEach(function (z) { if (nrm(z.nombre) === nrm(old)) z.nombre = nv; }); p.nombre = nv; } if ("precio" in cp) p.precio = pv; return true; } toast(j && j.msg || "No se pudo guardar"); return false; });
+      ch.then(function (ok) { if (!ok) return false; var q = Promise.resolve(true); if (v !== p.vi) q = visP(p, v); return q.then(function (o2) { if (!o2) return false; if (ag === p.ag) return true; return (DEMO ? Promise.resolve({ ok: true }) : api("setProducto", { r: p.r, nombre: p.nombre, campo: "ag", valor: ag })).then(function (j) { if (j && j.ok) { p.ag = ag; return true; } toast("No se pudo"); return false; }); }); }).then(function (ok) { if (ok) { m.remove(); render(true); toast("Guardado ✓"); } }).catch(function () { toast("No se pudo guardar"); });
+    });
+  }
   function renderProductos() {
-    var q = nrm(st.prq || "");
+    normArch();
+    var q = nrm(st.prq || ""), nA = st.productos.filter(function (p) { return p.arch; }).length;
     var h = '<button class="btn" data-newp="1" style="margin-bottom:12px">＋ Nuevo producto</button><input class="search" id="prq" type="search" placeholder="Buscar producto…" value="' + esc(st.prq || "") + '">';
+    if (nA || st.prarch) h += '<div class="chips"><button class="chip' + (!st.prarch ? " on" : "") + '" data-parch="0">Activos</button><button class="chip' + (st.prarch ? " on" : "") + '" data-parch="1">Archivados<b>' + nA + "</b></button></div>";
     if (!st.productos.length) return h + '<div class="empty">No hay productos.</div>';
-    var L = st.productos.filter(function (p) { return !q || nrm(p.nombre).indexOf(q) >= 0 || nrm(p.cat || "").indexOf(q) >= 0; });
-    if (!L.length) return h + '<div class="empty">Sin resultados.</div>';
-    return h + '<div class="help">Tocá un producto para editarlo todo. Deslizá → editar, ← eliminar. Mantené apretado para elegir varios.</div>' + L.map(function (p) {
+    var L = st.productos.filter(function (p) { return !!p.arch === !!st.prarch && (!q || nrm(p.nombre).indexOf(q) >= 0 || nrm(p.cat || "").indexOf(q) >= 0); });
+    if (!L.length) return h + '<div class="empty">' + (st.prarch ? "No hay archivados." : "Sin resultados.") + "</div>";
+    return h + '<div class="help">Tocá para editar todo. Deslizá → edición simple, ← acciones. Mantené apretado para elegir varios.</div>' + L.map(function (p) {
       var mg = p.costo != null && p.precio > 0 ? Math.round((p.precio - p.costo) / p.precio * 100) : null;
-      return swrap("prd", p.r, '<article class="card pc' + (p.vi ? "" : " dim") + '" data-prd="' + p.r + '"><div class="row" style="align-items:center;gap:10px"><div style="min-width:0;flex:1"><div class="nm">' + esc(p.nombre) + '</div><div class="meta">' + esc(p.cat || "Sin categoría") + (p.costo != null ? " · costo " + money(p.costo) + (mg != null ? " · margen " + mg + "%" : "") : " · falta receta") + '</div>' + ((p.ag || !p.vi) ? '<div style="margin-top:4px">' + (p.ag ? '<span class="badge o">Agotada</span> ' : "") + (!p.vi ? '<span class="badge">Oculta</span>' : "") + "</div>" : "") + '</div><div class="tot">' + money(p.precio) + '</div><span style="color:var(--soft);font-size:1.3rem">›</span></div></article>', true, true, "✏️<br>Editar", "🗑<br>Eliminar");
+      var ex = p.arch ? [["Restaurar", "unarch", "k1"], ["Eliminar", "rm", "k3"]] : [[p.vi ? "Ocultar" : "Mostrar", "vis", "k1"], ["Archivar", "arch", "k2"], ["Eliminar", "rm", "k3"]];
+      return swrap("prd", p.r, '<article class="card pc' + (p.vi ? "" : " dim") + '" data-prd="' + p.r + '"><div class="row" style="align-items:center;gap:10px"><div style="min-width:0;flex:1"><div class="nm">' + esc(p.nombre) + '</div><div class="meta">' + esc(p.cat || "Sin categoría") + (p.costo != null ? " · costo " + money(p.costo) + (mg != null ? " · margen " + mg + "%" : "") : " · falta receta") + '</div>' + ((p.ag || !p.vi) ? '<div style="margin-top:4px">' + (p.ag ? '<span class="badge o">Agotada</span> ' : "") + (!p.vi ? '<span class="badge">Oculta</span>' : "") + "</div>" : "") + '</div><div class="tot">' + money(p.precio) + '</div><span style="color:var(--soft);font-size:1.3rem">›</span></div></article>', !p.arch, true, "Editar", "", ex);
     }).join("");
   }
   function delOferta(isP, x) {
@@ -1197,9 +1231,13 @@ body.selmode .nav{visibility:hidden}
     if (a) l.push(["🟡 " + a + (a === 1 ? " insumo por agotarse" : " insumos por agotarse"), "stock", "alert"]);
     return l;
   }
-  function swrap(kind, key, inner, hasL, hasR, labL, labR) {
-    return '<div class="sw" data-kind="' + kind + '" data-sw="' + esc(key) + '">' + (hasL ? '<button class="swl" data-swa="' + kind + ':add:' + esc(key) + '">' + labL + "</button>" : "") + (hasR ? (kind === "stk" ? '<button class="swb" style="background:#e08a00;right:84px" data-swa="stk:rm:' + esc(key) + '">' + labR + '</button><button class="swb" style="background:#d93a2f" data-swa="stk:del:' + esc(key) + '">🗑<br>Eliminar</button>' : '<button class="swb" data-swa="' + kind + ':rm:' + esc(key) + '">' + labR + "</button>") : "") + inner + "</div>";
+  function swrap(kind, key, inner, hasL, hasR, labL, labR, extra) {
+    var cl = function (t) { return String(t || "").replace(/^[^<]*<br>/, ""); }, rb = "";
+    if (extra) rb = extra.map(function (x, i) { return '<button class="swb ' + (x[2] || "") + '" style="right:' + ((extra.length - 1 - i) * 84) + 'px" data-swa="' + kind + ":" + x[1] + ":" + esc(key) + '">' + x[0] + "</button>"; }).join("");
+    else if (hasR) rb = kind === "stk" ? '<button class="swb k2" style="right:84px" data-swa="stk:rm:' + esc(key) + '">' + cl(labR) + '</button><button class="swb k3" data-swa="stk:del:' + esc(key) + '">Eliminar</button>' : '<button class="swb" data-swa="' + kind + ":rm:" + esc(key) + '">' + cl(labR) + "</button>";
+    return '<div class="sw" data-kind="' + kind + '" data-sw="' + esc(key) + '">' + (hasL ? '<button class="swl" data-swa="' + kind + ":add:" + esc(key) + '">' + cl(labL) + "</button>" : "") + rb + inner + "</div>";
   }
+
   function renderStock() {
     if (!st.stock) return BACK + '<div class="empty">Cargando…</div>';
     if (!st.movs && !st.movf) { st.movf = 1; api("stockMovs").then(function (j) { st.movs = j && j.ok ? j.movs : []; if (st.v === "stock") render(true); }).catch(function () { st.movs = []; }); }
@@ -1424,7 +1462,7 @@ body.selmode .nav{visibility:hidden}
       hd = b;
       if (open) b += '<div class="add" style="margin-top:10px"><div class="meta" style="margin-bottom:-4px">Nombre</div><input class="inp" data-pv="nombre" placeholder="Nombre" value="' + esc(x.ins) + '"><div style="display:flex;gap:8px"><div style="flex:1"><div class="meta">Unidad</div><input class="inp" data-pv="uni" list="pv-units" value="' + esc(x.uni) + '" placeholder="g, ml, unidad"></div><div style="flex:2"><div class="meta">Proveedor</div><input class="inp" data-pv="prov" placeholder="Proveedor" value="' + esc(x.prov) + '"></div></div><div class="meta" style="margin-bottom:-4px">Nueva compra</div><div style="display:flex;gap:8px"><input class="inp" data-pc="cant" type="text" inputmode="decimal" placeholder="Cantidad" style="min-width:0"><input class="inp" data-pcu list="u-all" value="' + esc(x.uni) + '" placeholder="unidad" style="width:90px;flex:none"><datalist id="u-all">' + UNL.map(function (u) { return '<option value="' + u + '">'; }).join("") + '</datalist><input class="inp" data-pc="precio" type="text" inputmode="decimal" placeholder="Precio total $"></div><button class="btn" data-pbuy="1">Registrar compra</button>' + (x.cant ? '<div class="meta">Última: ' + fm(x.cant) + " " + esc(x.uni) + " a $" + fm(x.precio) + (x.fecha ? " · " + esc(x.fecha) : "") + "</div>" : "") + "</div>";
       if (open) { st.popHtml = b + "</article>"; b = hd; }
-      return swrap("prv", x.r, b + "</article>", true, true, "＋<br>Compra", "🗑<br>Borrar").replace('style="" data-swa="prv:rm', 'style="background:#d93a2f" data-swa="prv:rm');
+      return swrap("prv", x.r, b + "</article>", true, true, "Compra", "Borrar").replace('class="swb" data-swa="prv:rm', 'class="swb k3" data-swa="prv:rm');
     }).join("");
     return h;
   }
@@ -1441,8 +1479,8 @@ body.selmode .nav{visibility:hidden}
     var n = Object.keys(st.sel.keys).length, v = st.v;
     if (!bar) { bar = document.createElement("div"); bar.id = "selbar"; document.body.appendChild(bar); bar.addEventListener("click", selAct); }
     document.body.classList.add("selmode");
-    var tot = document.querySelectorAll((document.getElementById("curm") ? "#curm" : "#view") + " .sw[data-kind]").length, B = function (id, ic, lb, d) { return '<button data-sa="' + id + '"' + (d ? ' class="d"' : "") + "><i>" + ic + "</i>" + lb + "</button>"; }, acts = (v === "pedidos" || v === "inicio") ? B("adv", "➡️", "Avanzar") + B("cc", "✖️", "Cancelar") : v === "stock" ? B("zero", "0️⃣", "Stock en 0") : (v === "packs" || v === "cupones") ? B("on", "▶️", "Activar") + B("off", "⏸", "Pausar") : v === "productos" ? B("vis", "👁", "Visible") + B("hid", "🙈", "Ocultar") + B("ag", "⛔", "Agotado") + B("av", "✅", "Disponible") : "";
-    bar.innerHTML = '<div class="sbh"><button data-sa="x" aria-label="Salir">✕</button><b>' + n + (n === 1 ? " elegido" : " elegidos") + '</b><button data-sa="all">' + (n >= tot ? "Quitar todos" : "Seleccionar todos") + '</button></div><div class="sba">' + acts + B("del", "🗑", "Eliminar", 1) + "</div>";
+    var tot = document.querySelectorAll((document.getElementById("curm") ? "#curm" : "#view") + " .sw[data-kind]").length, B = function (id, ic, lb, d) { return '<button data-sa="' + id + '"' + (d ? ' class="d"' : "") + ">" + lb + "</button>"; }, acts = (v === "pedidos" || v === "inicio") ? B("adv", "", "Avanzar") + B("ap", "", "Aprobado") + B("he", "", "Hecho") + B("en", "", "Entregado") + B("cc", "", "Cancelar") : v === "stock" ? B("zero", "", "Stock en 0") : (v === "packs" || v === "cupones") ? B("on", "", "Activar") + B("off", "", "Pausar") : v === "productos" ? (st.prarch ? B("unarch", "", "Restaurar") : B("vis", "", "Visible") + B("hid", "", "Ocultar") + B("ag", "", "Agotada") + B("av", "", "Disponible") + B("arch", "", "Archivar")) : "";
+    bar.innerHTML = '<div class="sbh"><button data-sa="x" aria-label="Salir">Salir</button><b>' + n + (n === 1 ? " elegido" : " elegidos") + '</b><button data-sa="all">' + (n >= tot ? "Quitar todos" : "Seleccionar todos") + '</button></div><div class="sba">' + acts + B("del", "", "Eliminar", 1) + "</div>";
   }
   function selAct(e) {
     var b = e.target.closest("[data-sa]"); if (!b || !st.sel) return; var a = b.getAttribute("data-sa"), v = st.v, keys = Object.keys(st.sel.keys);
@@ -1451,6 +1489,7 @@ body.selmode .nav{visibility:hidden}
     if (v === "productos") {
       var PL = st.productos.filter(function (p) { return keys.indexOf(String(p.r)) >= 0; });
       if (a === "del") { confirmM("Se eliminan " + PL.length + " productos de la tienda.", function () { selClear(); var ch = Promise.resolve(), n = 0; PL.forEach(function (p) { ch = ch.then(function () { return delProd(p).then(function (ok) { if (ok) n++; }); }); }); ch.then(function () { render(true); toast(n + " eliminados ✓"); }); }); return; }
+      if (a === "arch" || a === "unarch") { selClear(); var ch5 = Promise.resolve(), n5 = 0; PL.forEach(function (p) { ch5 = ch5.then(function () { return archP(p, a === "arch").then(function (ok) { if (ok) n5++; }); }); }); ch5.then(function () { render(true); toast(n5 + (a === "arch" ? " archivados ✓" : " restaurados ✓")); }); return; }
       var cm = { vis: ["vi", true], hid: ["vi", false], ag: ["ag", true], av: ["ag", false] }[a]; if (!cm) return;
       selClear(); var ch2 = Promise.resolve(), n2 = 0;
       PL.forEach(function (p) { ch2 = ch2.then(function () { return (DEMO ? Promise.resolve({ ok: true }) : api("setProducto", { r: p.r, nombre: p.nombre, campo: cm[0], valor: cm[1] })).then(function (j) { if (j && j.ok) { p[cm[0]] = cm[1]; n2++; } }); }); });
@@ -1470,7 +1509,7 @@ body.selmode .nav{visibility:hidden}
       var L = st.pedidos.filter(function (p) { return keys.indexOf(String(p.r)) >= 0; });
       if (a === "del") { confirmM("Se eliminan " + L.length + " pedidos del todo.", function () { selClear(); delPedidos(L.map(function (p) { return { r: p.r, id: p.id }; })); }); return; }
       var ch = Promise.resolve(), n = 0;
-      L.forEach(function (p) { var nx = a === "adv" ? advNext(p) : (p.cc || p.cl ? null : ["cc", ""]); if (!nx) return; ch = ch.then(function () { return api("setPedido", { r: p.r, id: p.id, campo: nx[0], valor: true }).then(function (j) { if (j && j.ok) { p[nx[0]] = true; if (nx[0] === "cc") p.cc = true; n++; } }); }); });
+      L.forEach(function (p) { var nx = a === "adv" ? advNext(p) : (a === "ap" || a === "he" || a === "en") ? ((p.cc || p.cl || p[a]) ? null : [a, ""]) : (p.cc || p.cl ? null : ["cc", ""]); if (!nx) return; ch = ch.then(function () { return api("setPedido", { r: p.r, id: p.id, campo: nx[0], valor: true }).then(function (j) { if (j && j.ok) { p[nx[0]] = true; if (nx[0] === "cc") p.cc = true; n++; } }); }); });
       selClear(); ch.then(function () { store("uovo_c_pedidos", null); render(true); toast(n + " actualizados ✓"); }).catch(function () { render(true); toast("Algunos no se pudieron"); }); return;
     }
     if (v === "proveedores") {
@@ -2199,6 +2238,7 @@ body.selmode .nav{visibility:hidden}
       var d = e.target.closest && e.target.closest("[data-swdel]");
       if (d) { e.stopPropagation(); var r0 = Number(d.getAttribute("data-swdel")), p0 = st.pedidos.filter(function (x) { return x.r === r0; })[0]; if (p0) pedSheet(p0); return; }
       var dpd = e.target.closest && e.target.closest("[data-dpedit]"); if (dpd) { var pc9 = dpd.closest("[data-r]"), pe9 = pc9 && st.pedidos.filter(function (x) { return String(x.r) === pc9.getAttribute("data-r"); })[0]; if (pe9) { e.stopPropagation(); pedModal(pe9, true); return; } }
+      var pac = e.target.closest && e.target.closest("[data-parch]"); if (pac) { e.stopPropagation(); st.prarch = pac.getAttribute("data-parch") === "1"; render(true); return; }
       var pdp = e.target.closest && e.target.closest("[data-prd]"); if (pdp && !e.target.closest(".swb,.swl")) { e.stopPropagation(); prodPop(Number(pdp.getAttribute("data-prd"))); return; }
       var rcp = e.target.closest && e.target.closest("[data-rcp]"); if (rcp && !e.target.closest(".swb,.swl")) { e.stopPropagation(); var rn9 = rcp.getAttribute("data-rcp"), pr8 = st.productos.filter(function (x) { return nrm(x.nombre) === nrm(rn9); })[0]; prodPop(pr8 ? pr8.r : 0, rn9, true); return; }
       if (e.target.closest && e.target.closest("[data-newp]")) { e.stopPropagation(); newProdPop(); return; }
@@ -2211,7 +2251,7 @@ body.selmode .nav{visibility:hidden}
       var a = e.target.closest && e.target.closest("[data-swa]"); if (!a) return; e.stopPropagation();
       var P = a.getAttribute("data-swa").split(":"), kind = P[0], act = P[1], key = P.slice(2).join(":");
       if (kind === "ped") { var pp = st.pedidos.filter(function (x) { return String(x.r) === key; })[0], nx = pp && advNext(pp); closeSw(); if (nx) patchPedido(pp.r, nx[0], true); return; }
-      if (kind === "prd") { closeSw(); var pq = st.productos.filter(function (x) { return String(x.r) === key; })[0]; if (!pq) return; if (act === "add") prodPop(pq.r); else confirmM("¿Eliminar «" + pq.nombre + "»? Se borra de la tienda.", function () { delProd(pq).then(function (ok) { if (ok) { render(true); toast("Eliminado ✓"); } }); }); return; }
+      if (kind === "prd") { closeSw(); var pq = st.productos.filter(function (x) { return String(x.r) === key; })[0]; if (!pq) return; if (act === "add") simplePop(pq); else if (act === "vis") visP(pq, !pq.vi).then(function (ok) { if (ok) { render(true); toast(pq.vi ? "Visible ✓" : "Oculto ✓"); } }); else if (act === "arch" || act === "unarch") archP(pq, act === "arch").then(function (ok) { if (ok) { render(true); toast(act === "arch" ? "Archivado ✓" : "Restaurado ✓"); } }); else confirmM("¿Eliminar «" + pq.nombre + "»? Se borra de la tienda.", function () { delProd(pq).then(function (ok) { if (ok) { render(true); toast("Eliminado ✓"); } }); }); return; }
       if (kind === "rec") { closeSw(); if (act === "add") { var pr9 = st.productos.filter(function (x) { return nrm(x.nombre) === nrm(key); })[0]; prodPop(pr9 ? pr9.r : 0, key, true); } else confirmM("¿Eliminar la receta de «" + key + "»?", function () { (DEMO ? Promise.resolve({ ok: true, recetas: st.recetas.filter(function (z) { return z.nombre !== key; }) }) : api("delReceta", { nombre: key })).then(function (j) { if (j && j.ok) { st.recetas = j.recetas; st.loaded.productos = false; render(true); toast("Receta eliminada ✓"); } else toast(j && j.msg || "No se pudo"); }).catch(function () { toast("No se pudo"); }); }); return; }
       if (kind === "pak" || kind === "cup") {
         closeSw(); var isP2 = kind === "pak", x2 = (isP2 ? st.packs : st.cupones).filter(function (z) { return String(z.r) === key; })[0]; if (!x2) return;
@@ -2222,7 +2262,7 @@ body.selmode .nav{visibility:hidden}
       if (kind === "prv") {
         if (act === "add") { closeSw(); st.pop = { k: "prv", key: Number(key), v: "proveedores" }; render(true); focusSel("[data-pc=cant]"); return; }
         var x = ((st.prov || {})[st.pvt] || []).filter(function (z) { return String(z.r) === key; })[0]; if (!x) return;
-        if (!a.classList.contains("arm")) { a.classList.add("arm"); a.innerHTML = "¿Seguro?<br>Tocá"; setTimeout(function () { a.classList.remove("arm"); a.innerHTML = "🗑<br>Borrar"; }, 3500); return; }
+        if (!a.classList.contains("arm")) { a.classList.add("arm"); a.innerHTML = "¿Seguro?<br>Tocá"; setTimeout(function () { a.classList.remove("arm"); a.innerHTML = "Borrar"; }, 3500); return; }
         api("delInsumo", { t: st.pvt, r: x.r, ins: x.ins }).then(function (j) { if (j && j.ok) { st.prov = j.proveedores; VC.prov = null; st.stock = null; st.insumos = null; st.recf = 0; closeSw(); render(true); toast("Eliminado ✓"); } else { toast(j && j.msg || "No se pudo borrar"); closeSw(); } }).catch(function () { toast("No se pudo borrar"); });
       }
     }, true);

@@ -1389,7 +1389,7 @@ body.selmode .nav{visibility:hidden}
   function render(keepScroll) {
     var y = window.scrollY, V = { inicio: renderInicio, pedidos: renderPedidos, productos: renderProductos, mas: renderMas, packs: renderPacks, recetas: renderRecetas, finanzas: renderFinanzas, textos: renderTextos, proveedores: renderProv, stock: renderStock, puntos: renderPuntos, cupones: renderCupones, accesos: function () { return BACK + renderAccesos(); }, voz: renderVozCfg, resenas: renderResenas };
     st.popHtml = ""; var h = V[st.v]();
-    if (SUB.indexOf(st.v) >= 0 && h.indexOf(BACK) === 0 && NAMES[st.v]) h = '<div class="bk">' + BACK + '<b class="crumb">' + NAMES[st.v] + "</b></div>" + h.slice(BACK.length);
+    if (SUB.indexOf(st.v) >= 0 && h.indexOf(BACK) === 0 && NAMES[st.v]) h = '<div class="bk">' + BACK + '<button class="crumb" data-secnav="1" style="border:0;font:inherit;cursor:pointer">' + NAMES[st.v] + " ▾</button></div>" + h.slice(BACK.length);
     var act = document.activeElement, id = act && act.id, pos = act && act.selectionStart;
     $("view").innerHTML = h;
     popSync(); selSync(); curPopSync();
@@ -1907,6 +1907,13 @@ body.selmode .nav{visibility:hidden}
     var mdl = t.closest("[data-mdel]"); if (mdl) { if (skb()) return; st.skbusy = Date.now(); mdl.disabled = true; mdl.textContent = "…"; api("delMov", { r: Number(mdl.getAttribute("data-mdel")), ins: mdl.getAttribute("data-mi") }).then(function (j) { st.skbusy = 0; if (j && j.ok) { st.stock = j.stock; st.movs = null; st.movf = 0; render(true); toast("Movimiento deshecho ✓"); } else { toast(j && j.msg || "No se pudo"); st.movs = null; st.movf = 0; render(true); } }).catch(function () { st.skbusy = 0; st.movs = null; st.movf = 0; toast("No se pudo deshacer. Reintentá."); render(true); }); return; }
     var skx = t.closest("[data-skx]"); if (skx && !skx.closest(".modal")) { st.pop = { k: "stk", key: skx.getAttribute("data-skx"), v: "stock" }; render(true); return; } if (skx) return;
     var skf = t.closest("[data-skf]"); if (skf) { st.skf = skf.getAttribute("data-skf"); render(true); return; }
+    if (t.closest("[data-secnav]")) {
+      var SEC = [["textos", "✏️"], ["proveedores", "🧾"], ["stock", "📦"], ["puntos", "🎯"], ["recetas", "🧁"], ["packs", "🎁"], ["cupones", "🏷️"], ["resenas", "⭐"]].filter(function (x) { return allowed(x[0]); }), mm = document.createElement("div"); mm.className = "modal";
+      mm.innerHTML = '<div class="box" style="width:100%;max-height:85vh;overflow:auto"><h3>Ir a…</h3>' + SEC.map(function (x) { return '<button class="mi" data-nv="' + x[0] + '" style="width:100%;' + (x[0] === st.v ? "opacity:.5" : "") + '"><i>' + x[1] + "</i><div><b>" + (NAMES[x[0]] || ({ puntos: "Puntos de pedido" })[x[0]]) + "</b></div></button>"; }).join("") + "</div>";
+      document.body.appendChild(mm);
+      mm.addEventListener("click", function (ev) { var b = ev.target.closest("[data-nv]"); if (b) { mm.remove(); goto(b.getAttribute("data-nv")); } else if (ev.target === mm) mm.remove(); });
+      return;
+    }
     var skbt = t.closest("[data-skb]"); if (skbt) { stkBtn(skbt.closest("[data-ins]"), skbt.getAttribute("data-skb")); return; }
     var sk = t.closest("[data-sk]");
     if (sk) {

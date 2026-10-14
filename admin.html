@@ -981,7 +981,7 @@ body.selmode .nav{visibility:hidden}
       if (m) { price = parseAR(m[1]); var lu = m[2] && /^(luca|lucas)$/.test(m[2]); if (lu) { price *= 1000; pu = m[3] || ""; } else pu = (m[2] && !/pesos|mangos|palos/.test(m[2]) ? m[2] : m[3]) || ""; if (/^(pesos|mangos|palos|lucas?)$/.test(pu)) pu = ""; s = s.replace(m[0], " "); }
       nrm(it.ins).split(" ").forEach(function (t) { if (/^\d+$/.test(t)) s = s.replace(new RegExp("\\b" + t + "\\b"), " "); });
       var re = new RegExp("(\\d+(?:[.,]\\d+)?|un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|medio|media)\\s*(" + QU + ")?\\b", "g"), q = 0, qu = "", mm;
-      while ((mm = re.exec(s))) { var isw = isNaN(parseFloat(mm[1])); if (isw && !mm[2]) continue; q = isw ? NUMW[mm[1]] : parseAR(mm[1]); qu = mm[2] || ""; if (q > 0) break; }
+      while ((mm = re.exec(s))) { var isw = isNaN(parseFloat(mm[1])); if (isw && !mm[2] && /^(un|una|uno)$/.test(mm[1]) && false) continue; q = isw ? NUMW[mm[1]] : parseAR(mm[1]); qu = mm[2] || ""; if (q > 0) break; }
       if (!(q > 0)) return;
       var uk = nrm(qu).replace(/s$/, ""), f = UF[nrm(qu)] || UF[uk] || null, b = UF[nrm(it.uni)] || null, warn = false, n = q;
       if (f && b && f[0] === b[0]) n = q * f[1] / b[1]; else if (b && qu && !f) warn = true; else if (f && b) warn = true;
@@ -1003,6 +1003,23 @@ body.selmode .nav{visibility:hidden}
     }
     return h;
   }
+  function skMicStop() { st.skmic = false; if (st.skrec) { try { st.skrec.stop(); } catch (e) {} } var m = $("sk-mic"); if (m) m.classList.remove("on"); }
+  function skSend() {
+    skMicStop();
+    var q = $("sk-q"), kt = q ? q.value.trim() : "", md = st.v === "proveedores" ? "prov" : "stock"; if (!kt) { toast("Escribí o dictá qué cargar"); return; }
+    var its = stkParse(kt, md);
+    if (!its.length) { toast("No entendí. Probá: «compré 5 limones a 2250»"); return; }
+    if (skb()) { toast("Guardando… esperá un segundo"); return; }
+    var btn = document.querySelector('[data-sk=parse]'); if (btn) btn.disabled = true;
+    stkFlow(its, function (r) {
+      if (btn) btn.disabled = false;
+      if (!r) return;
+      st.skq = null; if (q) q.value = "";
+      var fin = function () { render(true); toast(r.fail ? r.fail : "✓ " + its.map(function (i) { return i.ins + " " + (i.tipo === "consumo" ? "−" : i.tipo === "ajuste" ? "= " : "+") + fm(i.cant) + " " + i.uni + (i.precio ? " · $" + fm(i.precio) : ""); }).join(" · ")); };
+      if (st.v === "proveedores" && !DEMO) api("proveedores").then(function (j) { if (j && j.ok) st.prov = j.proveedores; fin(); }).catch(fin); else fin();
+    });
+  }
+  document.addEventListener("keydown", function (e) { if (e.key === "Enter" && e.target && e.target.id === "sk-q") { e.preventDefault(); skSend(); } });
   function stkLine(i) {
     return (i.nuevo ? "🆕 Se crea · " : "") + (i.tipo === "compra" ? (st.v === "stock" ? "➕ Suma" : "🛒 Compra") : i.tipo === "consumo" ? "➖ Gasto" : "🔢 Contado") + " · <b>" + esc(i.ins) + "</b> · " + (i.tipo === "ajuste" ? "quedan " : i.tipo === "compra" ? "+" : "−") + fm(i.cant) + " " + esc(i.uni) + (i.precio ? " · $" + fm(i.precio) : i.tipo === "compra" ? " · sin precio" : "") + (i.warn ? " ⚠️ revisá la unidad" : "");
   }
@@ -1897,17 +1914,19 @@ body.selmode .nav{visibility:hidden}
     var sk = t.closest("[data-sk]");
     if (sk) {
       var ka = sk.getAttribute("data-sk");
-      if (ka === "parse") { if (st.skrec) { try { st.skrec.stop(); } catch (e) {} } var kt = $("sk-q").value.trim(), mdk = st.v === "proveedores" ? "prov" : "stock"; st.skq = { text: kt, items: stkParse(kt, mdk), mode: mdk }; render(true); return; }
+      if (ka === "parse") { skSend(); return; }
       if (ka === "no") { st.skq = null; render(true); return; }
       if (ka === "ok") { if (skb()) return; sk.disabled = true; sk.textContent = "Guardando…"; var its = st.skq && st.skq.items || []; stkFlow(its, function (r) { if (!r) { sk.disabled = false; sk.textContent = "Confirmar"; return; } st.skq = null; if (st.v === "proveedores" && !DEMO) api("proveedores").then(function (j) { if (j && j.ok) st.prov = j.proveedores; render(true); }).catch(function () {}); render(true); toast(r.fail ? r.fail : "Cargado ✓ (" + r.ok + ")"); }); return; }
       if (ka === "mic") {
         if (!SR) { toast("Tu navegador no tiene dictado. Escribilo."); return; }
-        if (st.skrec) { try { st.skrec.stop(); } catch (e) {} return; }
-        var rr = new SR(); rr.lang = "es-AR"; rr.interimResults = true; rr.continuous = false; st.skrec = rr; var base0 = $("sk-q").value ? $("sk-q").value.replace(/\s*$/, " ") : "";
+        if (st.skmic) { skMicStop(); return; }
+        var rr = new SR(); rr.lang = "es-AR"; rr.interimResults = true; rr.continuous = true; st.skrec = rr; st.skmic = true;
+        var base0 = $("sk-q").value ? $("sk-q").value.replace(/\s*$/, " ") : "", fin0 = "";
         rr.onstart = function () { var m0 = $("sk-mic"); if (m0) m0.classList.add("on"); };
-        rr.onresult = function (ev) { var tx = ""; for (var i = 0; i < ev.results.length; i++) tx += ev.results[i][0].transcript; if ($("sk-q")) $("sk-q").value = base0 + tx; };
-        rr.onend = function () { st.skrec = null; var m1 = $("sk-mic"); if (m1) m1.classList.remove("on"); };
-        try { rr.start(); } catch (e) { st.skrec = null; } return;
+        rr.onresult = function (ev) { var itm = ""; for (var i = ev.resultIndex; i < ev.results.length; i++) { var tt = ev.results[i][0].transcript; if (ev.results[i].isFinal) fin0 += tt + " "; else itm += tt; } var q0 = $("sk-q"); if (q0) q0.value = (base0 + fin0 + itm).replace(/\s+/g, " ").trim(); };
+        rr.onerror = function (ev) { if (ev && (ev.error === "not-allowed" || ev.error === "service-not-allowed")) { st.skmic = false; toast("Dale permiso al micrófono"); } };
+        rr.onend = function () { if (st.skmic) { setTimeout(function () { if (!st.skmic) return; try { rr.start(); } catch (e) { skMicStop(); } }, 150); return; } st.skrec = null; var m1 = $("sk-mic"); if (m1) m1.classList.remove("on"); };
+        try { rr.start(); } catch (e) { st.skrec = null; st.skmic = false; } return;
       }
     }
     var uad = t.closest("[data-uadd]"), udl = t.closest("[data-udel]");

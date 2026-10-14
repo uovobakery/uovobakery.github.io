@@ -149,7 +149,7 @@ button { cursor:pointer; }
 :root{--bg:#F1F5FC;--shadow:0 6px 22px rgba(15,60,140,.08);--shadow2:0 2px 8px rgba(15,60,140,.07)}
 body{background:radial-gradient(1200px 500px at 50% -120px,#DCE9FF 0,transparent 70%),var(--bg);background-attachment:fixed}
 .top{background:linear-gradient(135deg,#0F59C4,#0B3F91);border-radius:0 0 22px 22px;box-shadow:0 6px 18px rgba(11,63,145,.25);padding-bottom:14px}
-.card{border:0;border-radius:20px;box-shadow:var(--shadow);animation:rise .28s ease both}
+.card{border:0;border-radius:20px;box-shadow:var(--shadow);animation:rise .28s ease backwards}
 @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .hero{background:linear-gradient(135deg,#1F6FE0,#0B3F91);border-radius:24px;box-shadow:0 12px 28px rgba(11,63,145,.28);padding:22px 20px}
 .hero b{font-size:2.3rem;letter-spacing:-.5px}
@@ -164,8 +164,9 @@ body{background:radial-gradient(1200px 500px at 50% -120px,#DCE9FF 0,transparent
 .nav button{padding:11px 2px 9px;transition:color .15s}.nav button.on{color:var(--blue)}.nav button.on svg{transform:translateY(-2px) scale(1.1)}.nav button svg{transition:transform .15s}
 body{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
 .toast{bottom:calc(104px + env(safe-area-inset-bottom));border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
-.modal{backdrop-filter:blur(3px);align-items:end!important;padding:0}.modal .box{border-radius:26px 26px 0 0;max-width:640px;width:100%;margin:0 auto;padding:22px 20px calc(22px + env(safe-area-inset-bottom));animation:up .25s ease both;box-shadow:0 -10px 40px rgba(0,0,0,.2)}
-@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+.modal{backdrop-filter:blur(3px);place-items:center;padding:18px}.modal .box{border-radius:24px;max-width:420px;width:100%;margin:0 auto;padding:22px 20px;animation:pop .22s ease backwards;box-shadow:0 20px 60px rgba(0,0,0,.3);max-height:86vh;overflow:auto}
+.modal .box>.btn{width:100%}.modal .box .sw .card{box-shadow:0 0 0 1px #E1EAF8}
+@keyframes pop{from{transform:scale(.92);opacity:0}to{transform:none;opacity:1}}
 .sw[data-kind]{border-radius:20px}.sw[data-kind] .card{box-shadow:var(--shadow)}
 .sw.selon .pc{outline:3px solid #0F59C4;outline-offset:-3px;background:#EAF2FD}.sw.selon{position:relative}.sw.selon::after{content:"✓";position:absolute;top:8px;right:10px;width:24px;height:24px;border-radius:50%;background:#0F59C4;color:#fff;display:grid;place-items:center;font-weight:800;font-size:.85rem;z-index:3}
 #selbar{position:fixed;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:40;background:#0C2247;color:#fff;border-radius:22px;padding:10px 12px;display:flex;gap:8px;align-items:center;box-shadow:0 10px 30px rgba(0,0,0,.35)}
@@ -448,10 +449,10 @@ body.selmode .nav{visibility:hidden}
     var cur = st.pedidos.filter(function (p) { var e = estadoDe(p); return e === "pend" || e === "coc" || e === "list"; });
     if (!cur.length) { if (m) m.remove(); st.curpop = false; return; }
     if (!m) { m = document.createElement("div"); m.id = "curm"; m.className = "modal"; m.addEventListener("click", function (e) { if (e.target === m || e.target.closest("[data-popx]")) { st.curpop = false; m.remove(); } }); document.body.appendChild(m); }
-    m.innerHTML = '<div class="box" style="width:100%;max-height:88vh;overflow:auto"><h3>Pedidos en curso (' + cur.length + ')</h3><div class="meta" style="margin-bottom:8px">→ avanzar · ← eliminar o cancelar · tocá para ver el detalle</div>' + cur.map(curRow).join("") + '<button class="btn" data-popx="1" style="margin-top:6px">Cerrar</button></div>';
+    m.innerHTML = '<div class="box" style="width:100%;max-height:88vh;overflow:auto"><h3>Pedidos en curso (' + cur.length + ')</h3>' + cur.map(curRow).join("") + '<button class="btn" data-popx="1" style="margin-top:6px">Cerrar</button></div>';
   }
   function pedModal(p, startEdit) {
-    var m = document.createElement("div"); m.className = "modal"; m.style.alignItems = "end"; var edit = !!startEdit;
+    var m = document.createElement("div"); m.className = "modal"; var edit = !!startEdit;
     function hist() {
       var td = String(p.tel || "").replace(/\D/g, "").slice(-8), ml = String(p.mail || "").toLowerCase();
       var h = st.pedidos.filter(function (x) { return x !== p && !(x.cc || x.cl) && ((td.length >= 8 && String(x.tel || "").replace(/\D/g, "").slice(-8) === td) || (ml && String(x.mail || "").toLowerCase() === ml)); });
@@ -621,7 +622,7 @@ body.selmode .nav{visibility:hidden}
     var cur = st.pedidos.filter(function (p) { var e = estadoDe(p); return e === "pend" || e === "coc" || e === "list"; });
     var curH = "";
     if (cur.length) {
-      curH += '<div style="display:flex;align-items:center;justify-content:space-between;margin:2px 4px 8px"><div class="nm" style="font-size:1.1rem">Pedidos en curso <span class="badge b">' + cur.length + '</span></div>' + '<button class="sm" data-curpop="1">Ver todos ›</button>' + "</div>" + cur.slice(0, 3).map(curRow).join("");
+      curH += '<button class="card" data-curpop="1" style="width:100%;text-align:left;display:flex;align-items:center;justify-content:space-between;padding:14px 16px;margin-bottom:10px"><span class="nm">Pedidos en curso</span><span style="color:var(--soft)"><b style="color:#0F59C4;font-size:1.1rem">' + cur.length + "</b> ›</span></button>" + cur.slice(0, 3).map(curRow).join("");
     }
     if (al.length) h += '<div class="menu" id="alertas" style="margin-bottom:12px">' + al.map(function (x) { return '<button class="mi" ' + (x[1] === "@ag" ? 'data-agpop="1"' : 'data-go="' + x[1] + '" data-fil="' + x[2] + '"') + ' style="padding:12px 16px"><div><b style="font-weight:600">' + x[0] + "</b></div></button>"; }).join("") + "</div>";
     var ks = Object.keys(ent).sort(function (a, b) { return ent[b].n - ent[a].n; }).slice(0, 3);
@@ -1295,7 +1296,7 @@ body.selmode .nav{visibility:hidden}
     return h;
   }
   function confirmM(txt, cb) {
-    var m = document.createElement("div"); m.className = "modal"; m.style.alignItems = "end"; m.innerHTML = '<div class="box" style="width:100%"><h3>¿Seguro?</h3><p>' + esc(txt) + '</p><div style="display:flex;gap:8px"><button class="btn" style="background:#d93a2f;flex:1" data-y>Sí</button><button class="sm" data-n>Cancelar</button></div></div>'; document.body.appendChild(m);
+    var m = document.createElement("div"); m.className = "modal"; m.innerHTML = '<div class="box" style="width:100%"><h3>¿Seguro?</h3><p>' + esc(txt) + '</p><div style="display:flex;gap:8px"><button class="btn" style="background:#d93a2f;flex:1" data-y>Sí</button><button class="sm" data-n>Cancelar</button></div></div>'; document.body.appendChild(m);
     m.addEventListener("click", function (e) { if (e.target.closest("[data-y]")) { m.remove(); cb(); } else if (e.target === m || e.target.closest("[data-n]")) m.remove(); });
   }
   function selClear() { st.sel = null; selSync(); }
@@ -1341,7 +1342,7 @@ body.selmode .nav{visibility:hidden}
     var m = document.getElementById("popm"), ok = st.pop && st.pop.v === st.v && st.popHtml;
     if (!ok) { if (m) m.remove(); st.pop = null; return; }
     if (!m) {
-      m = document.createElement("div"); m.id = "popm"; m.className = "modal"; m.style.alignItems = "end";
+      m = document.createElement("div"); m.id = "popm"; m.className = "modal"; 
       m.addEventListener("click", viewClick); m.addEventListener("change", viewChange);
       m.addEventListener("click", function (e) { if (e.target === m || e.target.closest("[data-popx]")) { st.pop = null; m.remove(); } });
       document.body.appendChild(m);
@@ -1349,7 +1350,7 @@ body.selmode .nav{visibility:hidden}
     m.innerHTML = '<div class="box" style="width:100%;max-height:88vh;overflow:auto">' + st.popHtml + '<button class="btn" data-popx="1" style="margin-top:10px">Cerrar</button></div>';
   }
   function stkDel(ins) {
-    var m = document.createElement("div"); m.className = "modal"; m.style.alignItems = "end";
+    var m = document.createElement("div"); m.className = "modal"; 
     m.innerHTML = '<div class="box" style="width:100%"><h3>' + esc(ins) + '</h3><p>¿Qué querés hacer?</p><div style="display:flex;flex-direction:column;gap:8px"><button class="btn" style="background:#e08a00" data-a="zero">Dejar el stock en 0</button><button class="btn" style="background:#d93a2f" data-a="del">Eliminar el insumo (de Proveedores y Stock)</button><button class="sm" data-a="x">Volver</button></div></div>';
     document.body.appendChild(m);
     m.addEventListener("click", function (e) {

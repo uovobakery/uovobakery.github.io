@@ -134,7 +134,7 @@ button { cursor:pointer; }
 .vzr{display:flex;gap:8px;margin:10px 0}
 .vzr .btn,.vzr .sm{flex:1}
 .ska{text-align:right;min-width:78px;padding:6px 10px;border-radius:12px;line-height:1.15}.ska b{display:block;font-size:1.15rem}.ska span{font-size:.72rem}.ska small{display:block;font-size:.66rem;opacity:.8}.skb{background:#EAF2FD;color:#0F59C4}.skg{background:#E3F4E8;color:#1B7A3A}.sky{background:#FFF1D6;color:#B26A00}.skr{background:#FBE9E7;color:#B3261E}.skn{background:#F0F2F5;color:#7a869a}
-.sw{position:relative;overflow:hidden;border-radius:16px;margin-bottom:12px}.sw .card{margin-bottom:0;position:relative;transition:transform .2s;touch-action:pan-y}.swb{position:absolute;right:0;top:0;bottom:0;width:84px;background:#d93a2f;color:#fff;border:0;display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:opacity .15s}.sw.sx .swb{opacity:1;visibility:visible}
+.sw{position:relative;overflow:hidden;border-radius:16px;margin-bottom:12px}.sw .card{margin-bottom:0;position:relative;transition:transform .2s;touch-action:pan-y}.swb{position:absolute;right:0;top:0;bottom:0;width:84px;background:#d93a2f;color:#fff;border:0;display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:opacity .15s}.swl{position:absolute;left:0;top:0;bottom:0;width:84px;background:#1f9d55;color:#fff;border:0;display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:opacity .15s;font-weight:800;font-size:.8rem;text-align:center;padding:4px}.swl.o{background:#e08a00}.sw.sxr .swb,.sw.sxl .swl{opacity:1;visibility:visible}.bpl{margin:8px 0;padding:10px;border:1px solid #dde6f4;border-radius:12px}
 .bk{position:relative;display:flex;align-items:center;justify-content:center;min-height:40px;margin-bottom:10px}.bk .back{position:absolute;left:0;top:50%;transform:translateY(-50%);padding-right:0}.crumb{font-size:.95rem;font-weight:700;color:#fff;background:#0F59C4;padding:7px 18px;border-radius:999px;box-shadow:0 2px 6px rgba(15,89,196,.25)}.vzin input.inp{flex:1;min-height:46px;margin:0}.pen{border:0;background:#eef3fb;border-radius:50%;width:34px;height:34px;color:#0F59C4;flex:none}
 .vzin{display:flex;align-items:flex-end;gap:8px}.vzin textarea{flex:1;min-height:46px;max-height:120px;resize:none;margin:0}.vzin button{flex:none;width:46px;height:46px;border-radius:50%;border:0;display:flex;align-items:center;justify-content:center;font-size:1.2rem;padding:0}.vzmic{background:#eef3fb;color:#0F59C4}.vzmic.on{background:#b3261e;color:#fff;animation:pu 1s infinite}.vzsend{background:#0F59C4;color:#fff}.vzsend svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .mic.on{background:#b3261e;border-color:#b3261e;color:#fff;animation:pu 1s infinite}
@@ -221,7 +221,7 @@ button { cursor:pointer; }
   };
   function api(op, extra) {
     if (DEMO) return new Promise(function (res) { setTimeout(function () {
-      var d = JSON.parse(JSON.stringify(demo));
+      var d = (window.__dd = window.__dd || JSON.parse(JSON.stringify(demo)));
       if (op === "me") return res({ ok: true, email: "demo@uovo.com", nombre: "Demo", rol: (location.search.match(/rol=([\w,]+)/) || [])[1] || "Dueño" });
       if (op === "addPedido") { var nid = "U-" + Math.random().toString(36).slice(2, 6).toUpperCase(), tot = 0, cks = 0, ptx = []; (extra.items || []).forEach(function (it) { var pz = d.productos.filter(function (z) { return z.nombre === it.nombre; })[0]; tot += (pz ? pz.precio : 0) * it.cantidad; cks += it.cantidad; ptx.push(it.cantidad + " x " + it.nombre); }); demo.pedidos.unshift({ r: 90 + demo.pedidos.length, id: nid, fecha: "13/10/2026 01:40", nombre: extra.nombre, tel: extra.telefono || "", mail: "", pedido: ptx.join(", "), cant: cks, total: extra.total || tot, entrega: extra.entrega, pago: extra.pago || "", ap: !!extra.aprobado, he: false, en: false, notas: "Cargado a mano", cc: false, cl: false, cupon: "", estado: "" }); return res({ ok: true, id: nid }); }
       if (op === "session") return res({ ok: true, session: "S1.demo" });
@@ -230,12 +230,14 @@ button { cursor:pointer; }
       if (op === "accesos") return res({ ok: true, accesos: d.accesos });
       if (op === "catalogo") return res({ ok: true, catalogo: d.productos.map(function (p) { p.desc = "Masa suave con cacao y vainilla."; p.fotos = ""; p.ing = "cacao, vainilla"; return p; }) });
       if (op === "config") return res({ ok: true, config: d.cfg });
-      if (op === "proveedores" || op === "setProveedor" || op === "addInsumo") return res({ ok: true, proveedores: d.prov });
+      if (op === "addInsumo") { var tl = d.prov[extra.t === "p" ? "p" : "a"]; if (!tl.some(function (z) { return z.ins.toLowerCase() === String(extra.nombre).toLowerCase(); })) tl.push({ r: 100 + tl.length + Math.floor(Math.random() * 1e4), ins: extra.nombre, uni: extra.unidad || "g", prov: "", cant: 0, precio: 0, costo: 0, fecha: "" }); return res({ ok: true, proveedores: d.prov }); }
+      if (op === "delInsumo") { ["a", "p"].forEach(function (k) { d.prov[k] = d.prov[k].filter(function (z) { return z.r !== extra.r; }); }); return res({ ok: true, proveedores: d.prov }); }
+      if (op === "proveedores" || op === "setProveedor") return res({ ok: true, proveedores: d.prov });
       if (op === "usos" || op === "setUso") { d.usos = d.usos || []; if (op === "setUso") { var ue = d.usos.filter(function (z) { return z.ins === extra.ins; })[0]; if (!ue) { ue = { ins: extra.ins }; d.usos.push(ue); } ue.nombre = extra.nombre; ue.base = extra.base; ue.usos = JSON.parse(extra.usos); } return res({ ok: true, usos: d.usos }); }
       if (op === "stock" || op === "stockMov" || op === "setMin") {
         d.mov = d.mov || {}; d.mins = d.mins || {}; var allp = d.prov.a.map(function (z) { z.t = "a"; return z; }).concat(d.prov.p.map(function (z) { z.t = "p"; return z; }));
         if (op === "setMin") d.mins[extra.ins] = extra.min === "" ? "" : Number(extra.min);
-        if (op === "stockMov") { d.ml = d.ml || []; d.ml.push(["12/10/2026 22:00", extra.ins, extra.tipo, extra.tipo === "consumo" ? -extra.cant : extra.cant, extra.precio || 0]); var cur = d.mov[extra.ins] || 0; d.mov[extra.ins] = extra.tipo === "compra" ? cur + extra.cant : extra.tipo === "consumo" ? cur - extra.cant : extra.cant; if (extra.tipo === "compra" && extra.precio > 0) { var pz = allp.filter(function (z) { return z.ins === extra.ins; })[0]; pz.cant = extra.cant; pz.precio = extra.precio; pz.costo = extra.precio / extra.cant; pz.fecha = "12/10/2026"; } }
+        if (op === "stockMov") { d.ml = d.ml || []; d.ml.push(["12/10/2026 22:00", extra.ins, extra.tipo, extra.tipo === "consumo" ? -extra.cant : extra.cant, extra.precio || 0]); var cur = d.mov[extra.ins] || 0; d.mov[extra.ins] = extra.tipo === "compra" ? cur + extra.cant : extra.tipo === "consumo" ? cur - extra.cant : extra.cant; if (extra.tipo === "compra" && extra.precio > 0) { var pz = allp.filter(function (z) { return z.ins === extra.ins; })[0]; if (pz) { pz.cant = extra.cant; pz.precio = extra.precio; pz.costo = extra.precio / extra.cant; pz.fecha = "12/10/2026"; } } }
         return res({ ok: true, alertas: !!d.alertas, stock: allp.map(function (z) { var sv = d.mov[z.ins] || 0, mn = d.mins[z.ins] == null ? "" : d.mins[z.ins], nv = mn === "" ? (z.ins in d.mov && sv <= 0 ? "rojo" : "ok") : (sv <= mn ? "rojo" : sv <= mn * 1.5 ? "amarillo" : "ok"); return { ins: z.ins, t: z.t, uni: z.uni, stock: sv, min: mn, costo: z.costo, precio: z.precio, cant: z.cant, fecha: z.fecha, nivel: nv, mov: z.ins in d.mov }; }) });
       }
       if (op === "cupones") { d.cup = d.cup || [{ r: 2, activo: true, nombre: "BIENVENIDA", pct: 10, n: 1, min: 0, texto: "10% en tu primera compra" }]; return res({ ok: true, cupones: d.cup }); }
@@ -390,11 +392,21 @@ button { cursor:pointer; }
           '<div class="row" style="margin-top:10px;align-items:center"><button class="sm red" data-dpe="1">Eliminar pedido</button>' +
           (p.cl ? "" : (p.cc ? '<button class="sm" data-t="cc" data-v="0">Reactivar</button>' : '<button class="sm red" data-cc="1">Cancelar pedido</button>')) + "</div>";
       }
-      var so = String(st.swo) === String(p.r); b = so ? b.replace('<article class="card pc', '<article data-open="1" style="transform:translateX(-84px)" class="card pc') : b;
-      return '<div class="sw' + (so ? " sx" : "") + '" data-sw="' + p.r + '"><button class="swb" data-swdel="' + p.r + '" aria-label="Eliminar"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>' + b + "</article></div>";
+      var so = String(st.swo) === String(p.r); b = so ? b.replace('<article class="card pc', '<article data-open="r" style="transform:translateX(-84px)" class="card pc') : b;
+      return '<div class="sw' + (so ? " sxr" : "") + '" data-kind="ped" data-sw="' + p.r + '">' + advBtn(p) + '<button class="swb" data-swdel="' + p.r + '" aria-label="Eliminar"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>' + b + "</article></div>";
     }).join("");
     return h;
   }
+  function advNext(p) { if (p.cc || p.cl) return null; return !p.ap ? ["ap", "Aprobar"] : !p.he ? ["he", "Hecho"] : !p.en ? ["en", "Entregado"] : null; }
+  function advBtn(p) { var a = advNext(p); return a ? '<button class="swl" data-swa="ped:adv:' + p.r + '">✓<br>' + a[1] + "</button>" : ""; }
+  function pedSheet(p) {
+    var m = document.createElement("div"); m.className = "modal"; var c = p.cc || p.cl;
+    m.innerHTML = '<div class="box" style="width:100%"><h3>Pedido ' + esc(p.id) + '</h3><p>' + esc(p.nombre || "") + '</p><div style="display:flex;flex-direction:column;gap:8px"><button class="btn" style="background:#d93a2f" data-a="del">🗑 Eliminar del todo</button>' + (c ? "" : '<button class="btn" style="background:#e08a00" data-a="cc">✖ Cancelar pedido (queda registrado)</button>') + '<button class="sm" data-a="x">Volver</button></div></div>';
+    document.body.appendChild(m);
+    m.addEventListener("click", function (e) { var a = e.target.closest("[data-a]"); if (!a) return; var k = a.getAttribute("data-a"); m.remove(); closeSw(); if (k === "del") delPedidos([{ r: p.r, id: p.id }]); else if (k === "cc") patchPedido(p.r, "cc", true); });
+  }
+  function closeSw() { Array.prototype.forEach.call(document.querySelectorAll(".sw .pc"), function (c) { c.style.transform = ""; c.removeAttribute("data-open"); c.parentNode.classList.remove("sxl", "sxr"); }); st.swo = null; }
+  function focusSel(sel) { setTimeout(function () { var e = document.querySelector(sel); if (e) { e.scrollIntoView({ block: "center" }); e.focus(); } }, 60); }
   function pedForm() {
     var pr = (st.productos || []).filter(function (x) { return x.nombre; }), n = st.pnf || {};
     var h = '<div class="card" id="pn-form"><div class="nm" style="margin-bottom:8px">Nuevo pedido</div><div class="add"><input class="inp" id="pn-n" placeholder="Nombre del cliente" value="' + esc(n.n || "") + '"><input class="inp" id="pn-t" inputmode="tel" placeholder="Teléfono (opcional)" value="' + esc(n.t || "") + '">';
@@ -558,9 +570,11 @@ button { cursor:pointer; }
   function editorR() {
     var d = st.rd, names = st.insumos.map(function (i) { return i.n; }), un = {}; st.insumos.forEach(function (i) { un[i.n] = i.u; });
     var h = '<div class="add" style="margin-top:10px">';
-    if (!d.orig) h += '<select class="inp" data-rnom="1">' + opts(st.productos.map(function (p) { return p.nombre; }), d.nombre, "Elegí el producto") + "</select>";
+    if (!d.orig) h += '<select class="inp" data-rnom="1">' + opts(st.productos.map(function (p) { return p.nombre; }), d.nombre, "Elegí el producto") + '<option value="__np">＋ Crear producto nuevo…</option></select>';
+    if (st.rnp) { var cats = {}; st.productos.forEach(function (p) { if (p.cat) cats[p.cat] = 1; }); h += '<div class="bpl"><div class="nm">Producto nuevo</div><input class="inp" id="rp-n" placeholder="Nombre (ej. Cookie de pistacho)"><input class="inp" id="rp-c" list="rp-cl" placeholder="Categoría"><datalist id="rp-cl">' + Object.keys(cats).map(function (k) { return '<option value="' + esc(k) + '">'; }).join("") + '</datalist><div style="display:flex;gap:8px"><button class="btn" id="rp-ok">Crear</button><button class="sm" id="rp-x">Cancelar</button></div><div class="meta">Se crea oculto y sin precio; después lo completás en Productos.</div></div>'; }
     h += '<input class="inp" type="number" inputmode="numeric" data-ry="1" placeholder="Cookies que salen de la masa" value="' + (d.y || "") + '"><div class="meta">Insumos de <b>una masa</b> (cantidad total):</div>';
-    h += d.items.map(function (it, i) { return '<div class="rl"><select class="inp" data-rin="' + i + '">' + opts(names, it.n, "Insumo") + '</select><input class="inp" type="number" inputmode="decimal" step="any" data-riq="' + i + '" value="' + (it.q === "" ? "" : it.q) + '" placeholder="Cant." style="max-width:90px">' + (st.runi === i && it.n ? '<select class="inp" data-runisel="' + esc(it.n) + '" style="max-width:84px">' + opts(["g", "kg", "mg", "ml", "l", "unidad"], un[it.n]) + "</select>" : '<span class="u">' + esc(un[it.n] || "") + '</span>' + (it.n ? '<button class="sm" data-runi="' + i + '" aria-label="Cambiar unidad" style="padding:4px 8px">✏️</button>' : "")) + '<button class="sm red" data-rix="' + i + '">×</button></div>'; }).join("");
+    if (st.rnew != null) h += '<div class="bpl"><div class="nm">Insumo nuevo</div><input class="inp" id="rn-n" placeholder="Nombre (ej. Pistacho)"><select class="inp" id="rn-u">' + opts(["g", "ml", "unidad"], "g") + '</select><div style="display:flex;gap:8px"><button class="btn" id="rn-ok">Crear</button><button class="sm" id="rn-x">Cancelar</button></div><div class="meta">Se agrega a Proveedores e insumos y al stock.</div></div>';
+    h += d.items.map(function (it, i) { return '<div class="rl"><select class="inp" data-rin="' + i + '">' + opts(names, it.n, "Insumo") + '<option value="__new">＋ Crear insumo nuevo…</option></select><input class="inp" type="number" inputmode="decimal" step="any" data-riq="' + i + '" value="' + (it.q === "" ? "" : it.q) + '" placeholder="Cant." style="max-width:90px">' + (st.runi === i && it.n ? '<select class="inp" data-runisel="' + esc(it.n) + '" style="max-width:84px">' + opts(["g", "kg", "mg", "ml", "l", "unidad"], un[it.n]) + "</select>" : '<span class="u">' + esc(un[it.n] || "") + '</span>' + (it.n ? '<button class="sm" data-runi="' + i + '" aria-label="Cambiar unidad" style="padding:4px 8px">✏️</button>' : "")) + '<button class="sm red" data-rix="' + i + '">×</button></div>'; }).join("");
     if (d.items.length < 20) h += '<button class="sm" data-riadd="1">＋ Insumo</button>';
     h += '<div style="display:flex;gap:8px;margin-top:6px"><button class="btn" data-rsave="1">Guardar receta</button><button class="sm" data-rcancel="1">Cancelar</button>' + (d.orig ? '<button class="sm red" data-rdel="1">Eliminar</button>' : "") + "</div></div>";
     return h;
@@ -799,11 +813,22 @@ button { cursor:pointer; }
     });
     return bs >= 1 ? best : null;
   }
+  function stkNew(seg) {
+    var s = String(seg).toLowerCase(), m = s.match(new RegExp("(\\d+(?:[.,]\\d+)?|un|una|uno|dos|tres|cuatro|cinco|seis|diez|medio|media)\\s*(" + QU + ")?\\b\\s*(?:de |del )?(.*)$"));
+    if (!m) return null;
+    var rest = m[3].split(/\s+(?:a|por|en|cuesta|costo|salio|pague|pago|el|cada)\s+\$?\d|\$|\d/)[0].replace(/^(de|del|la|el|los|las|unos|unas)\s+/, "").replace(/\s+/g, " ").trim();
+    if (!m[2] && isNaN(parseFloat(m[1]))) { var rs = s.replace(m[0], ""); if (rs.length > 0 && !/^\s*$/.test(rs)) rest = rest || ""; }
+    if (rest.length < 2 || /^(gast|carg|sum|agreg|quedan|tengo|hay)/.test(nrm(rest))) { var alt = s.replace(/^\s*(cargame|cargá|carga|sumame|sumá|suma|agregá|agrega|anotá|anota|poné|pone|compré|compre|tengo|hay)\s+/, "").match(/^([a-záéíóúüñ ]{2,}?)\s+(\d+(?:[.,]\d+)?)\s*(\w+)?\s*$/); if (!alt) return null; rest = alt[1].trim(); m = [0, alt[2], alt[3] && new RegExp("^(" + QU + ")$").test(alt[3]) ? alt[3] : ""]; }
+    var qu = nrm(m[2] || ""), f = UF[qu] || UF[qu.replace(/s$/, "")] || null, uni = f ? (f[0] === "u" ? "unidad" : f[0]) : "unidad";
+    var pk = /\b(caja|cajas|bolsa|bolsas|bolsita|bolsitas|etiqueta|etiquetas|sticker|stickers|packaging|cinta|frasco|envase|moño|mono|papel|sobre|sobres|tarjeta|tarjetas)\b/.test(nrm(rest));
+    var nm = rest.charAt(0).toUpperCase() + rest.slice(1);
+    return { ins: nm, uni: pk ? "unidad" : uni, nuevo: true, t: pk ? "p" : "a" };
+  }
   function stkParse(tx, mode) {
-    var T = nrm(tx), tipo = mode === "prov" ? "compra" : /gast|\buse\b|usamos|consum|descont|\bresta|saque/.test(T) ? "consumo" : /quedan|quedaron|\btengo\b|\bhay\b|ajust|\bcont[e]\b|inventario/.test(T) || mode === "stock" ? "ajuste" : "compra";
+    var T = nrm(tx), tipo = mode === "prov" ? "compra" : /gast|\buse\b|usamos|consum|descont|\bresta|saque|saca/.test(T) ? "consumo" : /carg|\bsum|agreg|ingres|entraron|entro|compr|\bpon[eé]|anota|\bsuma/.test(T) ? "compra" : /quedan|quedaron|\btengo\b|\bhay\b|ajust|\bcont[e]\b|inventario/.test(T) ? "ajuste" : "compra";
     var out = [];
-    String(tx).split(/[;,]|\s+y\s+|\.\s+/).forEach(function (seg) {
-      var it = stkMatch(seg); if (!it) return;
+    String(tx).split(/;|,(?!\d)|\s+y\s+(?=\d|un |una |medio)|\.\s+/).forEach(function (seg) {
+      var it = stkMatch(seg); if (!it && tipo !== "consumo") it = stkNew(seg); if (!it) return;
       var s = String(seg).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""), UQ = "(kg|kilos?|litros?|l|lt|unidad|unidades|u|g|gr|gramos?|ml)";
       var price = 0, pu = "", m = s.match(new RegExp("\\$\\s*([\\d.,]+)(?:\\s*(?:el|por|x|cada)\\s*" + UQ + "\\b)?")) || s.match(new RegExp("([\\d.,]+)\\s*(pesos|mangos|palos|lucas?)\\b(?:\\s*(?:el|por|x|cada)\\s*" + UQ + "\\b)?")) || s.match(new RegExp("\\b(?:por|a|en|cuesta|costo|salio|pague|pago)\\s+\\$?\\s*([\\d.,]+)(?!\\s*(?:" + QU + ")\\b)(?:\\s*(?:el|por|x|cada)\\s*" + UQ + "\\b)?"));
       if (m) { price = parseAR(m[1]); var lu = m[2] && /^(luca|lucas)$/.test(m[2]); if (lu) { price *= 1000; pu = m[3] || ""; } else pu = (m[2] && !/pesos|mangos|palos/.test(m[2]) ? m[2] : m[3]) || ""; if (/^(pesos|mangos|palos|lucas?)$/.test(pu)) pu = ""; s = s.replace(m[0], " "); }
@@ -818,7 +843,7 @@ button { cursor:pointer; }
         var pf2 = pu ? (UF[pu] || UF[pu.replace(/s$/, "")]) : null;
         tot = pf2 && b && pf2[0] === b[0] ? price * n * b[1] / pf2[1] : pu ? price * q : price;
       }
-      out.push({ ins: it.ins, uni: it.uni, tipo: tipo, cant: Math.round(n * 1e6) / 1e6, precio: Math.round(tot * 100) / 100, warn: warn });
+      out.push({ ins: it.ins, uni: it.uni, tipo: tipo, cant: Math.round(n * 1e6) / 1e6, precio: Math.round(tot * 100) / 100, warn: warn, nuevo: !!it.nuevo, t: it.t });
     });
     return out;
   }
@@ -832,16 +857,51 @@ button { cursor:pointer; }
     return h;
   }
   function stkLine(i) {
-    return (i.tipo === "compra" ? "🛒 Compra" : i.tipo === "consumo" ? "➖ Gasto" : "🔢 Contado") + " · <b>" + esc(i.ins) + "</b> · " + (i.tipo === "ajuste" ? "quedan " : i.tipo === "compra" ? "+" : "−") + fm(i.cant) + " " + esc(i.uni) + (i.precio ? " · $" + fm(i.precio) : i.tipo === "compra" ? " · sin precio" : "") + (i.warn ? " ⚠️ revisá la unidad" : "");
+    return (i.nuevo ? "🆕 Se crea · " : "") + (i.tipo === "compra" ? (st.v === "stock" ? "➕ Suma" : "🛒 Compra") : i.tipo === "consumo" ? "➖ Gasto" : "🔢 Contado") + " · <b>" + esc(i.ins) + "</b> · " + (i.tipo === "ajuste" ? "quedan " : i.tipo === "compra" ? "+" : "−") + fm(i.cant) + " " + esc(i.uni) + (i.precio ? " · $" + fm(i.precio) : i.tipo === "compra" ? " · sin precio" : "") + (i.warn ? " ⚠️ revisá la unidad" : "");
   }
   function skb() { return st.skbusy && Date.now() - st.skbusy < 15000; }
   function stkLoad(cb) { if (st.stock) return cb(); api("stock").then(function (j) { st.stock = j && j.ok ? j.stock : []; cb(); }).catch(function () { st.stock = []; cb(); }); }
   function stkApply(items) {
     if (skb()) { toast("Guardando… esperá un segundo"); return Promise.resolve({ ok: 0, fail: "" }); }
     st.skbusy = Date.now(); var chain = Promise.resolve(), ok = 0, fail = "";
-    items.forEach(function (i) { chain = chain.then(function () { return api("stockMov", { ins: i.ins, tipo: i.tipo, cant: i.cant, precio: i.precio, rid: i.rid || (i.rid = Date.now() + "-" + Math.random().toString(36).slice(2)) }).then(function (j) { if (j && j.ok) { st.stock = j.stock; if (j.alertas != null) st.alertas = !!j.alertas; ok++; } else fail = (j && j.msg) || "No se pudo guardar"; }); }); });
+    items.forEach(function (i) { chain = chain.then(function () { return (i.nuevo ? api("addInsumo", { t: i.t || "a", nombre: i.ins, unidad: i.uni }).then(function (j) { if (!j || !j.ok) throw new Error(j && j.msg || "No se pudo crear " + i.ins); st.prov = j.proveedores; i.nuevo = false; VC.prov = null; (st.insumos || []).push({ n: i.ins, u: i.uni }); }) : Promise.resolve()).then(function () { return api("stockMov", { ins: i.ins, tipo: i.tipo, cant: i.cant, precio: i.precio, rid: i.rid || (i.rid = Date.now() + "-" + Math.random().toString(36).slice(2)) }).then(function (j) { if (j && j.ok) { st.stock = j.stock; if (j.alertas != null) st.alertas = !!j.alertas; ok++; } else fail = (j && j.msg) || "No se pudo guardar"; }); }).catch(function (e) { fail = e && e.message || "No se pudo guardar"; }); }); });
     st.movs = null; st.movf = 0;
     return chain.then(function (r0) { st.skbusy = 0; return r0; }, function (e0) { st.skbusy = 0; throw e0; }).then(function () { if (items.some(function (i) { return i.tipo === "compra" && i.precio > 0; })) { VC.prov = null; if (!DEMO) api("proveedores").then(function (j) { if (j && j.ok) st.prov = j.proveedores; }).catch(function () {}); } return { ok: ok, fail: fail }; });
+  }
+  function finProv(pm) {
+    var ks = Object.keys(pm); if (!ks.length) return Promise.resolve();
+    function ap(P) { ks.forEach(function (k) { ["a", "p"].forEach(function (t) { (P[t] || []).forEach(function (z) { if (z.ins === k) z.prov = pm[k]; }); }); }); }
+    if (DEMO) { ap(st.prov); return Promise.resolve(); }
+    return api("proveedores").then(function (j) {
+      if (!j || !j.ok) return; var P = j.proveedores, ch = Promise.resolve();
+      ks.forEach(function (k) { ["a", "p"].forEach(function (t) { (P[t] || []).forEach(function (z) { if (z.ins === k) ch = ch.then(function () { return api("setProveedor", { t: t, r: z.r, ins: k, campo: "prov", valor: pm[k] }); }); }); }); });
+      return ch.then(function () { return api("proveedores"); }).then(function (j2) { if (j2 && j2.ok) st.prov = j2.proveedores; });
+    }).catch(function () {});
+  }
+  function lastBuy(name) { var r = null; ["a", "p"].forEach(function (t) { ((st.prov || {})[t] || []).forEach(function (z) { if (z.ins === name) r = z; }); }); return r; }
+  function stkFlow(items, done) {
+    var need = items.filter(function (i) { return i.tipo === "compra" && !(i.precio > 0); });
+    function go(pm) { stkApply(items).then(function (r) { return finProv(pm || {}).then(function () { VC.prov = null; st.recf = 0; done(r); }); }).catch(function () { done({ ok: 0, fail: "No se pudo guardar" }); }); }
+    if (!need.length) return go({});
+    var pr = st.prov ? Promise.resolve() : api("proveedores").then(function (j) { if (j && j.ok) st.prov = j.proveedores; }).catch(function () {});
+    pr.then(function () {
+      var m = document.createElement("div"); m.className = "modal";
+      m.innerHTML = '<div class="box" style="max-height:88vh;overflow:auto;width:100%"><h3>Precio de la compra</h3>' + need.map(function (i, k) {
+        var x = lastBuy(i.ins), pu = x && x.costo ? x.costo : 0, tot = pu ? Math.round(pu * i.cant) : "";
+        return '<div class="bpl"><div class="nm">' + esc(i.ins) + ' · +' + fm(i.cant) + " " + esc(i.uni) + '</div><div class="meta">' + (x && x.costo ? "Última vez: $" + fm(Math.round(pu * 100) / 100) + " / " + esc(x.uni) + (x.prov ? " en " + esc(x.prov) : "") : "Sin compras anteriores") + '</div><input class="inp" data-bp="prov" data-k="' + k + '" placeholder="Proveedor" value="' + esc(x && x.prov || "") + '"><input class="inp" data-bp="pre" data-k="' + k + '" inputmode="decimal" placeholder="Precio total $" value="' + tot + '"></div>';
+      }).join("") + '<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-bpok>Confirmar</button><button class="sm" data-bpno>Sin precio</button><button class="sm" data-bpx>Cancelar</button></div></div>';
+      document.body.appendChild(m);
+      m.addEventListener("click", function (e) {
+        var t = e.target;
+        if (t.closest("[data-bpx]")) { m.remove(); done(null); return; }
+        var ok = t.closest("[data-bpok]"), no = t.closest("[data-bpno]"); if (!ok && !no) return;
+        var pm = {}; need.forEach(function (i, k) {
+          var pv = m.querySelector('[data-bp=prov][data-k="' + k + '"]').value.trim(), pe = parseAR(m.querySelector('[data-bp=pre][data-k="' + k + '"]').value);
+          i.precio = ok && pe > 0 ? pe : 0; var x = lastBuy(i.ins); if (pv && (!x || x.prov !== pv)) pm[i.ins] = pv;
+        });
+        m.remove(); go(pm);
+      });
+    });
   }
   function stkDemand() {
     var need = {}, out = [];
@@ -861,6 +921,9 @@ button { cursor:pointer; }
     if (a) l.push(["🟡 " + a + (a === 1 ? " insumo por agotarse" : " insumos por agotarse"), "stock", "alert"]);
     return l;
   }
+  function swrap(kind, key, inner, hasL, hasR, labL, labR) {
+    return '<div class="sw" data-kind="' + kind + '" data-sw="' + esc(key) + '">' + (hasL ? '<button class="swl" data-swa="' + kind + ':add:' + esc(key) + '">' + labL + "</button>" : "") + (hasR ? '<button class="swb' + '" style="' + (kind === "stk" ? "background:#e08a00" : "") + '" data-swa="' + kind + ':rm:' + esc(key) + '">' + labR + "</button>" : "") + inner + "</div>";
+  }
   function renderStock() {
     if (!st.stock) return BACK + '<div class="empty">Cargando…</div>';
     if (!st.movs && !st.movf) { st.movf = 1; api("stockMovs").then(function (j) { st.movs = j && j.ok ? j.movs : []; if (st.v === "stock") render(true); }).catch(function () { st.movs = []; }); }
@@ -868,23 +931,24 @@ button { cursor:pointer; }
     if (st.alertas && !st.loaded.pedidos && !st.pfetch) { st.pfetch = 1; api("pedidos").then(function (j) { if (j && j.ok) { st.pedidos = j.pedidos; st.loaded.pedidos = true; if (st.v === "stock") render(true); } }).catch(function () {}); }
     var on = !!st.alertas, q = nrm(st.sks);
     var L = st.stock.filter(function (x) { return (!q || nrm(x.ins).indexOf(q) >= 0) && (st.skf !== "alert" || x.nivel !== "ok") && (st.skf !== "p" || x.t === "p") && (st.skf !== "a" || x.t === "a"); });
-    var h = BACK + skBar('Ej: gasté 500 g de harina', 'Gasté · me quedan… (ej. «gasté 500 g de harina», «manteca 2 kilos»). Las compras se cargan en Proveedores.');
+    var h = BACK + skBar('Ej: gasté 500 g de harina', '«cargame 100 g de jamón» suma · «gasté 500 g de harina» resta · «tengo 2 kilos de manteca» = contado. Si no existe, se crea solo. Deslizá una tarjeta: → sumar, ← restar.');
     if (on) { var d = stkDemand(); if (d.length && st.skf === "alert") h += '<div class="card skr"><div class="nm">Faltan para los pedidos en curso</div>' + d.map(function (x) { return '<div class="frow"><span>' + esc(x.ins) + '</span><span class="rd">necesitás ' + fm(x.need) + " " + esc(x.uni) + " · tenés " + fm(x.have) + "</span></div>"; }).join("") + "</div>"; }
     h += '<input class="search" id="sk-s" type="search" placeholder="Buscar insumo…" value="' + esc(st.sks || "") + '"><div class="chips">' + [["all", "Todos"]].concat(on ? [["alert", "Alertas"]] : []).concat([["a", "Insumos"], ["p", "Packaging"]]).map(function (c) { return '<button class="chip' + ((st.skf || "all") === c[0] ? " on" : "") + '" data-skf="' + c[0] + '">' + c[1] + "</button>"; }).join("") + "</div>";
     if (!L.length) h += '<div class="empty">' + (st.skf === "alert" ? "Sin alertas 🎉" : "Sin resultados.") + "</div>";
     h += L.map(function (x) {
       var open = st.skx === x.ins;
       var lv = !x.mov ? "n" : x.nivel === "rojo" ? "r" : x.nivel === "amarillo" ? "y" : x.min !== "" ? "g" : "b";
-      var b = '<article class="card" data-ins="' + esc(x.ins) + '"><div class="row" data-skx="' + esc(x.ins) + '" style="align-items:center;gap:10px;cursor:pointer"><div style="min-width:0;flex:1"><div class="nm">' + esc(x.ins) + '</div><div class="meta">' + esc(x.t === "p" ? "Packaging" : "Insumo") + '</div></div><div class="ska sk' + lv + '"><b>' + (x.mov ? fm(x.stock) : "—") + "</b><span>" + (x.mov ? esc(x.uni) : "sin cargar") + "</span>" + (x.min !== "" ? "<small>pedir en " + fm(x.min) + "</small>" : "") + "</div></div>";
+      var b = '<article class="card pc" data-ins="' + esc(x.ins) + '"><div class="row" data-skx="' + esc(x.ins) + '" style="align-items:center;gap:10px;cursor:pointer"><div style="min-width:0;flex:1"><div class="nm">' + esc(x.ins) + '</div><div class="meta">' + esc(x.t === "p" ? "Packaging" : "Insumo") + '</div></div><div class="ska sk' + lv + '"><b>' + (x.mov ? fm(x.stock) : "—") + "</b><span>" + (x.mov ? esc(x.uni) : "sin cargar") + "</span>" + (x.min !== "" ? "<small>pedir en " + fm(x.min) + "</small>" : "") + "</div></div>";
       if (open) {
         var mv = []; (st.movs || []).forEach(function (m, i) { if (String(m[1]).toLowerCase() === x.ins.toLowerCase()) mv.push([m, i]); }); mv = mv.slice(-5).reverse();
-        b += '<div class="add" style="margin-top:10px"><div class="meta" style="margin-bottom:-4px">Las compras se suman solas desde Proveedores e insumos. Acá solo ajustás.</div>' +
-          '<div style="display:flex;gap:8px"><input class="inp" data-skg placeholder="Gasté (ej. 500 g)" style="flex:1"><button class="sm" data-skb="consumo">Restar</button></div>' +
+        b += '<div class="add" style="margin-top:10px"><div class="meta" style="margin-bottom:-4px">Todo se guarda en la unidad de Proveedores (100 g, 1 kg → se convierte solo).</div>' +
+          '<div style="display:flex;gap:8px"><input class="inp" data-skc placeholder="Sumar (ej. 1 kg o 100 g)" style="flex:1"><button class="sm" data-skb="compra">Sumar</button></div>' +
+          '<div style="display:flex;gap:8px"><input class="inp" data-skg placeholder="Restar / gasté (ej. 500 g)" style="flex:1"><button class="sm" data-skb="consumo">Restar</button></div>' +
           '<div style="display:flex;gap:8px"><input class="inp" data-skn placeholder="Contado real (ej. 2 kg)" style="flex:1"><button class="sm" data-skb="ajuste">Ajustar</button></div>' +
           '</div>';
         if (mv.length) b += '<div class="meta" style="margin:10px 0 2px">Últimos movimientos (tocá ✕ para deshacer)</div>' + mv.map(function (z) { var m = z[0]; return '<div class="frow"><span>' + esc(String(m[0]).slice(0, 10)) + " · " + esc(m[2]) + " " + (m[3] > 0 ? "+" : "") + fm(m[3]) + (m[4] ? " · $" + fm(m[4]) : "") + '</span><button class="sm red" data-mdel="' + (z[1] + 2) + '" data-mi="' + esc(x.ins) + '" style="padding:2px 8px">✕</button></div>'; }).join("");
       }
-      return b + "</article>";
+      return swrap("stk", x.ins, b + "</article>", true, true, "＋<br>Sumar", "−<br>Restar");
     }).join("");
     return h;
   }
@@ -899,10 +963,8 @@ button { cursor:pointer; }
     var ins = card.getAttribute("data-ins"), x = st.stock.filter(function (z) { return z.ins === ins; })[0]; if (!x) return;
     var sel = tipo === "compra" ? "[data-skc]" : tipo === "consumo" ? "[data-skg]" : "[data-skn]", raw = card.querySelector(sel).value, qn = parseQty(raw, x.uni);
     if (!qn && !(tipo === "ajuste" && /^\s*0+\s*$/.test(raw))) { toast("Poné una cantidad (ej. 1 kg)"); return; }
-    var pr = tipo === "compra" ? parseAR(card.querySelector("[data-skp]").value) : 0;
-    if (tipo === "compra" && !(pr > 0)) { if (!confirm("¿Cargar la compra sin precio? El costo no se actualiza.")) return; pr = 0; }
     if (skb()) { toast("Guardando… esperá un segundo"); return; }
-    stkApply([{ ins: ins, tipo: tipo, cant: qn ? qn.n : 0, precio: pr || 0 }]).then(function (r) { render(true); toast(r.ok ? "Guardado ✓" : r.fail); });
+    stkFlow([{ ins: ins, tipo: tipo, cant: qn ? qn.n : 0, precio: 0, uni: x.uni }], function (r) { if (!r) return; render(true); toast(r.ok ? "Guardado ✓" : r.fail); });
   }
 
   /* ---------- Drive (fotos y videos) ---------- */
@@ -1084,9 +1146,9 @@ button { cursor:pointer; }
     if (!L.length) h += '<div class="empty">' + (q ? "No hay resultados. Tocá ＋ para agregarlo." : "Sin elementos.") + "</div>";
     h += L.map(function (x) {
       var open = st.pvx === x.r, c = x.costo ? "$" + (Math.round(x.costo * 100) / 100).toLocaleString("es-AR") + " / " + esc(x.uni) : "sin precio";
-      var b = '<article class="card" data-r="' + x.r + '" data-ins="' + esc(x.ins) + '"><button class="row" data-pvx="' + x.r + '" style="width:100%;border:0;background:none;padding:0;text-align:left;align-items:center"><div style="min-width:0"><div class="nm">' + esc(x.ins) + '</div><div class="meta">' + (x.prov ? esc(x.prov) + " · " : "") + c + '</div></div><span style="color:var(--soft);font-size:1.1rem">' + (open ? "▴" : "▾") + "</span></button>";
+      var b = '<article class="card pc" data-r="' + x.r + '" data-ins="' + esc(x.ins) + '"><button class="row" data-pvx="' + x.r + '" style="width:100%;border:0;background:none;padding:0;text-align:left;align-items:center"><div style="min-width:0"><div class="nm">' + esc(x.ins) + '</div><div class="meta">' + (x.prov ? esc(x.prov) + " · " : "") + c + '</div></div><span style="color:var(--soft);font-size:1.1rem">' + (open ? "▴" : "▾") + "</span></button>";
       if (open) b += '<div class="add" style="margin-top:10px"><div class="meta" style="margin-bottom:-4px">Unidad en que cargás recetas (ej. g, ml, unidad)</div><input class="inp" data-pv="uni" list="pv-units" value="' + esc(x.uni) + '" placeholder="Unidad"><input class="inp" data-pv="prov" placeholder="Proveedor" value="' + esc(x.prov) + '"><div class="meta" style="margin-bottom:-4px">🛒 Nueva compra (suma al stock solo)</div><div style="display:flex;gap:8px"><input class="inp" data-pc="cant" type="text" inputmode="decimal" placeholder="Compré (ej. 1 kg)"><input class="inp" data-pc="precio" type="text" inputmode="decimal" placeholder="Precio total $"></div><button class="btn" data-pbuy="1">Registrar compra</button><div class="meta">' + (x.cant ? "Última compra: " + fm(x.cant) + " " + esc(x.uni) + " a $" + fm(x.precio) : "Sin compras cargadas") + (x.fecha ? " (" + esc(x.fecha) + ")" : "") + ". Podés escribir «1 kg» o «2 l». Si dejás la cantidad vacía, solo corrijo el precio.</div>" + usosHtml(x) + "</div>";
-      return b + "</article>";
+      return swrap("prv", x.r, b + "</article>", true, true, "＋<br>Compra", "🗑<br>Borrar").replace('style="" data-swa="prv:rm', 'style="background:#d93a2f" data-swa="prv:rm');
     }).join("");
     return h;
   }
@@ -1494,9 +1556,9 @@ button { cursor:pointer; }
     if (e.target.id === "fin-d" || e.target.id === "fin-h") { if (e.target.value) { if (e.target.id === "fin-d") st.fd = e.target.value; else st.fh = e.target.value; st.fp = ""; render(true); } return; }
     var c = e.target.closest(".card"); if (!c && !e.target.closest("#pk-ed")) return;
     var tg = e.target;
-    if (st.rd && tg.matches("[data-rnom]")) { st.rd.nombre = tg.value; return; }
+    if (st.rd && tg.matches("[data-rnom]")) { if (tg.value === "__np") { st.rnp = true; render(true); focusSel("#rp-n"); return; } st.rd.nombre = tg.value; return; }
     if (st.rd && tg.matches("[data-ry]")) { st.rd.y = Number(tg.value) || 0; return; }
-    if (st.rd && tg.matches("[data-rin]")) { st.rd.items[Number(tg.getAttribute("data-rin"))].n = tg.value; render(true); return; }
+    if (st.rd && tg.matches("[data-rin]")) { if (tg.value === "__new") { st.rnew = Number(tg.getAttribute("data-rin")); render(true); focusSel("#rn-n"); return; } st.rd.items[Number(tg.getAttribute("data-rin"))].n = tg.value; render(true); return; }
     if (st.rd && tg.matches("[data-riq]")) { st.rd.items[Number(tg.getAttribute("data-riq"))].q = tg.value === "" ? "" : Number(tg.value); return; }
     if (st.pd && tg.matches("[data-kf]")) { var kf = tg.getAttribute("data-kf"); st.pd[kf] = (kf === "nombre" || kf === "texto" || kf === "vence") ? tg.value : Number(tg.value) || 0; return; }
     if (st.pd && tg.matches("[data-kin]")) { st.pd.items[Number(tg.getAttribute("data-kin"))].n = tg.value; return; }
@@ -1508,7 +1570,8 @@ button { cursor:pointer; }
       else if (campo === "precio") { var pm = parseAR(rawv); if (!(pm > 0)) { toast("Precio inválido"); render(true); return; } vv = String(pm); }
       else if (campo === "uni" && !String(rawv).trim()) { render(true); return; }
       if (campo === "uni" && rawv.trim() === row.uni) return;
-      (DEMO ? Promise.resolve({ ok: true, proveedores: st.prov }) : api("setProveedor", { t: st.pvt, r: rowr, ins: ins, campo: campo, valor: vv })).then(function (j) { if (j && j.ok) { if (DEMO) { row[campo === "cant" ? "cant" : campo === "precio" ? "precio" : campo === "uni" ? "uni" : "prov"] = campo === "prov" || campo === "uni" ? rawv.trim() : Number(vv); } else st.prov = j.proveedores; render(true); toast(campo === "uni" ? "Unidad cambiada: revisá las cantidades de tus recetas" : note ? "Guardado ✓ (" + note + ")" : "Guardado ✓"); } else { toast(j && j.msg || "No se pudo guardar"); render(true); } }).catch(function () {}); return; }
+      var oldU = row.uni, sx0 = (st.stock || []).filter(function (z) { return z.ins === ins; })[0];
+      (DEMO ? Promise.resolve({ ok: true, proveedores: st.prov }) : api("setProveedor", { t: st.pvt, r: rowr, ins: ins, campo: campo, valor: vv })).then(function (j) { if (j && j.ok && campo === "uni" && sx0 && sx0.mov) { var fo = UF[nrm(oldU)], fn = UF[nrm(rawv.trim())]; if (fo && fn && fo[0] === fn[0] && fo[1] !== fn[1]) { var nv = Math.round(sx0.stock * fo[1] / fn[1] * 1e6) / 1e6; return stkApply([{ ins: ins, tipo: "ajuste", cant: nv, precio: 0 }]).then(function () { return j; }); } } return j; }).then(function (j) { if (j && j.ok) { if (DEMO) { row[campo === "cant" ? "cant" : campo === "precio" ? "precio" : campo === "uni" ? "uni" : "prov"] = campo === "prov" || campo === "uni" ? rawv.trim() : Number(vv); } else st.prov = j.proveedores; render(true); toast(campo === "uni" ? "Unidad cambiada: revisá las cantidades de tus recetas" : note ? "Guardado ✓ (" + note + ")" : "Guardado ✓"); } else { toast(j && j.msg || "No se pudo guardar"); render(true); } }).catch(function () {}); return; }
     if (e.target.matches("[data-f2]")) { var pr2 = st.productos.filter(function (x) { return x.r === Number(c.getAttribute("data-r")); })[0]; if (!pr2) return; var cp = {}; cp[e.target.getAttribute("data-f2")] = e.target.value; pr2[e.target.getAttribute("data-f2")] = e.target.value; (DEMO ? Promise.resolve({ ok: true }) : api("saveProducto", { r: pr2.r, nombre: pr2.nombre, campos: cp })).then(function (j) { if (j && j.ok) toast("Guardado ✓"); else toast(j && j.msg || "No se pudo guardar"); }).catch(function () { toast("No se pudo guardar"); }); return; }
     if (e.target.matches("[data-pkpr]")) { var pv = Number(e.target.value); if (!(pv >= 0)) { toast("Precio inválido"); render(true); return; } patchPack(Number(c.getAttribute("data-r")), "pr", pv); return; }
     if (!e.target.matches("[data-pr]")) return;
@@ -1527,6 +1590,16 @@ button { cursor:pointer; }
       t.closest("#np-ok").disabled = true;
       api("addProducto", { nombre: npn, desc: $("np-d").value, precio: Number($("np-p").value) || 0, cat: $("np-c").value, ing: $("np-i").value }).then(function (j) { if (j && j.ok) { st.productos = j.catalogo; st.newp = false; render(true); toast("Producto creado ✓"); } else { toast(j && j.msg || "No se pudo"); render(true); } }).catch(function () { render(true); });
       return;
+    }
+    if (t.closest("#rn-x")) { st.rnew = null; render(true); return; }
+    if (t.closest("#rp-x")) { st.rnp = false; render(true); return; }
+    if (t.closest("#rn-ok")) {
+      var rnn = $("rn-n").value.trim(), rnu = $("rn-u").value, rni = st.rnew; if (!rnn) { toast("Falta el nombre"); return; }
+      api("addInsumo", { t: "a", nombre: rnn, unidad: rnu }).then(function (j) { if (j && j.ok) { st.prov = j.proveedores; VC.prov = null; st.stock = null; if (!st.insumos.some(function (z) { return z.n === rnn; })) st.insumos.push({ n: rnn, u: rnu }); if (st.rd && st.rd.items[rni]) st.rd.items[rni].n = rnn; st.rnew = null; render(true); toast("Insumo creado ✓"); } else toast(j && j.msg || "No se pudo"); }).catch(function () { toast("No se pudo"); }); return;
+    }
+    if (t.closest("#rp-ok")) {
+      var rpn = $("rp-n").value.trim(); if (!rpn) { toast("Falta el nombre"); return; }
+      api("addProducto", { nombre: rpn, desc: "", precio: 0, cat: $("rp-c").value, ing: "" }).then(function (j) { if (j && j.ok) { st.productos = j.catalogo; if (st.rd) st.rd.nombre = rpn; st.rnp = false; render(true); toast("Producto creado ✓"); } else toast(j && j.msg || "No se pudo"); }).catch(function () { toast("No se pudo"); }); return;
     }
     if (t.closest("#ai-ok")) {
       var ain = $("ai-n").value.trim(); if (!ain) { toast("Falta el nombre"); return; }
@@ -1598,13 +1671,13 @@ button { cursor:pointer; }
     var mdl = t.closest("[data-mdel]"); if (mdl) { if (skb()) return; st.skbusy = Date.now(); mdl.disabled = true; mdl.textContent = "…"; api("delMov", { r: Number(mdl.getAttribute("data-mdel")), ins: mdl.getAttribute("data-mi") }).then(function (j) { st.skbusy = 0; if (j && j.ok) { st.stock = j.stock; st.movs = null; st.movf = 0; render(true); toast("Movimiento deshecho ✓"); } else { toast(j && j.msg || "No se pudo"); st.movs = null; st.movf = 0; render(true); } }).catch(function () { st.skbusy = 0; st.movs = null; st.movf = 0; toast("No se pudo deshacer. Reintentá."); render(true); }); return; }
     var skx = t.closest("[data-skx]"); if (skx) { var kn = skx.getAttribute("data-skx"); st.skx = st.skx === kn ? "" : kn; render(true); return; }
     var skf = t.closest("[data-skf]"); if (skf) { st.skf = skf.getAttribute("data-skf"); render(true); return; }
-    var skb = t.closest("[data-skb]"); if (skb) { stkBtn(skb.closest("[data-ins]"), skb.getAttribute("data-skb")); return; }
+    var skbt = t.closest("[data-skb]"); if (skbt) { stkBtn(skbt.closest("[data-ins]"), skbt.getAttribute("data-skb")); return; }
     var sk = t.closest("[data-sk]");
     if (sk) {
       var ka = sk.getAttribute("data-sk");
       if (ka === "parse") { if (st.skrec) { try { st.skrec.stop(); } catch (e) {} } var kt = $("sk-q").value.trim(), mdk = st.v === "proveedores" ? "prov" : "stock"; st.skq = { text: kt, items: stkParse(kt, mdk), mode: mdk }; render(true); return; }
       if (ka === "no") { st.skq = null; render(true); return; }
-      if (ka === "ok") { if (skb()) return; sk.disabled = true; sk.textContent = "Guardando…"; var its = st.skq && st.skq.items || []; stkApply(its).then(function (r) { st.skq = null; if (st.v === "proveedores" && !DEMO) api("proveedores").then(function (j) { if (j && j.ok) st.prov = j.proveedores; render(true); }).catch(function () {}); render(true); toast(r.fail ? r.fail : "Compra cargada ✓ (" + r.ok + ")"); }); return; }
+      if (ka === "ok") { if (skb()) return; sk.disabled = true; sk.textContent = "Guardando…"; var its = st.skq && st.skq.items || []; stkFlow(its, function (r) { if (!r) { sk.disabled = false; sk.textContent = "Confirmar"; return; } st.skq = null; if (st.v === "proveedores" && !DEMO) api("proveedores").then(function (j) { if (j && j.ok) st.prov = j.proveedores; render(true); }).catch(function () {}); render(true); toast(r.fail ? r.fail : "Cargado ✓ (" + r.ok + ")"); }); return; }
       if (ka === "mic") {
         if (!SR) { toast("Tu navegador no tiene dictado. Escribilo."); return; }
         if (st.skrec) { try { st.skrec.stop(); } catch (e) {} return; }
@@ -1703,18 +1776,36 @@ button { cursor:pointer; }
 
   if ("serviceWorker" in navigator && !DEMO) navigator.serviceWorker.register("admin-sw.js").catch(function () {});
   (function () {
-    var sx = 0, sy = 0, el = null, dx = 0, dir = 0;
-    function closeAll(except) { Array.prototype.forEach.call(document.querySelectorAll(".sw .pc"), function (c) { if (c !== except) { c.style.transform = ""; c.removeAttribute("data-open"); c.parentNode.classList.remove("sx"); } }); if (!except) st.swo = null; }
-    document.addEventListener("touchstart", function (e) { if (e.target.closest && e.target.closest(".swb")) { el = null; return; } var c = e.target.closest && e.target.closest(".sw .pc"); if (!c || e.target.closest("input,textarea,button.tg,a")) { el = null; closeAll(null); return; } closeAll(c); el = c; sx = e.touches[0].clientX; sy = e.touches[0].clientY; dx = 0; dir = 0; c.style.transition = "none"; }, { passive: true });
-    document.addEventListener("touchmove", function (e) { if (!el) return; var x = e.touches[0].clientX - sx, y = e.touches[0].clientY - sy; if (!dir) { if (Math.abs(x) > 8 || Math.abs(y) > 8) dir = Math.abs(x) > Math.abs(y) ? 1 : 2; else return; } if (dir !== 1) return; var base = el.getAttribute("data-open") ? -84 : 0; dx = Math.max(-84, Math.min(0, base + x)); el.style.transform = "translateX(" + dx + "px)"; el.parentNode.classList.add("sx"); }, { passive: true });
-    document.addEventListener("touchend", function () { if (!el) return; el.style.transition = ""; if (dir === 1) { if (dx < -30) { el.style.transform = "translateX(-84px)"; el.setAttribute("data-open", "1"); el.parentNode.classList.add("sx"); st.swo = el.parentNode.getAttribute("data-sw"); } else { el.style.transform = ""; el.removeAttribute("data-open"); el.parentNode.classList.remove("sx"); st.swo = null; } el.setAttribute("data-swd", Date.now()); } el = null; }, { passive: true });
+    var sx = 0, sy = 0, el = null, dx = 0, dir = 0, base = 0, hl = 0, hr = 0;
+    function closeAll(except) { Array.prototype.forEach.call(document.querySelectorAll(".sw .pc"), function (c) { if (c !== except) { c.style.transform = ""; c.removeAttribute("data-open"); c.parentNode.classList.remove("sxl", "sxr"); } }); if (!except) st.swo = null; }
+    document.addEventListener("touchstart", function (e) { if (e.target.closest && e.target.closest(".swb,.swl")) { el = null; return; } var c = e.target.closest && e.target.closest(".sw .pc"); if (!c || e.target.closest("input,textarea,select,a")) { el = null; closeAll(null); return; } closeAll(c); el = c; sx = e.touches[0].clientX; sy = e.touches[0].clientY; dx = 0; dir = 0; var o = c.getAttribute("data-open"); base = o === "l" ? 84 : o === "r" ? -84 : 0; hl = c.parentNode.querySelector(".swl") ? 84 : 0; hr = c.parentNode.querySelector(".swb") ? 84 : 0; c.style.transition = "none"; }, { passive: true });
+    document.addEventListener("touchmove", function (e) { if (!el) return; var x = e.touches[0].clientX - sx, y = e.touches[0].clientY - sy; if (!dir) { if (Math.abs(x) > 8 || Math.abs(y) > 8) dir = Math.abs(x) > Math.abs(y) ? 1 : 2; else return; } if (dir !== 1) return; dx = Math.max(-hr, Math.min(hl, base + x)); el.style.transform = "translateX(" + dx + "px)"; el.parentNode.classList.toggle("sxl", dx > 0); el.parentNode.classList.toggle("sxr", dx < 0); }, { passive: true });
+    document.addEventListener("touchend", function () {
+      if (!el) return; el.style.transition = "";
+      if (dir === 1) {
+        var w = el.parentNode;
+        if (dx > 30) { el.style.transform = "translateX(84px)"; el.setAttribute("data-open", "l"); w.classList.add("sxl"); w.classList.remove("sxr"); st.swo = null; }
+        else if (dx < -30) { el.style.transform = "translateX(-84px)"; el.setAttribute("data-open", "r"); w.classList.add("sxr"); w.classList.remove("sxl"); st.swo = w.getAttribute("data-kind") === "ped" ? w.getAttribute("data-sw") : null; }
+        else { el.style.transform = ""; el.removeAttribute("data-open"); w.classList.remove("sxl", "sxr"); st.swo = null; }
+        el.setAttribute("data-swd", Date.now());
+      }
+      el = null;
+    }, { passive: true });
     document.addEventListener("click", function (e) {
       var c = e.target.closest && e.target.closest(".sw .pc"); if (c && Date.now() - Number(c.getAttribute("data-swd") || 0) < 350) { e.stopPropagation(); e.preventDefault(); return; }
-      if (c && c.getAttribute("data-open")) { c.style.transform = ""; c.removeAttribute("data-open"); c.parentNode.classList.remove("sx"); st.swo = null; e.stopPropagation(); e.preventDefault(); return; }
-      var d = e.target.closest && e.target.closest("[data-swdel]"); if (!d) return; e.stopPropagation();
-      var r = Number(d.getAttribute("data-swdel")), p = st.pedidos.filter(function (x) { return x.r === r; })[0]; if (!p) return;
-      if (!d.classList.contains("arm")) { d.classList.add("arm"); d.innerHTML = '<span style="font-size:.7rem">¿Seguro?<br>Tocá</span>'; setTimeout(function () { d.classList.remove("arm"); d.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>'; }, 3500); return; }
-      delPedidos([{ r: p.r, id: p.id }]);
+      if (c && c.getAttribute("data-open") && !e.target.closest(".swb,.swl")) { closeSw(); e.stopPropagation(); e.preventDefault(); return; }
+      var d = e.target.closest && e.target.closest("[data-swdel]");
+      if (d) { e.stopPropagation(); var r0 = Number(d.getAttribute("data-swdel")), p0 = st.pedidos.filter(function (x) { return x.r === r0; })[0]; if (p0) pedSheet(p0); return; }
+      var a = e.target.closest && e.target.closest("[data-swa]"); if (!a) return; e.stopPropagation();
+      var P = a.getAttribute("data-swa").split(":"), kind = P[0], act = P[1], key = P.slice(2).join(":");
+      if (kind === "ped") { var pp = st.pedidos.filter(function (x) { return String(x.r) === key; })[0], nx = pp && advNext(pp); closeSw(); if (nx) patchPedido(pp.r, nx[0], true); return; }
+      if (kind === "stk") { closeSw(); st.skx = key; render(true); focusSel(act === "add" ? "[data-skc]" : "[data-skg]"); return; }
+      if (kind === "prv") {
+        if (act === "add") { closeSw(); st.pvx = Number(key); render(true); focusSel("[data-pc=cant]"); return; }
+        var x = ((st.prov || {})[st.pvt] || []).filter(function (z) { return String(z.r) === key; })[0]; if (!x) return;
+        if (!a.classList.contains("arm")) { a.classList.add("arm"); a.innerHTML = "¿Seguro?<br>Tocá"; setTimeout(function () { a.classList.remove("arm"); a.innerHTML = "🗑<br>Borrar"; }, 3500); return; }
+        api("delInsumo", { t: st.pvt, r: x.r, ins: x.ins }).then(function (j) { if (j && j.ok) { st.prov = j.proveedores; VC.prov = null; st.stock = null; st.insumos = null; st.recf = 0; closeSw(); render(true); toast("Eliminado ✓"); } else { toast(j && j.msg || "No se pudo borrar"); closeSw(); } }).catch(function () { toast("No se pudo borrar"); });
+      }
     }, true);
   })();
   boot();

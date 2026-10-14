@@ -437,6 +437,19 @@ body.selmode .nav{visibility:hidden}
   }
   function closeSw() { Array.prototype.forEach.call(document.querySelectorAll(".sw .pc"), function (c) { c.style.transform = ""; c.removeAttribute("data-open"); c.parentNode.classList.remove("sxl", "sxr"); }); st.swo = null; }
   function focusSel(sel) { setTimeout(function () { var e = document.querySelector(sel); if (e) { e.scrollIntoView({ block: "center" }); e.focus(); } }, 60); }
+  function curRow(p) {
+    var e = estadoDe(p), sb = ESTL[e], so = String(st.swo) === String(p.r);
+    var b = '<article class="card pc ipd"' + (so ? ' data-open="r" style="transform:translateX(-84px)"' : "") + ' data-ipd="' + p.r + '"><div class="row" style="align-items:center;gap:10px"><div style="min-width:0;flex:1"><div class="nm" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(p.nombre) + (p.notas ? " 📝" : "") + '</div><div class="id">' + esc(p.id) + " · " + (Number(p.cant) || 0) + " cookies" + (p.entrega ? " · " + esc(p.entrega) : "") + '</div></div><div style="text-align:right"><div class="tot" style="font-size:1rem">' + money(p.total) + '</div><span class="badge">' + esc(sb && sb[0] || e) + "</span></div></div></article>";
+    return '<div class="sw' + (so ? " sxr" : "") + '" data-kind="ped" data-sw="' + p.r + '">' + advBtn(p) + '<button class="swb" data-swdel="' + p.r + '" aria-label="Eliminar"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>' + b + "</div>";
+  }
+  function curPopSync() {
+    var m = document.getElementById("curm");
+    if (!st.curpop || st.v !== "inicio") { if (m) m.remove(); st.curpop = false; return; }
+    var cur = st.pedidos.filter(function (p) { var e = estadoDe(p); return e === "pend" || e === "coc" || e === "list"; });
+    if (!cur.length) { if (m) m.remove(); st.curpop = false; return; }
+    if (!m) { m = document.createElement("div"); m.id = "curm"; m.className = "modal"; m.addEventListener("click", function (e) { if (e.target === m || e.target.closest("[data-popx]")) { st.curpop = false; m.remove(); } }); document.body.appendChild(m); }
+    m.innerHTML = '<div class="box" style="width:100%;max-height:88vh;overflow:auto"><h3>Pedidos en curso (' + cur.length + ')</h3><div class="meta" style="margin-bottom:8px">→ avanzar · ← eliminar o cancelar · tocá para ver el detalle</div>' + cur.map(curRow).join("") + '<button class="btn" data-popx="1" style="margin-top:6px">Cerrar</button></div>';
+  }
   function pedModal(p, startEdit) {
     var m = document.createElement("div"); m.className = "modal"; m.style.alignItems = "end"; var edit = !!startEdit;
     function hist() {
@@ -608,14 +621,7 @@ body.selmode .nav{visibility:hidden}
     var cur = st.pedidos.filter(function (p) { var e = estadoDe(p); return e === "pend" || e === "coc" || e === "list"; });
     var curH = "";
     if (cur.length) {
-      var op = st.inix !== false;
-      curH += '<button class="card" data-inix="1" style="width:100%;text-align:left;display:flex;align-items:center;justify-content:space-between;margin-bottom:' + (op ? "8" : "12") + 'px"><div><div class="nm">Pedidos en curso</div><div class="meta">Deslizá → avanzar · ← eliminar/cancelar · tocá para ver el detalle</div></div><span style="color:var(--soft)"><b style="color:#0F59C4">' + cur.length + "</b> " + (op ? "▴" : "▾") + "</span></button>";
-      if (op) curH += cur.slice(0, 20).map(function (p) {
-        var e = estadoDe(p), sb = ESTL[e], so = String(st.swo) === String(p.r);
-        var b = '<article class="card pc ipd"' + (so ? ' data-open="r" style="transform:translateX(-84px)"' : "") + ' data-ipd="' + p.r + '"><div class="row" style="align-items:center;gap:10px"><div style="min-width:0;flex:1"><div class="nm" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(p.nombre) + (p.notas ? " 📝" : "") + '</div><div class="id">' + esc(p.id) + " · " + (Number(p.cant) || 0) + " cookies" + (p.entrega ? " · " + esc(p.entrega) : "") + '</div></div><div style="text-align:right"><div class="tot" style="font-size:1rem">' + money(p.total) + '</div><span class="badge">' + esc(sb && sb[0] || e) + "</span></div></div></article>";
-        return '<div class="sw' + (so ? " sxr" : "") + '" data-kind="ped" data-sw="' + p.r + '">' + advBtn(p) + '<button class="swb" data-swdel="' + p.r + '" aria-label="Eliminar"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>' + b + "</div>";
-      }).join("");
-      if (op && cur.length > 20) curH += '<button class="sm" data-go="pedidos" data-fil="todos" style="margin-bottom:12px">Ver los ' + cur.length + " en Pedidos</button>";
+      curH += '<div style="display:flex;align-items:center;justify-content:space-between;margin:2px 4px 8px"><div class="nm" style="font-size:1.1rem">Pedidos en curso <span class="badge b">' + cur.length + '</span></div>' + '<button class="sm" data-curpop="1">Ver todos ›</button>' + "</div>" + cur.slice(0, 3).map(curRow).join("");
     }
     if (al.length) h += '<div class="menu" id="alertas" style="margin-bottom:12px">' + al.map(function (x) { return '<button class="mi" ' + (x[1] === "@ag" ? 'data-agpop="1"' : 'data-go="' + x[1] + '" data-fil="' + x[2] + '"') + ' style="padding:12px 16px"><div><b style="font-weight:600">' + x[0] + "</b></div></button>"; }).join("") + "</div>";
     var ks = Object.keys(ent).sort(function (a, b) { return ent[b].n - ent[a].n; }).slice(0, 3);
@@ -1364,7 +1370,7 @@ body.selmode .nav{visibility:hidden}
     if (SUB.indexOf(st.v) >= 0 && h.indexOf(BACK) === 0 && NAMES[st.v]) h = '<div class="bk">' + BACK + '<b class="crumb">' + NAMES[st.v] + "</b></div>" + h.slice(BACK.length);
     var act = document.activeElement, id = act && act.id, pos = act && act.selectionStart;
     $("view").innerHTML = h;
-    popSync(); selSync();
+    popSync(); selSync(); curPopSync();
     if (id === "pq" || id === "cq" || id === "pvq" || id === "sk-q" || id === "sk-s") { var e = $(id); e.focus(); try { e.setSelectionRange(pos, pos); } catch (x) {} }
     if (keepScroll) window.scrollTo(0, y);
     if (!keepScroll) maybeTour();
@@ -2019,6 +2025,7 @@ body.selmode .nav{visibility:hidden}
       var dpd = e.target.closest && e.target.closest("[data-dpedit]"); if (dpd) { var pc9 = dpd.closest("[data-r]"), pe9 = pc9 && st.pedidos.filter(function (x) { return String(x.r) === pc9.getAttribute("data-r"); })[0]; if (pe9) { e.stopPropagation(); pedModal(pe9, true); return; } }
       var ip = e.target.closest && e.target.closest("[data-ipd]"); if (ip && !e.target.closest(".swb,.swl")) { var pi = st.pedidos.filter(function (x) { return String(x.r) === ip.getAttribute("data-ipd"); })[0]; if (pi) { e.stopPropagation(); pedModal(pi); return; } }
       if (e.target.closest && e.target.closest("[data-agpop]")) { e.stopPropagation(); agPop(); return; }
+      if (e.target.closest && e.target.closest("[data-curpop]")) { e.stopPropagation(); st.curpop = true; render(true); return; }
       var ix = e.target.closest && e.target.closest("[data-inix]"); if (ix) { e.stopPropagation(); st.inix = st.inix === false; render(true); return; }
       var a = e.target.closest && e.target.closest("[data-swa]"); if (!a) return; e.stopPropagation();
       var P = a.getAttribute("data-swa").split(":"), kind = P[0], act = P[1], key = P.slice(2).join(":");

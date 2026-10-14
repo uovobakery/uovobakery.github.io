@@ -501,13 +501,33 @@ body.selmode .nav{visibility:hidden}
       if (e.target === m) m.remove();
     });
   }
+  function entPop(k) {
+    var m = document.createElement("div"); m.className = "modal";
+    function draw() {
+      var L = st.pedidos.filter(function (p) { var e = estadoDe(p); return e !== "ent" && e !== "canc" && e !== "test" && (p.entrega || "Sin fecha") === k; }), tot = {}, q = 0;
+      L.forEach(function (p) { var it = pedItems(p).cookies; Object.keys(it).forEach(function (n) { tot[n] = (tot[n] || 0) + it[n]; q += it[n]; }); });
+      m.innerHTML = '<div class="box" style="width:100%;max-height:88vh;overflow:auto"><h3>' + esc(k === "Sin fecha" ? "Sin fecha de entrega" : k) + '</h3>' + (q ? '<div class="meta" style="margin-bottom:4px">Para preparar (' + q + " cookies):</div>" + Object.keys(tot).sort(function (a, b) { return tot[b] - tot[a]; }).map(function (n) { return '<div class="frow"><span>' + esc(n) + "</span><b>" + tot[n] + "</b></div>"; }).join("") : "") + '<div class="meta" style="margin:12px 0 4px">Pedidos:</div>' + (L.length ? L.map(function (p) { var sb = ESTL[estadoDe(p)]; return '<button class="card" data-entp="' + p.r + '" style="width:100%;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;margin-bottom:8px;box-shadow:0 0 0 1px #E1EAF8"><div style="min-width:0"><div class="nm" style="font-size:.98rem">' + esc(p.nombre) + '</div><div class="id">' + esc(p.id) + " · " + (Number(p.cant) || 0) + ' cookies</div></div><div style="text-align:right"><div class="tot" style="font-size:.95rem">' + money(p.total) + '</div><span class="badge">' + esc(sb && sb[0] || "") + "</span></div></button>"; }).join("") : '<div class="meta">Ya no quedan pedidos.</div>') + '<button class="btn" data-a="x">Cerrar</button></div>';
+    }
+    draw(); document.body.appendChild(m);
+    m.addEventListener("click", function (e) {
+      if (e.target === m || e.target.closest("[data-a=x]")) { m.remove(); return; }
+      var o = e.target.closest("[data-entp]"); if (o) { var p = st.pedidos.filter(function (z) { return String(z.r) === o.getAttribute("data-entp"); })[0]; if (p) { pedModal(p); } }
+    });
+    window.__entRedraw = function () { if (document.body.contains(m)) draw(); };
+  }
+  function recFor(p) {
+    var n = nrm(p.nombre), R = st.recetas || [], x = R.filter(function (z) { return nrm(z.nombre) === n; })[0];
+    if (!x) x = R.filter(function (z) { var a = nrm(z.nombre); return a && n && (a.indexOf(n) >= 0 || n.indexOf(a) >= 0); })[0];
+    if (!x) { var tk = n.split(" ").filter(function (t) { return t.length >= 4; }); x = R.filter(function (z) { var a = nrm(z.nombre); return tk.length && tk.every(function (t) { return a.indexOf(t) >= 0; }); })[0]; }
+    return x || null;
+  }
   function agPop() {
     var m = document.createElement("div"); m.className = "modal"; m.innerHTML = '<div class="box" style="width:100%"><h3>Agotados</h3><div class="meta">Cargando…</div></div>'; document.body.appendChild(m);
     var ag = st.productos.filter(function (p) { return p.ag; });
     function sw(p, k, lab) { return '<button class="sw' + (k === "ag" ? " warn" : "") + (p[k] ? " on" : "") + '" data-agt="' + k + '" data-agr="' + p.r + '" style="border:0;background:none;padding:0"><i></i>' + lab + "</button>"; }
     function draw() {
       m.innerHTML = '<div class="box" style="width:100%;max-height:88vh;overflow:auto"><h3>Agotados</h3>' + ag.map(function (p) {
-        var r = (st.recetas || []).filter(function (z) { return nrm(z.nombre) === nrm(p.nombre); })[0], body;
+        var r = recFor(p), body;
         if (!r || !r.items || !r.items.length) body = '<div class="meta">Sin receta cargada: no puedo ver qué insumos faltan.</div>';
         else {
           var rows = r.items.map(function (x) { var s0 = (st.stock || []).filter(function (z) { return nrm(z.ins) === nrm(x.n); })[0], have = s0 && s0.mov ? s0.stock : 0, ok = have >= x.q; return { n: x.n, q: x.q, have: have, u: s0 ? s0.uni : "", ok: ok, nm: !s0 || !s0.mov }; }).sort(function (a, b) { return a.ok - b.ok; });
@@ -523,7 +543,7 @@ body.selmode .nav{visibility:hidden}
       var nv = !p[k]; p[k] = nv; draw();
       (DEMO ? Promise.resolve({ ok: true }) : api("setProducto", { r: p.r, nombre: p.nombre, campo: k, valor: nv })).then(function (j) { if (!j || !j.ok) { p[k] = !nv; draw(); toast(j && j.msg || "No se pudo"); } }).catch(function () { p[k] = !nv; draw(); toast("No se pudo"); });
     });
-    Promise.all([st.recetas ? 0 : api("recetas2").then(function (j) { if (j && j.ok) { st.recetas = j.recetas; st.insumos = j.insumos; } }).catch(function () {}), st.stock ? 0 : api("stock").then(function (j) { if (j && j.ok) st.stock = j.stock; }).catch(function () {})]).then(function () { if (document.body.contains(m)) draw(); });
+    Promise.all([api("recetas2").then(function (j) { if (j && j.ok) { st.recetas = j.recetas; st.insumos = j.insumos; } }).catch(function () {}), api("stock").then(function (j) { if (j && j.ok) st.stock = j.stock; }).catch(function () {})]).then(function () { if (document.body.contains(m)) draw(); });
   }
   function pedForm() {
     var pr = (st.productos || []).filter(function (x) { return x.nombre; }), n = st.pnf || {};
@@ -614,7 +634,7 @@ body.selmode .nav{visibility:hidden}
     }
     if (al.length) h += '<div class="menu" id="alertas" style="margin-bottom:12px">' + al.map(function (x) { return '<button class="mi" ' + (x[1] === "@ag" ? 'data-agpop="1"' : 'data-go="' + x[1] + '" data-fil="' + x[2] + '"') + ' style="padding:12px 16px"><div><b style="font-weight:600">' + x[0] + "</b></div></button>"; }).join("") + "</div>";
     var ks = Object.keys(ent).sort(function (a, b) { return ent[b].n - ent[a].n; }).slice(0, 3);
-    if (ks.length) h += '<div class="nm" style="margin:6px 2px 8px">Entregas pendientes</div><div class="card" id="entregas">' + ks.map(function (k) { return '<div class="frow"><span>' + esc(k) + "</span><span><b>" + ent[k].n + "</b> pedidos · " + ent[k].q + " cookies</span></div>"; }).join("") + "</div>";
+    if (ks.length) h += '<div class="nm" style="margin:6px 2px 8px">Entregas</div>' + ks.map(function (k) { return '<button class="card" data-entpop="' + esc(k) + '" style="width:100%;text-align:left;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;margin-bottom:8px"><div><div class="nm" style="font-size:1rem">' + esc(k === "Sin fecha" ? "Sin fecha de entrega" : k) + '</div><div class="meta" style="margin:0">' + ent[k].n + (ent[k].n === 1 ? " pedido" : " pedidos") + " · " + ent[k].q + ' cookies</div></div><span style="color:var(--soft)">›</span></button>'; }).join("");
     h += '<div class="nm" style="margin:6px 2px 8px">Atajos</div><div class="kpis four" id="atajos" style="grid-template-columns:repeat(4,1fr)">' + [["proveedores", "🧾", "Insumos"], ["stock", "📦", "Stock"], ["recetas", "🧁", "Recetas"], ["packs", "🎁", "Packs y combos"], ["cupones", "🏷️", "Cupones"], ["textos", "✏️", "Textos página"], ["resenas", "⭐", "Reseñas"]].filter(function (x) { return allowed(x[0]); }).map(function (x) { return '<button class="kpi" data-go="' + x[0] + '"' + (x[3] ? ' data-newp="1"' : "") + '><b style="font-size:1.4rem">' + x[1] + '</b><span style="font-size:.68rem;line-height:1.15">' + x[2] + "</span></button>"; }).join("") + "</div>";
     return curH + h;
   }
@@ -2013,6 +2033,7 @@ body.selmode .nav{visibility:hidden}
       if (d) { e.stopPropagation(); var r0 = Number(d.getAttribute("data-swdel")), p0 = st.pedidos.filter(function (x) { return x.r === r0; })[0]; if (p0) pedSheet(p0); return; }
       var dpd = e.target.closest && e.target.closest("[data-dpedit]"); if (dpd) { var pc9 = dpd.closest("[data-r]"), pe9 = pc9 && st.pedidos.filter(function (x) { return String(x.r) === pc9.getAttribute("data-r"); })[0]; if (pe9) { e.stopPropagation(); pedModal(pe9, true); return; } }
       var ip = e.target.closest && e.target.closest("[data-ipd]"); if (ip && !e.target.closest(".swb,.swl")) { var pi = st.pedidos.filter(function (x) { return String(x.r) === ip.getAttribute("data-ipd"); })[0]; if (pi) { e.stopPropagation(); pedModal(pi); return; } }
+      var epp = e.target.closest && e.target.closest("[data-entpop]"); if (epp) { e.stopPropagation(); entPop(epp.getAttribute("data-entpop")); return; }
       if (e.target.closest && e.target.closest("[data-agpop]")) { e.stopPropagation(); agPop(); return; }
       if (e.target.closest && e.target.closest("[data-curpop]")) { e.stopPropagation(); st.curpop = true; render(true); return; }
       var ix = e.target.closest && e.target.closest("[data-inix]"); if (ix) { e.stopPropagation(); st.inix = st.inix === false; render(true); return; }

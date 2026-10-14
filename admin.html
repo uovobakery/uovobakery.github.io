@@ -151,8 +151,8 @@ body{background:radial-gradient(1200px 500px at 50% -120px,#DCE9FF 0,transparent
 .top{background:linear-gradient(135deg,#0F59C4,#0B3F91);border-radius:0 0 22px 22px;box-shadow:0 6px 18px rgba(11,63,145,.25);padding-bottom:14px}
 .card{border:0;border-radius:20px;box-shadow:var(--shadow);animation:rise .28s ease backwards}
 @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-.hero{background:linear-gradient(135deg,#1F6FE0,#0B3F91);border-radius:24px;box-shadow:0 12px 28px rgba(11,63,145,.28);padding:22px 20px}
-.hero b{font-size:2.3rem;letter-spacing:-.5px}
+.hero{background:linear-gradient(135deg,#1F6FE0,#0B3F91);border-radius:20px;box-shadow:0 8px 18px rgba(11,63,145,.22);padding:12px 16px;margin-bottom:10px}
+.hero b{font-size:1.65rem;letter-spacing:-.5px;margin:2px 0}.hero small{font-size:.78rem}
 .kpi{border:0;border-radius:20px;box-shadow:var(--shadow2);transition:transform .12s}
 .kpi:active,.card:active,.chip:active,.sm:active,.btn:active,.mi:active{transform:scale(.97)}
 .btn{background:linear-gradient(135deg,#1F6FE0,#0F59C4);border-radius:14px;padding:14px;box-shadow:0 6px 14px rgba(15,89,196,.25);transition:transform .12s}
@@ -169,7 +169,7 @@ body{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
 @keyframes pop{from{transform:scale(.92);opacity:0}to{transform:none;opacity:1}}
 .sw[data-kind]{border-radius:20px}.sw[data-kind] .card{box-shadow:var(--shadow)}
 .sw.selon .pc{outline:3px solid #0F59C4;outline-offset:-3px;background:#EAF2FD}.sw.selon{position:relative}.sw.selon::after{content:"✓";position:absolute;top:8px;right:10px;width:24px;height:24px;border-radius:50%;background:#0F59C4;color:#fff;display:grid;place-items:center;font-weight:800;font-size:.85rem;z-index:3}
-#selbar{position:fixed;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:40;background:#0C2247;color:#fff;border-radius:22px;padding:10px 12px;display:flex;gap:8px;align-items:center;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+#selbar{position:fixed;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:80;background:#0C2247;color:#fff;border-radius:22px;padding:10px 12px;display:flex;gap:8px;align-items:center;box-shadow:0 10px 30px rgba(0,0,0,.35)}
 #selbar b{flex:1;font-size:.95rem}#selbar button{border:0;border-radius:12px;padding:10px 12px;font-weight:800;background:rgba(255,255,255,.14);color:#fff}#selbar button.d{background:#d93a2f}
 body.selmode .nav{visibility:hidden}
 .mi{transition:background .12s}.mi:active{background:#f0f5ff}
@@ -448,7 +448,7 @@ body.selmode .nav{visibility:hidden}
     if (!st.curpop || st.v !== "inicio") { if (m) m.remove(); st.curpop = false; return; }
     var cur = st.pedidos.filter(function (p) { var e = estadoDe(p); return e === "pend" || e === "coc" || e === "list"; });
     if (!cur.length) { if (m) m.remove(); st.curpop = false; return; }
-    if (!m) { m = document.createElement("div"); m.id = "curm"; m.className = "modal"; m.addEventListener("click", function (e) { if (e.target === m || e.target.closest("[data-popx]")) { st.curpop = false; m.remove(); } }); document.body.appendChild(m); }
+    if (!m) { m = document.createElement("div"); m.id = "curm"; m.className = "modal"; m.addEventListener("click", function (e) { if (e.target === m || e.target.closest("[data-popx]")) { st.curpop = false; st.sel = null; m.remove(); selSync(); } }); document.body.appendChild(m); }
     m.innerHTML = '<div class="box" style="width:100%;max-height:88vh;overflow:auto"><h3>Pedidos en curso (' + cur.length + ')</h3>' + cur.map(curRow).join("") + '<button class="btn" data-popx="1" style="margin-top:6px">Cerrar</button></div>';
   }
   function pedModal(p, startEdit) {
@@ -502,40 +502,28 @@ body.selmode .nav{visibility:hidden}
     });
   }
   function agPop() {
-    var m = document.createElement("div"); m.className = "modal"; m.innerHTML = '<div class="box" style="width:100%"><h3>Cookies agotadas</h3><div class="meta">Cargando…</div></div>'; document.body.appendChild(m);
+    var m = document.createElement("div"); m.className = "modal"; m.innerHTML = '<div class="box" style="width:100%"><h3>Agotados</h3><div class="meta">Cargando…</div></div>'; document.body.appendChild(m);
     var ag = st.productos.filter(function (p) { return p.ag; });
+    function sw(p, k, lab) { return '<button class="sw' + (k === "ag" ? " warn" : "") + (p[k] ? " on" : "") + '" data-agt="' + k + '" data-agr="' + p.r + '" style="border:0;background:none;padding:0"><i></i>' + lab + "</button>"; }
     function draw() {
-      m.innerHTML = '<div class="box" style="width:100%;max-height:88vh;overflow:auto"><h3>Cookies agotadas</h3>' + ag.map(function (p) {
+      m.innerHTML = '<div class="box" style="width:100%;max-height:88vh;overflow:auto"><h3>Agotados</h3>' + ag.map(function (p) {
         var r = (st.recetas || []).filter(function (z) { return nrm(z.nombre) === nrm(p.nombre); })[0], body;
         if (!r || !r.items || !r.items.length) body = '<div class="meta">Sin receta cargada: no puedo ver qué insumos faltan.</div>';
         else {
           var rows = r.items.map(function (x) { var s0 = (st.stock || []).filter(function (z) { return nrm(z.ins) === nrm(x.n); })[0], have = s0 && s0.mov ? s0.stock : 0, ok = have >= x.q; return { n: x.n, q: x.q, have: have, u: s0 ? s0.uni : "", ok: ok, nm: !s0 || !s0.mov }; }).sort(function (a, b) { return a.ok - b.ok; });
           var fal = rows.filter(function (z) { return !z.ok; }).length;
-          body = '<div class="meta" style="margin-bottom:4px">' + (fal ? "Faltan " + fal + " insumo" + (fal > 1 ? "s" : "") + " para una masa:" : "Hay stock para una masa de todo. Revisá si la marcás disponible.") + "</div>" + rows.map(function (z) { return '<div class="frow"><span>' + (z.ok ? "🟢 " : "🔴 ") + esc(z.n) + '</span><span class="' + (z.ok ? "" : "rd") + '">' + (z.nm ? "sin stock cargado" : "tenés " + fm(z.have) + " " + esc(z.u)) + " · masa usa " + fm(z.q) + "</span></div>"; }).join("");
+          body = '<div class="meta" style="margin:6px 0 4px">' + (fal ? "Faltan " + fal + " insumo" + (fal > 1 ? "s" : "") + " para una masa:" : "Hay stock para una masa de todo.") + "</div>" + rows.map(function (z) { return '<div class="frow"><span>' + (z.ok ? "🟢 " : "🔴 ") + esc(z.n) + '</span><span class="' + (z.ok ? "" : "rd") + '">' + (z.nm ? "sin stock cargado" : "tenés " + fm(z.have) + " " + esc(z.u)) + " · masa usa " + fm(z.q) + "</span></div>"; }).join("");
         }
-        return '<div class="card"><div class="nm">' + esc(p.nombre) + "</div>" + body + '<button class="sm" data-agon="' + p.r + '" style="margin-top:8px">Marcar disponible</button></div>';
+        return '<div class="card" style="box-shadow:0 0 0 1px #E1EAF8"><div class="nm">' + esc(p.nombre) + ' <span class="badge b">' + esc(p.cat || "Sin categoría") + '</span></div><div class="row" style="margin:10px 0 2px;align-items:center;justify-content:flex-start;gap:18px">' + sw(p, "ag", "Agotado") + sw(p, "vi", "Visible") + "</div>" + body + "</div>";
       }).join("") + '<button class="btn" data-a="x">Cerrar</button></div>';
     }
     m.addEventListener("click", function (e) {
-      if (e.target === m || e.target.closest("[data-a=x]")) { m.remove(); return; }
-      var on = e.target.closest("[data-agon]"); if (!on) return; var p = st.productos.filter(function (z) { return String(z.r) === on.getAttribute("data-agon"); })[0]; if (!p) return;
-      (DEMO ? Promise.resolve({ ok: true }) : api("setProducto", { r: p.r, nombre: p.nombre, campo: "ag", valor: false })).then(function (j) { if (j && j.ok) { p.ag = false; ag = ag.filter(function (z) { return z !== p; }); if (!ag.length) { m.remove(); render(true); toast("Disponible ✓"); return; } draw(); render(true); toast("Disponible ✓"); } else toast(j && j.msg || "No se pudo"); }).catch(function () { toast("No se pudo"); });
+      if (e.target === m || e.target.closest("[data-a=x]")) { m.remove(); render(true); return; }
+      var t = e.target.closest("[data-agt]"); if (!t) return; var k = t.getAttribute("data-agt"), p = st.productos.filter(function (z) { return String(z.r) === t.getAttribute("data-agr"); })[0]; if (!p) return;
+      var nv = !p[k]; p[k] = nv; draw();
+      (DEMO ? Promise.resolve({ ok: true }) : api("setProducto", { r: p.r, nombre: p.nombre, campo: k, valor: nv })).then(function (j) { if (!j || !j.ok) { p[k] = !nv; draw(); toast(j && j.msg || "No se pudo"); } }).catch(function () { p[k] = !nv; draw(); toast("No se pudo"); });
     });
     Promise.all([st.recetas ? 0 : api("recetas2").then(function (j) { if (j && j.ok) { st.recetas = j.recetas; st.insumos = j.insumos; } }).catch(function () {}), st.stock ? 0 : api("stock").then(function (j) { if (j && j.ok) st.stock = j.stock; }).catch(function () {})]).then(function () { if (document.body.contains(m)) draw(); });
-  }
-  function pnClients() {
-    var m = {}; st.pedidos.forEach(function (p) { var td = String(p.tel || "").replace(/\D/g, ""), k = td.slice(-8) || String(p.mail || "").toLowerCase() || nrm(p.nombre); if (!k) return; var c = m[k] || (m[k] = { n: p.nombre, t: p.tel || "", ml: p.mail || "", c: 0 }); c.c++; if (!c.t && p.tel) c.t = p.tel; if (!c.ml && p.mail) c.ml = p.mail; });
-    return Object.keys(m).map(function (k) { return m[k]; });
-  }
-  function pnSug() {
-    var box = $("pn-sug"); if (!box) return;
-    var nE = $("pn-n"), tE = $("pn-t"), mE = $("pn-ml"), n = nE.value.trim(), td = tE.value.replace(/\D/g, ""), ml = mE.value.trim().toLowerCase(), q = nrm(n), L = pnClients();
-    var ex = L.filter(function (c) { var cd = String(c.t).replace(/\D/g, ""); return (td.length >= 8 && cd.slice(-8) === td.slice(-8)) || (ml && String(c.ml).toLowerCase() === ml) || (q.length >= 3 && nrm(c.n) === q); });
-    st.pnh = [];
-    if (ex.length === 1) { var c = ex[0]; if (!n) nE.value = c.n; if (!tE.value.trim() && c.t) tE.value = c.t; if (!mE.value.trim() && c.ml) mE.value = c.ml; box.innerHTML = '<span class="meta">✓ Cliente conocido: <b>' + esc(c.n) + "</b> · " + c.c + (c.c === 1 ? " pedido" : " pedidos") + "</span>"; return; }
-    var hit = L.filter(function (c) { var cd = String(c.t).replace(/\D/g, ""); return (q.length >= 2 && nrm(c.n).indexOf(q) >= 0) || (td.length >= 4 && cd.indexOf(td) >= 0) || (ml.length >= 3 && String(c.ml).toLowerCase().indexOf(ml) >= 0); }).slice(0, 5);
-    st.pnh = hit;
-    box.innerHTML = hit.map(function (c, i) { return '<button type="button" class="sm" data-pncl="' + i + '">' + esc(c.n) + (c.t ? " · " + esc(c.t) : "") + " (" + c.c + ")</button>"; }).join("");
   }
   function pedForm() {
     var pr = (st.productos || []).filter(function (x) { return x.nombre; }), n = st.pnf || {};
@@ -613,16 +601,16 @@ body.selmode .nav{visibility:hidden}
     var vs = vp > 0 ? Math.round((vm - vp) / vp * 100) : null;
     var MN = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
     var h = '<div class="hero" id="hero" data-go="finanzas" style="cursor:pointer"><small>Hola' + (nom ? ", " + esc(nom) : "") + ' 👋 · vendido en ' + MN[cm] + ' ' + cy + ' (pedidos entregados)</small><b>' + money(vm) + "</b><small>" + pm + " pedidos · " + ck + " cookies" + (vs != null ? " · " + (vs >= 0 ? "▲ " : "▼ ") + Math.abs(vs) + "% vs mes anterior" : "") + "</small></div>" +
-      '<button class="card" id="porvenir" data-go="pedidos" data-fil="todos" style="width:100%;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px"><div><div class="meta">Por venir · pendientes y en marcha (sin entregar)</div><b style="font-size:1.35rem;color:#0F59C4">' + money(vpv) + '</b></div><span style="color:var(--soft)">' + npv + (npv === 1 ? " pedido" : " pedidos") + " ›</span></button>" +
+      '<button class="card" id="porvenir" data-go="pedidos" data-fil="todos" style="width:100%;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;margin-bottom:10px"><div><div class="meta" style="margin:0">Por venir · sin entregar</div><b style="font-size:1.3rem;color:#0F59C4;line-height:1.2">' + money(vpv) + '</b></div><span style="white-space:nowrap;color:var(--soft)">' + npv + (npv === 1 ? " pedido" : " pedidos") + ' ›</span></button>' +
       '<div class="kpis" id="kp-ped">' + [["pend", "Pendientes"], ["coc", "A cocinar"], ["list", "Para entregar"]].map(function (k) { return '<button class="kpi" data-go="pedidos" data-fil="' + k[0] + '"><b>' + c[k[0]] + "</b><span>" + k[1] + "</span></button>"; }).join("") + "</div>";
     var al = [];
     if (viejos) al.push(["⏰ " + viejos + (viejos === 1 ? " pedido sin aprobar hace más de 24 h" : " pedidos sin aprobar hace más de 24 h"), "pedidos", "pend"]);
-    if (ag) al.push(["🚫 " + ag + (ag === 1 ? " cookie agotada" : " cookies agotadas") + " · ver qué falta", "@ag", ""]);
+    if (ag) al.push(["🚫 " + ag + (ag === 1 ? " agotado" : " agotados") + " · ver qué falta", "@ag", ""]);
     stkAlertLines().forEach(function (x) { al.push(x); });
     var cur = st.pedidos.filter(function (p) { var e = estadoDe(p); return e === "pend" || e === "coc" || e === "list"; });
     var curH = "";
     if (cur.length) {
-      curH += '<button class="card" data-curpop="1" style="width:100%;text-align:left;display:flex;align-items:center;justify-content:space-between;padding:14px 16px;margin-bottom:10px"><span class="nm">Pedidos en curso</span><span style="color:var(--soft)"><b style="color:#0F59C4;font-size:1.1rem">' + cur.length + "</b> ›</span></button>" + cur.slice(0, 3).map(curRow).join("");
+      curH += '<button class="card" data-curpop="1" style="width:100%;text-align:left;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;margin-bottom:10px"><span class="nm">Pedidos en curso</span><span style="color:var(--soft)"><b style="color:#0F59C4;font-size:1.1rem">' + cur.length + "</b> ›</span></button>";
     }
     if (al.length) h += '<div class="menu" id="alertas" style="margin-bottom:12px">' + al.map(function (x) { return '<button class="mi" ' + (x[1] === "@ag" ? 'data-agpop="1"' : 'data-go="' + x[1] + '" data-fil="' + x[2] + '"') + ' style="padding:12px 16px"><div><b style="font-weight:600">' + x[0] + "</b></div></button>"; }).join("") + "</div>";
     var ks = Object.keys(ent).sort(function (a, b) { return ent[b].n - ent[a].n; }).slice(0, 3);
@@ -1308,12 +1296,12 @@ body.selmode .nav{visibility:hidden}
     var n = Object.keys(st.sel.keys).length, v = st.v;
     if (!bar) { bar = document.createElement("div"); bar.id = "selbar"; document.body.appendChild(bar); bar.addEventListener("click", selAct); }
     document.body.classList.add("selmode");
-    bar.innerHTML = '<b>' + n + (n === 1 ? " elegido" : " elegidos") + "</b>" + (v === "pedidos" ? '<button data-sa="adv">Avanzar</button><button data-sa="cc">Cancelar</button>' : v === "stock" ? '<button data-sa="zero">Stock en 0</button>' : "") + '<button data-sa="del" class="d">Eliminar</button><button data-sa="x">✕</button>';
+    bar.innerHTML = '<b>' + n + (n === 1 ? " elegido" : " elegidos") + "</b>" + ((v === "pedidos" || v === "inicio") ? '<button data-sa="adv">Avanzar</button><button data-sa="cc">Cancelar</button>' : v === "stock" ? '<button data-sa="zero">Stock en 0</button>' : "") + '<button data-sa="del" class="d">Eliminar</button><button data-sa="x">✕</button>';
   }
   function selAct(e) {
     var b = e.target.closest("[data-sa]"); if (!b || !st.sel) return; var a = b.getAttribute("data-sa"), v = st.v, keys = Object.keys(st.sel.keys);
     if (a === "x") { selClear(); return; }
-    if (v === "pedidos") {
+    if (v === "pedidos" || v === "inicio") {
       var L = st.pedidos.filter(function (p) { return keys.indexOf(String(p.r)) >= 0; });
       if (a === "del") { confirmM("Se eliminan " + L.length + " pedidos del todo.", function () { selClear(); delPedidos(L.map(function (p) { return { r: p.r, id: p.id }; })); }); return; }
       var ch = Promise.resolve(), n = 0;
@@ -2008,8 +1996,8 @@ body.selmode .nav{visibility:hidden}
     }, { passive: true });
     var lpT = 0, lpX = 0, lpY = 0;
     function lpKey(w) { return w && w.getAttribute("data-sw"); }
-    function lpOk() { return st.v === "pedidos" || st.v === "proveedores" || st.v === "stock"; }
-    function lpStart(e) { clearTimeout(lpT); if (!lpOk() || e.target.closest("input,textarea,select,a,.swb,.swl,.modal")) return; var w = e.target.closest(".sw[data-kind]"); if (!w) return; var pt = e.touches ? e.touches[0] : e; lpX = pt.clientX; lpY = pt.clientY;
+    function lpOk() { return st.v === "pedidos" || st.v === "proveedores" || st.v === "stock" || (st.v === "inicio" && !!document.getElementById("curm")); }
+    function lpStart(e) { clearTimeout(lpT); if (!lpOk() || e.target.closest("input,textarea,select,a,.swb,.swl,.modal:not(#curm)")) return; var w = e.target.closest(".sw[data-kind]"); if (!w) return; var pt = e.touches ? e.touches[0] : e; lpX = pt.clientX; lpY = pt.clientY;
       lpT = setTimeout(function () { lpT = 0; if (!st.sel) st.sel = { v: st.v, keys: {} }; var k = lpKey(w); st.sel.keys[k] = true; window.__lpSw = true; try { navigator.vibrate && navigator.vibrate(18); } catch (x) {} closeSw(); selSync(); }, 480); }
     function lpMove(e) { if (!lpT) return; var pt = e.touches ? e.touches[0] : e; if (Math.abs(pt.clientX - lpX) > 8 || Math.abs(pt.clientY - lpY) > 8) { clearTimeout(lpT); lpT = 0; } }
     function lpEnd() { clearTimeout(lpT); lpT = 0; if (window.__lpSw) setTimeout(function () { window.__lpSw = false; }, 450); }
@@ -2018,7 +2006,7 @@ body.selmode .nav{visibility:hidden}
     document.addEventListener("contextmenu", function (e) { if (lpOk() && e.target.closest(".sw[data-kind]")) e.preventDefault(); });
     document.addEventListener("click", function (e) {
       if (window.__lpSw) { window.__lpSw = false; e.stopPropagation(); e.preventDefault(); return; }
-      if (st.sel && lpOk() && !e.target.closest("#selbar,.modal")) { var w2 = e.target.closest(".sw[data-kind]"); if (w2) { var k2 = lpKey(w2); if (st.sel.keys[k2]) delete st.sel.keys[k2]; else st.sel.keys[k2] = true; if (!Object.keys(st.sel.keys).length) st.sel = null; e.stopPropagation(); e.preventDefault(); selSync(); return; } }
+      if (st.sel && lpOk() && !e.target.closest("#selbar,.modal:not(#curm)")) { var w2 = e.target.closest(".sw[data-kind]"); if (w2) { var k2 = lpKey(w2); if (st.sel.keys[k2]) delete st.sel.keys[k2]; else st.sel.keys[k2] = true; if (!Object.keys(st.sel.keys).length) st.sel = null; e.stopPropagation(); e.preventDefault(); selSync(); return; } }
       var c = e.target.closest && e.target.closest(".sw .pc"); if (c && Date.now() - Number(c.getAttribute("data-swd") || 0) < 350) { e.stopPropagation(); e.preventDefault(); return; }
       if (c && c.getAttribute("data-open") && !e.target.closest(".swb,.swl")) { closeSw(); e.stopPropagation(); e.preventDefault(); return; }
       var d = e.target.closest && e.target.closest("[data-swdel]");

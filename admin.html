@@ -134,7 +134,7 @@ button { cursor:pointer; }
 .vzr{display:flex;gap:8px;margin:10px 0}
 .vzr .btn,.vzr .sm{flex:1}
 .ska{text-align:right;min-width:78px;padding:6px 10px;border-radius:12px;line-height:1.15}.ska b{display:block;font-size:1.15rem}.ska span{font-size:.72rem}.ska small{display:block;font-size:.66rem;opacity:.8}.skb{background:#EAF2FD;color:#0F59C4}.skg{background:#E3F4E8;color:#1B7A3A}.sky{background:#FFF1D6;color:#B26A00}.skr{background:#FBE9E7;color:#B3261E}.skn{background:#F0F2F5;color:#7a869a}
-.sw{position:relative;overflow:hidden;border-radius:16px;margin-bottom:12px}.sw .card{margin-bottom:0;position:relative;transition:transform .2s;touch-action:pan-y}.swb{position:absolute;right:0;top:0;bottom:0;width:84px;background:#d93a2f;color:#fff;border:0;display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:opacity .15s}.swl{position:absolute;left:0;top:0;bottom:0;width:84px;background:#1f9d55;color:#fff;border:0;display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:opacity .15s;font-weight:800;font-size:.8rem;text-align:center;padding:4px}.swl.o{background:#e08a00}.sw.sxr .swb,.sw.sxl .swl{opacity:1;visibility:visible}.bpl{margin:8px 0;padding:10px;border:1px solid #dde6f4;border-radius:12px}
+.sw{position:relative;overflow:hidden;border-radius:16px;margin-bottom:12px}.sw .card{margin-bottom:0;position:relative;transition:transform .2s;touch-action:pan-y}.swb{position:absolute;right:0;top:0;bottom:0;width:84px;background:#d93a2f;color:#fff;border:0;display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:opacity .15s}.sw[data-kind]{display:block;gap:0;font-size:inherit;font-weight:inherit;color:inherit;width:100%}.sw[data-kind] .pc{width:100%;box-sizing:border-box}.ipd{width:100%;text-align:left;cursor:pointer}.swl{position:absolute;left:0;top:0;bottom:0;width:84px;background:#1f9d55;color:#fff;border:0;display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:opacity .15s;font-weight:800;font-size:.8rem;text-align:center;padding:4px}.swl.o{background:#e08a00}.sw.sxr .swb,.sw.sxl .swl{opacity:1;visibility:visible}.bpl{margin:8px 0;padding:10px;border:1px solid #dde6f4;border-radius:12px}
 .bk{position:relative;display:flex;align-items:center;justify-content:center;min-height:40px;margin-bottom:10px}.bk .back{position:absolute;left:0;top:50%;transform:translateY(-50%);padding-right:0}.crumb{font-size:.95rem;font-weight:700;color:#fff;background:#0F59C4;padding:7px 18px;border-radius:999px;box-shadow:0 2px 6px rgba(15,89,196,.25)}.vzin input.inp{flex:1;min-height:46px;margin:0}.pen{border:0;background:#eef3fb;border-radius:50%;width:34px;height:34px;color:#0F59C4;flex:none}
 .vzin{display:flex;align-items:flex-end;gap:8px}.vzin textarea{flex:1;min-height:46px;max-height:120px;resize:none;margin:0}.vzin button{flex:none;width:46px;height:46px;border-radius:50%;border:0;display:flex;align-items:center;justify-content:center;font-size:1.2rem;padding:0}.vzmic{background:#eef3fb;color:#0F59C4}.vzmic.on{background:#b3261e;color:#fff;animation:pu 1s infinite}.vzsend{background:#0F59C4;color:#fff}.vzsend svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .mic.on{background:#b3261e;border-color:#b3261e;color:#fff;animation:pu 1s infinite}
@@ -407,6 +407,49 @@ button { cursor:pointer; }
   }
   function closeSw() { Array.prototype.forEach.call(document.querySelectorAll(".sw .pc"), function (c) { c.style.transform = ""; c.removeAttribute("data-open"); c.parentNode.classList.remove("sxl", "sxr"); }); st.swo = null; }
   function focusSel(sel) { setTimeout(function () { var e = document.querySelector(sel); if (e) { e.scrollIntoView({ block: "center" }); e.focus(); } }, 60); }
+  function pedModal(p) {
+    var m = document.createElement("div"); m.className = "modal"; m.style.alignItems = "end";
+    function draw() {
+      var c = p.cc || p.cl, wa = waLink(p.tel);
+      m.innerHTML = '<div class="box" style="width:100%;max-height:90vh;overflow:auto"><h3>' + esc(p.nombre) + '</h3><div class="meta">' + esc(p.id) + " · " + esc(p.fecha) + (p.pago ? " · " + esc(p.pago) : "") + (p.cupon ? " · Cupón " + esc(p.cupon) : "") + (p.entrega ? " · Entrega " + esc(p.entrega) : "") + '</div><div class="tot" style="margin:6px 0">' + money(p.total) + " · " + (Number(p.cant) || 0) + ' cookies</div><div style="white-space:pre-wrap;margin:6px 0 10px;line-height:1.4">' + esc(p.pedido || "") + "</div>" +
+        (wa ? '<a class="sm" target="_blank" rel="noopener" href="' + wa + '">💬 ' + esc(p.tel) + "</a>" : "") +
+        '<textarea class="inp" rows="2" id="pm-n" placeholder="Nota del pedido…" style="margin-top:8px">' + esc(p.notas) + "</textarea>" +
+        (c ? '<div style="margin:8px 0"><span class="badge">' + (p.cl ? "Cancelado por el cliente" : "Cancelado por nosotros") + "</span></div>" : '<div class="tgl" style="margin:8px 0">' + [["ap", "Aprobado"], ["he", "Hecho"], ["en", "Entregado"]].map(function (t) { return '<button class="tg' + (p[t[0]] ? " on" : "") + '" data-t="' + t[0] + '">' + (p[t[0]] ? "✓ " : "") + t[1] + "</button>"; }).join("") + "</div>") +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="sm red" data-a="del">Eliminar</button>' + (p.cl ? "" : p.cc ? '<button class="sm" data-a="re">Reactivar</button>' : '<button class="sm red" data-a="cc">Cancelar pedido</button>') + '<button class="btn" data-a="x" style="flex:1">Cerrar</button></div></div>';
+    }
+    draw(); document.body.appendChild(m);
+    m.addEventListener("change", function (e) { if (e.target.id === "pm-n" && e.target.value !== (p.notas || "")) patchPedido(p.r, "notas", e.target.value); });
+    m.addEventListener("click", function (e) {
+      var t = e.target.closest("[data-t]"), a = e.target.closest("[data-a]");
+      if (t) { var nt = $("pm-n"); if (nt && nt.value !== (p.notas || "")) patchPedido(p.r, "notas", nt.value); patchPedido(p.r, t.getAttribute("data-t"), !p[t.getAttribute("data-t")]); draw(); return; }
+      if (a) { var k = a.getAttribute("data-a"), nt2 = $("pm-n"); if (nt2 && nt2.value !== (p.notas || "")) patchPedido(p.r, "notas", nt2.value);
+        if (k === "x") { m.remove(); return; } if (k === "cc") { patchPedido(p.r, "cc", true); draw(); return; } if (k === "re") { patchPedido(p.r, "cc", false); draw(); return; }
+        if (k === "del") { m.remove(); pedSheet(p); return; } }
+      if (e.target === m) m.remove();
+    });
+  }
+  function agPop() {
+    var m = document.createElement("div"); m.className = "modal"; m.innerHTML = '<div class="box" style="width:100%"><h3>Cookies agotadas</h3><div class="meta">Cargando…</div></div>'; document.body.appendChild(m);
+    var ag = st.productos.filter(function (p) { return p.ag; });
+    function draw() {
+      m.innerHTML = '<div class="box" style="width:100%;max-height:88vh;overflow:auto"><h3>Cookies agotadas</h3>' + ag.map(function (p) {
+        var r = (st.recetas || []).filter(function (z) { return nrm(z.nombre) === nrm(p.nombre); })[0], body;
+        if (!r || !r.items || !r.items.length) body = '<div class="meta">Sin receta cargada: no puedo ver qué insumos faltan.</div>';
+        else {
+          var rows = r.items.map(function (x) { var s0 = (st.stock || []).filter(function (z) { return nrm(z.ins) === nrm(x.n); })[0], have = s0 && s0.mov ? s0.stock : 0, ok = have >= x.q; return { n: x.n, q: x.q, have: have, u: s0 ? s0.uni : "", ok: ok, nm: !s0 || !s0.mov }; }).sort(function (a, b) { return a.ok - b.ok; });
+          var fal = rows.filter(function (z) { return !z.ok; }).length;
+          body = '<div class="meta" style="margin-bottom:4px">' + (fal ? "Faltan " + fal + " insumo" + (fal > 1 ? "s" : "") + " para una masa:" : "Hay stock para una masa de todo. Revisá si la marcás disponible.") + "</div>" + rows.map(function (z) { return '<div class="frow"><span>' + (z.ok ? "🟢 " : "🔴 ") + esc(z.n) + '</span><span class="' + (z.ok ? "" : "rd") + '">' + (z.nm ? "sin stock cargado" : "tenés " + fm(z.have) + " " + esc(z.u)) + " · masa usa " + fm(z.q) + "</span></div>"; }).join("");
+        }
+        return '<div class="card"><div class="nm">' + esc(p.nombre) + "</div>" + body + '<button class="sm" data-agon="' + p.r + '" style="margin-top:8px">Marcar disponible</button></div>';
+      }).join("") + '<button class="btn" data-a="x">Cerrar</button></div>';
+    }
+    m.addEventListener("click", function (e) {
+      if (e.target === m || e.target.closest("[data-a=x]")) { m.remove(); return; }
+      var on = e.target.closest("[data-agon]"); if (!on) return; var p = st.productos.filter(function (z) { return String(z.r) === on.getAttribute("data-agon"); })[0]; if (!p) return;
+      (DEMO ? Promise.resolve({ ok: true }) : api("setProducto", { r: p.r, nombre: p.nombre, campo: "ag", valor: false })).then(function (j) { if (j && j.ok) { p.ag = false; ag = ag.filter(function (z) { return z !== p; }); if (!ag.length) { m.remove(); render(true); toast("Disponible ✓"); return; } draw(); render(true); toast("Disponible ✓"); } else toast(j && j.msg || "No se pudo"); }).catch(function () { toast("No se pudo"); });
+    });
+    Promise.all([st.recetas ? 0 : api("recetas2").then(function (j) { if (j && j.ok) { st.recetas = j.recetas; st.insumos = j.insumos; } }).catch(function () {}), st.stock ? 0 : api("stock").then(function (j) { if (j && j.ok) st.stock = j.stock; }).catch(function () {})]).then(function () { if (document.body.contains(m)) draw(); });
+  }
   function pedForm() {
     var pr = (st.productos || []).filter(function (x) { return x.nombre; }), n = st.pnf || {};
     var h = '<div class="card" id="pn-form"><div class="nm" style="margin-bottom:8px">Nuevo pedido</div><div class="add"><input class="inp" id="pn-n" placeholder="Nombre del cliente" value="' + esc(n.n || "") + '"><input class="inp" id="pn-t" inputmode="tel" placeholder="Teléfono (opcional)" value="' + esc(n.t || "") + '">';
@@ -487,9 +530,20 @@ button { cursor:pointer; }
       '<div class="kpis" id="kp-ped">' + [["pend", "Pendientes"], ["coc", "A cocinar"], ["list", "Para entregar"]].map(function (k) { return '<button class="kpi" data-go="pedidos" data-fil="' + k[0] + '"><b>' + c[k[0]] + "</b><span>" + k[1] + "</span></button>"; }).join("") + "</div>";
     var al = [];
     if (viejos) al.push(["⏰ " + viejos + (viejos === 1 ? " pedido sin aprobar hace más de 24 h" : " pedidos sin aprobar hace más de 24 h"), "pedidos", "pend"]);
-    if (ag) al.push(["🚫 " + ag + (ag === 1 ? " cookie agotada" : " cookies agotadas"), "productos", ""]);
+    if (ag) al.push(["🚫 " + ag + (ag === 1 ? " cookie agotada" : " cookies agotadas") + " · ver qué falta", "@ag", ""]);
     stkAlertLines().forEach(function (x) { al.push(x); });
-    if (al.length) h += '<div class="menu" id="alertas" style="margin-bottom:12px">' + al.map(function (x) { return '<button class="mi" data-go="' + x[1] + '" data-fil="' + x[2] + '" style="padding:12px 16px"><div><b style="font-weight:600">' + x[0] + "</b></div></button>"; }).join("") + "</div>";
+    var cur = st.pedidos.filter(function (p) { var e = estadoDe(p); return e === "pend" || e === "coc" || e === "list"; });
+    if (cur.length) {
+      var op = st.inix !== false;
+      h += '<button class="card" data-inix="1" style="width:100%;text-align:left;display:flex;align-items:center;justify-content:space-between;margin-bottom:' + (op ? "8" : "12") + 'px"><div><div class="nm">Pedidos en curso</div><div class="meta">Deslizá → avanzar · ← eliminar/cancelar · tocá para ver el detalle</div></div><span style="color:var(--soft)"><b style="color:#0F59C4">' + cur.length + "</b> " + (op ? "▴" : "▾") + "</span></button>";
+      if (op) h += cur.slice(0, 20).map(function (p) {
+        var e = estadoDe(p), sb = ESTL[e], so = String(st.swo) === String(p.r);
+        var b = '<article class="card pc ipd"' + (so ? ' data-open="r" style="transform:translateX(-84px)"' : "") + ' data-ipd="' + p.r + '"><div class="row" style="align-items:center;gap:10px"><div style="min-width:0;flex:1"><div class="nm" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(p.nombre) + (p.notas ? " 📝" : "") + '</div><div class="id">' + esc(p.id) + " · " + (Number(p.cant) || 0) + " cookies" + (p.entrega ? " · " + esc(p.entrega) : "") + '</div></div><div style="text-align:right"><div class="tot" style="font-size:1rem">' + money(p.total) + '</div><span class="badge">' + esc(sb && sb[0] || e) + "</span></div></div></article>";
+        return '<div class="sw' + (so ? " sxr" : "") + '" data-kind="ped" data-sw="' + p.r + '">' + advBtn(p) + '<button class="swb" data-swdel="' + p.r + '" aria-label="Eliminar"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>' + b + "</div>";
+      }).join("");
+      if (op && cur.length > 20) h += '<button class="sm" data-go="pedidos" data-fil="todos" style="margin-bottom:12px">Ver los ' + cur.length + " en Pedidos</button>";
+    }
+    if (al.length) h += '<div class="menu" id="alertas" style="margin-bottom:12px">' + al.map(function (x) { return '<button class="mi" ' + (x[1] === "@ag" ? 'data-agpop="1"' : 'data-go="' + x[1] + '" data-fil="' + x[2] + '"') + ' style="padding:12px 16px"><div><b style="font-weight:600">' + x[0] + "</b></div></button>"; }).join("") + "</div>";
     var ks = Object.keys(ent).sort(function (a, b) { return ent[b].n - ent[a].n; }).slice(0, 3);
     if (ks.length) h += '<div class="nm" style="margin:6px 2px 8px">Entregas pendientes</div><div class="card" id="entregas">' + ks.map(function (k) { return '<div class="frow"><span>' + esc(k) + "</span><span><b>" + ent[k].n + "</b> pedidos · " + ent[k].q + " cookies</span></div>"; }).join("") + "</div>";
     h += '<div class="nm" style="margin:6px 2px 8px">Atajos</div><div class="kpis four" id="atajos" style="grid-template-columns:repeat(4,1fr)">' + [["proveedores", "🧾", "Insumos"], ["stock", "📦", "Stock"], ["recetas", "🧁", "Recetas"], ["packs", "🎁", "Packs y combos"], ["cupones", "🏷️", "Cupones"], ["textos", "✏️", "Textos página"], ["resenas", "⭐", "Reseñas"]].filter(function (x) { return allowed(x[0]); }).map(function (x) { return '<button class="kpi" data-go="' + x[0] + '"' + (x[3] ? ' data-newp="1"' : "") + '><b style="font-size:1.4rem">' + x[1] + '</b><span style="font-size:.68rem;line-height:1.15">' + x[2] + "</span></button>"; }).join("") + "</div>";
@@ -1796,6 +1850,9 @@ button { cursor:pointer; }
       if (c && c.getAttribute("data-open") && !e.target.closest(".swb,.swl")) { closeSw(); e.stopPropagation(); e.preventDefault(); return; }
       var d = e.target.closest && e.target.closest("[data-swdel]");
       if (d) { e.stopPropagation(); var r0 = Number(d.getAttribute("data-swdel")), p0 = st.pedidos.filter(function (x) { return x.r === r0; })[0]; if (p0) pedSheet(p0); return; }
+      var ip = e.target.closest && e.target.closest("[data-ipd]"); if (ip && !e.target.closest(".swb,.swl")) { var pi = st.pedidos.filter(function (x) { return String(x.r) === ip.getAttribute("data-ipd"); })[0]; if (pi) { e.stopPropagation(); pedModal(pi); return; } }
+      if (e.target.closest && e.target.closest("[data-agpop]")) { e.stopPropagation(); agPop(); return; }
+      var ix = e.target.closest && e.target.closest("[data-inix]"); if (ix) { e.stopPropagation(); st.inix = st.inix === false; render(true); return; }
       var a = e.target.closest && e.target.closest("[data-swa]"); if (!a) return; e.stopPropagation();
       var P = a.getAttribute("data-swa").split(":"), kind = P[0], act = P[1], key = P.slice(2).join(":");
       if (kind === "ped") { var pp = st.pedidos.filter(function (x) { return String(x.r) === key; })[0], nx = pp && advNext(pp); closeSw(); if (nx) patchPedido(pp.r, nx[0], true); return; }

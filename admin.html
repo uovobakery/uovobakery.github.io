@@ -230,7 +230,7 @@ body.selmode .nav{visibility:hidden}
   var AREAS = [["pedidos", "Pedidos"], ["productos", "Productos"], ["packs", "Packs"], ["recetas", "Recetas"], ["proveedores", "Insumos"], ["textos", "Textos"], ["finanzas", "Finanzas"], ["resenas", "Reseñas"]];
   function can(a) { var r = st.me && st.me.rol; if (!r) return false; if (r === "Dueño" || r === "Total") return true; return String(r).toLowerCase().split(/[,;\s]+/).indexOf(a) >= 0; }
   function permList(p) { if (!p || p === "Dueño" || p === "Total") return AREAS.map(function (x) { return x[0]; }); return String(p).toLowerCase().split(/[,;\s]+/); }
-  var VAREA = { inicio: "pedidos", pedidos: "pedidos", productos: "productos", finanzas: "finanzas", packs: "packs", recetas: "recetas", proveedores: "proveedores", stock: "proveedores", puntos: "proveedores", cupones: "packs", textos: "textos", tandas: "textos", resenas: "resenas" };
+  var VAREA = { inicio: "pedidos", pedidos: "pedidos", productos: "productos", finanzas: "finanzas", packs: "packs", recetas: "recetas", proveedores: "proveedores", stock: "proveedores", puntos: "proveedores", cupones: "packs", textos: "textos", tandas: "textos", cola: "pedidos", resenas: "resenas" };
   function allowed(v) { if (v === "mas") return true; if (v === "accesos" || v === "voz") return !!(st.me && st.me.rol === "Dueño"); return can(VAREA[v]); }
   function firstView() { var o = ["inicio", "pedidos", "productos", "finanzas", "mas"]; for (var i = 0; i < o.length; i++) if (allowed(o[i])) return o[i]; return "mas"; }
   function applyPerms() { Array.prototype.forEach.call($("nav").querySelectorAll("button"), function (b) { b.hidden = !allowed(b.getAttribute("data-v")); }); }
@@ -267,6 +267,7 @@ body.selmode .nav{visibility:hidden}
       if (op === "addPedido") { var nid = "U-" + Math.random().toString(36).slice(2, 6).toUpperCase(), tot = 0, cks = 0, ptx = []; (extra.items || []).forEach(function (it) { var pz = d.productos.filter(function (z) { return z.nombre === it.nombre; })[0]; tot += (pz ? pz.precio : 0) * it.cantidad; cks += it.cantidad; ptx.push(it.cantidad + " x " + it.nombre); }); demo.pedidos.unshift({ r: 90 + demo.pedidos.length, id: nid, fecha: "13/10/2026 01:40", nombre: extra.nombre, tel: extra.telefono || "", mail: extra.email || "", mail: "", pedido: ptx.join(", "), cant: cks, total: extra.total || tot, entrega: extra.entrega, pago: extra.pago || "", ap: !!extra.aprobado, he: false, en: false, notas: "Cargado a mano", cc: false, cl: false, cupon: "", estado: "" }); return res({ ok: true, id: nid }); }
       if (op === "editPedido") { var ep = d.pedidos.filter(function (z) { return z.id === extra.id; })[0]; if (!ep) return res({ ok: false, msg: "No encontré el pedido." }); if (extra.nombre != null) ep.nombre = extra.nombre; if (extra.telefono != null) ep.tel = extra.telefono; if (extra.email != null) ep.mail = extra.email; if (extra.entrega != null) ep.entrega = extra.entrega; if (extra.pago != null) ep.pago = extra.pago; if (extra.items && extra.items.length) { var tt = 0, cc = 0, tx = []; extra.items.forEach(function (it) { var pz = d.productos.filter(function (z) { return z.nombre === it.nombre; })[0]; tt += (pz ? pz.precio : 0) * it.cantidad; cc += it.cantidad; tx.push(it.cantidad + " x " + it.nombre); }); ep.pedido = tx.join(", "); ep.cant = cc; ep.total = tt; } if (extra.total > 0) ep.total = extra.total; return res({ ok: true, id: ep.id }); }
       if (op === "session") return res({ ok: true, session: "S1.demo" });
+      if (op === "cola" || op === "setCola" || op === "delCola") { d.cola = d.cola || [{ r: 2, fecha: "14/10/2026 20:10", nombre: "Carla", tel: "2915001122", mail: "", pedido: "3 x Red Velvet, 1 x Chocomarsh", total: 10000, est: "Esperando" }, { r: 3, fecha: "14/10/2026 21:30", nombre: "Tomás", tel: "2914003344", mail: "t@mail.com", pedido: "PACK 6 (3 Red Velvet + 3 Trichoc)", total: 13500, est: "Esperando" }]; if (op === "setCola") d.cola.forEach(function (x) { if (x.r === extra.r) x.est = extra.est; }); if (op === "delCola") d.cola = d.cola.filter(function (x) { return x.r !== extra.r; }); return res({ ok: true, cola: d.cola }); }
       if (op === "tandas" || op === "saveTandas") { if (op === "saveTandas") d.tandas = (extra.tandas || []).slice().sort(function (a, b) { return a.cierre < b.cierre ? -1 : 1; }); else d.tandas = d.tandas || [{ cierre: "2026-09-10", entrega: "2026-10-03" }, { cierre: "2026-10-20", entrega: "2026-10-30" }, { cierre: "2026-11-12", entrega: "2026-12-05" }]; return res({ ok: true, tandas: d.tandas }); }
       if (op === "pedidos") return res({ ok: true, pedidos: d.pedidos });
       if (op === "productos") return res({ ok: true, productos: d.productos });
@@ -330,11 +331,38 @@ body.selmode .nav{visibility:hidden}
     if (op === "pedidos") return api0(op, extra).then(function (j) { if (!(j && j.ok)) return j; var w = st.tandas ? Promise.resolve() : api0("tandas").then(function (k) { if (k && k.ok) st.tandas = k.tandas; }).catch(function () {}); return w.then(function () { fillEnt(j.pedidos); return j; }); });
     return api0(op, extra).then(function (j) { if ((op === "tandas" || op === "saveTandas") && j && j.ok) { st.tandas = j.tandas; fillEnt(st.pedidos); } return j; });
   };
+
+  /* ---------- Lista de espera ---------- */
+  function colaMsg(x) { return "¡Hola " + x.nombre + "! Ya abrimos los pedidos. Nos pediste: " + x.pedido + ". ¿Confirmás que lo preparemos?"; }
+  function renderCola() {
+    var L = st.cola || [], w = L.filter(function (x) { return x.est !== "Avisado"; }), a = L.filter(function (x) { return x.est === "Avisado"; });
+    var card = function (x) { return swrap("col", x.r, '<article class="card pc' + (x.est === "Avisado" ? " dim" : "") + '" data-col="' + x.r + '"><div class="row" style="align-items:center;gap:10px"><div style="min-width:0;flex:1"><div class="nm">' + esc(x.nombre) + '</div><div class="meta">' + esc(x.pedido) + '</div><div class="meta">' + esc(x.fecha) + " · " + esc(x.tel) + '</div></div><div class="tot">' + money(x.total) + '</div><span style="color:var(--soft);font-size:1.3rem">›</span></div></article>', true, true, x.est === "Avisado" ? "En espera" : "Avisado", "", [["Eliminar", "rm", "k3"]]); };
+    var h = BACK + '<div class="help">Clientes que armaron su pedido con la tienda cerrada. Tocá uno para escribirles por WhatsApp. Deslizá → marcar avisado, ← eliminar.</div>';
+    if (!L.length) return h + '<div class="empty">No hay nadie en la cola.</div>';
+    if (w.length) h += '<div class="nm" style="margin:10px 2px 8px">Esperando (' + w.length + ")</div>" + w.map(card).join("");
+    if (a.length) h += '<div class="nm" style="margin:14px 2px 8px">Avisados</div>' + a.map(card).join("");
+    return h;
+  }
+  function colaSet(x, est) { return (DEMO ? Promise.resolve({ ok: true, cola: (st.cola || []).map(function (z) { if (z.r === x.r) z.est = est; return z; }) }) : api("setCola", { r: x.r, tel: x.tel, est: est })).then(function (j) { if (j && j.ok) { st.cola = j.cola; return true; } toast(j && j.msg || "No se pudo"); return false; }).catch(function () { toast("No se pudo"); return false; }); }
+  function colaDel(x) { return (DEMO ? Promise.resolve({ ok: true, cola: (st.cola || []).filter(function (z) { return z.r !== x.r; }) }) : api("delCola", { r: x.r, tel: x.tel })).then(function (j) { if (j && j.ok) { st.cola = j.cola; return true; } toast(j && j.msg || "No se pudo"); return false; }).catch(function () { toast("No se pudo"); return false; }); }
+  function colaPop(x) {
+    var m = document.createElement("div"), u = waLink(x.tel); m.className = "modal";
+    m.innerHTML = '<div class="box"><h3>' + esc(x.nombre) + '</h3><div class="meta">' + esc(x.fecha) + " · " + esc(x.tel) + (x.mail ? " · " + esc(x.mail) : "") + '</div><p style="margin:10px 0">' + esc(x.pedido) + '</p><div class="nm">' + money(x.total) + '</div><div style="display:flex;flex-direction:column;gap:8px;margin-top:12px"><a class="btn" data-wa target="_blank" rel="noopener" href="' + u + "?text=" + encodeURIComponent(colaMsg(x)) + '">Escribir por WhatsApp</a><button class="sm" data-est>' + (x.est === "Avisado" ? "Volver a espera" : "Marcar avisado") + '</button><button class="sm red" data-del>Eliminar</button><button class="sm" data-no>Cerrar</button></div></div>';
+    document.body.appendChild(m);
+    m.addEventListener("click", function (e) {
+      e.stopPropagation(); var t = e.target;
+      if (t === m || t.closest("[data-no]")) { m.remove(); return; }
+      if (t.closest("[data-wa]")) { if (x.est !== "Avisado") colaSet(x, "Avisado").then(function () { m.remove(); render(true); }); return; }
+      if (t.closest("[data-est]")) { colaSet(x, x.est === "Avisado" ? "Esperando" : "Avisado").then(function (ok) { if (ok) { m.remove(); render(true); } }); return; }
+      if (t.closest("[data-del]")) confirmM("¿Eliminar a " + x.nombre + " de la cola?", function () { colaDel(x).then(function (ok) { if (ok) { m.remove(); render(true); toast("Eliminado ✓"); } }); });
+    });
+  }
   function tnCount(t) { var L = (st.tandas || []), i = L.indexOf(t), prev = i > 0 ? L[i - 1].cierre : "0000-00-00"; var n = 0, tot = 0; (st.pedidos || []).forEach(function (p) { var d = pedIso(p); if (d && d > prev && d <= t.cierre && !(p.cc || p.cl)) { n++; tot += Number(p.total) || 0; } }); return { n: n, tot: tot }; }
   function renderTandas() {
     var L = st.tandas || [], cur = curTanda(), today = todayIso(), act = st.cfg.filter(function (x) { return x.k === "pedidos_activos"; })[0], open = !act || String(act.v).toUpperCase() !== "NO";
     var row = function (t, i) { var c = tnCount(t); return '<button class="card" data-tn="' + i + '" style="width:100%;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px"><div><div class="nm">Cierra ' + esc(fmtSh(t.cierre)) + '</div><div class="meta">Entrega ' + esc(fmtIso(t.entrega)) + " · " + c.n + " pedidos" + (c.n ? " · " + money(c.tot) : "") + '</div></div><span style="color:var(--soft);font-size:1.3rem">›</span></button>'; };
     var h = BACK + '<div class="card" style="margin-bottom:12px"><div class="row" style="align-items:center;gap:10px"><div style="flex:1"><div class="nm">Pedidos ' + (open ? "abiertos" : "cerrados") + '</div><div class="meta">' + (open ? "La tienda recibe pedidos." : "La tienda está en pausa.") + '</div></div><button class="sm' + (open ? " red" : "") + '" data-topen="' + (open ? "NO" : "SI") + '">' + (open ? "Cerrar pedidos" : "Abrir pedidos") + "</button></div></div>";
+    h += '<button class="card" data-go="cola" style="width:100%;text-align:left;margin-bottom:12px"><div class="nm">Lista de espera</div><div class="meta">Clientes que dejaron su pedido con la tienda cerrada</div></button>';
     h += '<button class="btn" data-tnew="1" style="margin-bottom:12px">＋ Nueva tanda</button>';
     h += '<div class="nm" style="margin:6px 2px 8px">Tanda actual</div>' + (cur ? row(cur, L.indexOf(cur)) : '<div class="empty">No hay una tanda por venir. Cargá una nueva.</div>');
     var nx = L.filter(function (t) { return t.cierre >= today && t !== cur; }), pa = L.filter(function (t) { return t.cierre < today; }).reverse();
@@ -404,7 +432,7 @@ body.selmode .nav{visibility:hidden}
   }
 
   /* ---------- Navegación ---------- */
-  var SUB = ["packs", "recetas", "tandas", "textos", "proveedores", "stock", "puntos", "cupones", "accesos", "voz", "resenas"];
+  var SUB = ["packs", "recetas", "tandas", "cola", "textos", "proveedores", "stock", "puntos", "cupones", "accesos", "voz", "resenas"];
   function goto(v) {
     if (!allowed(v)) v = firstView();
     st.v = v; store("uovo_adm_v", v); var nk = SUB.indexOf(v) >= 0 ? "mas" : v;
@@ -418,6 +446,7 @@ body.selmode .nav{visibility:hidden}
   }
   function fetchView(v) {
     if (v === "textos") { fetchTextos(); return; }
+    if (v === "cola") { api("cola").then(function (j) { if (j && j.ok) { st.cola = j.cola; st.loaded.cola = true; if (st.v === "cola") render(); } else $("view").innerHTML = '<div class="empty">No se pudo cargar.</div>'; }).catch(function () { $("view").innerHTML = '<div class="empty">No se pudo cargar.</div>'; }); return; }
     if (v === "tandas") { Promise.all([api("tandas"), api("config"), st.loaded.pedidos ? Promise.resolve(null) : api("pedidos")]).then(function (R) { if (R[1] && R[1].ok) st.cfg = R[1].config; if (R[2] && R[2].ok) { st.pedidos = R[2].pedidos; st.loaded.pedidos = true; } st.loaded.tandas = true; if (st.v === "tandas") render(); }).catch(function () { $("view").innerHTML = '<div class="empty">No se pudo cargar.</div>'; }); return; }
     if (v === "voz") { api("vozEstado").then(function (j) { st.vz = !!(j && j.clave); st.loaded.voz = true; if (st.v === "voz") render(); }).catch(function () {}); return; }
     if (v === "inicio" && allowed("proveedores") && !st.stkf) { st.stkf = 1; api("stock").then(function (j) { if (j && j.ok) { st.stock = j.stock; st.alertas = !!j.alertas; if (st.alertas) api("recetas2").then(function (k) { if (k && k.ok) { st.recetas = k.recetas; st.insumos = k.insumos; if (st.v === "inicio") render(true); } }).catch(function () {}); if (st.v === "inicio") render(true); } }).catch(function () {}); }
@@ -843,7 +872,7 @@ body.selmode .nav{visibility:hidden}
   /* ---------- Más ---------- */
   function renderMas() {
     var mi = function (x) { return '<button class="mi" data-go="' + x[0] + '"><i>' + x[1] + "</i><div><b>" + x[2] + "</b><span>" + x[3] + "</span></div></button>"; };
-    var neg = [["tandas", "📅", "Tandas", "Cierre de pedidos y fecha de entrega"], ["textos", "✏️", "Textos de la página", "Cambiá los textos de la tienda"], ["proveedores", "🧾", "Proveedores e insumos", "Precios de lo que comprás"], ["stock", "📦", "Stock", "Cuánto te queda y qué reponer"], ["puntos", "🎯", "Puntos de pedido", "Cuándo avisarte para reponer cada insumo"], ["recetas", "🧁", "Recetas", "Costo de cada masa y cookie"], ["packs", "🎁", "Packs y combos", "Activá, pausá y cambiá precios"], ["cupones", "🏷️", "Cupones", "Descuentos para tus clientes"]].filter(function (x) { return allowed(x[0]); });
+    var neg = [["tandas", "📅", "Tandas", "Cierre de pedidos y fecha de entrega"], ["cola", "⏳", "Lista de espera", "Clientes que dejaron su pedido con la tienda cerrada"], ["textos", "✏️", "Textos de la página", "Cambiá los textos de la tienda"], ["proveedores", "🧾", "Proveedores e insumos", "Precios de lo que comprás"], ["stock", "📦", "Stock", "Cuánto te queda y qué reponer"], ["puntos", "🎯", "Puntos de pedido", "Cuándo avisarte para reponer cada insumo"], ["recetas", "🧁", "Recetas", "Costo de cada masa y cookie"], ["packs", "🎁", "Packs y combos", "Activá, pausá y cambiá precios"], ["cupones", "🏷️", "Cupones", "Descuentos para tus clientes"]].filter(function (x) { return allowed(x[0]); });
     var app = [["resenas", "⭐", "Reseñas", "Lo que dicen tus clientes"]].filter(function (x) { return allowed(x[0]); });
     if (st.me && st.me.rol === "Dueño") { app.push(["voz", "🎙️", "Asistente de voz", "Dictá lo que querés hacer"]); app.push(["accesos", "🔑", "Accesos", "Quién puede entrar a esta app"]); }
     if (st.alertas === undefined && !st.stkf && allowed("proveedores")) { st.stkf = 1; api("stock").then(function (j) { if (j && j.ok) { st.stock = j.stock; st.alertas = !!j.alertas; if (st.v === "mas") render(true); } }).catch(function () {}); }
@@ -1609,7 +1638,7 @@ body.selmode .nav{visibility:hidden}
     });
   }
   function render(keepScroll) {
-    var y = window.scrollY, V = { inicio: renderInicio, pedidos: renderPedidos, productos: renderProductos, mas: renderMas, packs: renderPacks, recetas: renderRecetas, finanzas: renderFinanzas, textos: renderTextos, tandas: renderTandas, proveedores: renderProv, stock: renderStock, puntos: renderPuntos, cupones: renderCupones, accesos: function () { return BACK + renderAccesos(); }, voz: renderVozCfg, resenas: renderResenas };
+    var y = window.scrollY, V = { inicio: renderInicio, pedidos: renderPedidos, productos: renderProductos, mas: renderMas, packs: renderPacks, recetas: renderRecetas, finanzas: renderFinanzas, textos: renderTextos, tandas: renderTandas, cola: renderCola, proveedores: renderProv, stock: renderStock, puntos: renderPuntos, cupones: renderCupones, accesos: function () { return BACK + renderAccesos(); }, voz: renderVozCfg, resenas: renderResenas };
     st.popHtml = ""; var h = V[st.v]();
     if (SUB.indexOf(st.v) >= 0 && h.indexOf(BACK) === 0 && NAMES[st.v]) h = '<div class="bk">' + BACK + '<button class="crumb" data-secnav="1" style="border:0;font:inherit;cursor:pointer">' + NAMES[st.v] + " ▾</button></div>" + h.slice(BACK.length);
     var act = document.activeElement, id = act && act.id, pos = act && act.selectionStart;
@@ -1749,7 +1778,7 @@ body.selmode .nav{visibility:hidden}
 
   var NAVS = [["inicio", /\binicio\b|\bhome\b|pantalla principal/], ["pedidos", /pedido/], ["productos", /producto|galletit|\bcookies?\b/], ["finanzas", /finanza|ganancia|\bplata\b/], ["mas", /\bmas\b|\bmenu\b/], ["packs", /\bpacks?\b|combo|promo/], ["recetas", /receta/], ["textos", /texto|\bfrases?\b/], ["stock", /\bstock\b|inventario|existencias?/], ["proveedores", /prov[a-z]*|insumo|packaging|compras?\b/], ["resenas", /rese[nñ]a|opini/], ["accesos", /acceso|permiso/], ["voz", /\bvoz\b|\bclave\b/]];
   var NAVV = /\b(lleva\w*|ir|ve|vaya|voy|anda\w*|abri\w*|abrir|entra\w*|mostra\w*|ver|vamos|cambia\w*|pasa\w*|quiero ir|dirigi\w*)\b/;
-  var NAMES = { inicio: "Inicio", pedidos: "Pedidos", productos: "Productos", finanzas: "Finanzas", mas: "Más", packs: "Packs y combos", recetas: "Recetas", textos: "Textos", tandas: "Tandas", proveedores: "Proveedores e insumos", stock: "Stock", cupones: "Cupones", resenas: "Reseñas", accesos: "Accesos", voz: "Asistente de voz" };
+  var NAMES = { inicio: "Inicio", pedidos: "Pedidos", productos: "Productos", finanzas: "Finanzas", mas: "Más", packs: "Packs y combos", recetas: "Recetas", textos: "Textos", tandas: "Tandas", cola: "Lista de espera", proveedores: "Proveedores e insumos", stock: "Stock", cupones: "Cupones", resenas: "Reseñas", accesos: "Accesos", voz: "Asistente de voz" };
   function navIntent(tx) {
     var n = nrm(tx); if (!NAVV.test(n) || /^(como|donde|que|para que|cuando)\b/.test(n)) return "";
     if (/\bfoto|imagen|video/.test(n)) return "fotos";
@@ -2136,7 +2165,7 @@ body.selmode .nav{visibility:hidden}
     var skx = t.closest("[data-skx]"); if (skx && !skx.closest(".modal")) { st.pop = { k: "stk", key: skx.getAttribute("data-skx"), v: "stock" }; render(true); return; } if (skx) return;
     var skf = t.closest("[data-skf]"); if (skf) { st.skf = skf.getAttribute("data-skf"); render(true); return; }
     if (t.closest("[data-secnav]")) {
-      var SEC = [["tandas", "📅"], ["textos", "✏️"], ["proveedores", "🧾"], ["stock", "📦"], ["puntos", "🎯"], ["recetas", "🧁"], ["packs", "🎁"], ["cupones", "🏷️"], ["resenas", "⭐"]].filter(function (x) { return allowed(x[0]); }), mm = document.createElement("div"); mm.className = "modal";
+      var SEC = [["tandas", "📅"], ["cola", "⏳"], ["textos", "✏️"], ["proveedores", "🧾"], ["stock", "📦"], ["puntos", "🎯"], ["recetas", "🧁"], ["packs", "🎁"], ["cupones", "🏷️"], ["resenas", "⭐"]].filter(function (x) { return allowed(x[0]); }), mm = document.createElement("div"); mm.className = "modal";
       mm.innerHTML = '<div class="box" style="width:100%;max-height:85vh;overflow:auto"><h3>Ir a…</h3>' + SEC.map(function (x) { return '<button class="mi" data-nv="' + x[0] + '" style="width:100%;' + (x[0] === st.v ? "opacity:.5" : "") + '"><i>' + x[1] + "</i><div><b>" + (NAMES[x[0]] || ({ puntos: "Puntos de pedido" })[x[0]]) + "</b></div></button>"; }).join("") + "</div>";
       document.body.appendChild(mm);
       mm.addEventListener("click", function (ev) { var b = ev.target.closest("[data-nv]"); if (b) { mm.remove(); goto(b.getAttribute("data-nv")); } else if (ev.target === mm) mm.remove(); });
@@ -2285,6 +2314,7 @@ body.selmode .nav{visibility:hidden}
       var d = e.target.closest && e.target.closest("[data-swdel]");
       if (d) { e.stopPropagation(); var r0 = Number(d.getAttribute("data-swdel")), p0 = st.pedidos.filter(function (x) { return x.r === r0; })[0]; if (p0) pedSheet(p0); return; }
       var dpd = e.target.closest && e.target.closest("[data-dpedit]"); if (dpd) { var pc9 = dpd.closest("[data-r]"), pe9 = pc9 && st.pedidos.filter(function (x) { return String(x.r) === pc9.getAttribute("data-r"); })[0]; if (pe9) { e.stopPropagation(); pedModal(pe9, true); return; } }
+      var cob = e.target.closest && e.target.closest("[data-col]"); if (cob && !e.target.closest(".swb,.swl")) { e.stopPropagation(); var cx = (st.cola || []).filter(function (z) { return String(z.r) === cob.getAttribute("data-col"); })[0]; if (cx) colaPop(cx); return; }
       var tnb = e.target.closest && e.target.closest("[data-tn]"); if (tnb && !tnb.closest(".modal")) { e.stopPropagation(); tnPop(Number(tnb.getAttribute("data-tn"))); return; }
       if (e.target.closest && e.target.closest("[data-tnew]")) { e.stopPropagation(); tnPop(-1); return; }
       var tno = e.target.closest && e.target.closest("[data-topen]"); if (tno) { e.stopPropagation(); var ac = st.cfg.filter(function (x) { return x.k === "pedidos_activos"; })[0], nv9 = tno.getAttribute("data-topen"); if (!ac) { toast("Falta la fila pedidos_activos en Config"); return; } (DEMO ? Promise.resolve({ ok: true }) : api("setConfig", { r: ac.r, k: "pedidos_activos", valor: nv9 })).then(function (j) { if (j && j.ok) { ac.v = nv9; render(true); toast(nv9 === "SI" ? "Pedidos abiertos ✓" : "Pedidos cerrados ✓"); } else toast(j && j.msg || "No se pudo"); }).catch(function () { toast("No se pudo"); }); return; }
@@ -2301,6 +2331,7 @@ body.selmode .nav{visibility:hidden}
       var a = e.target.closest && e.target.closest("[data-swa]"); if (!a) return; e.stopPropagation();
       var P = a.getAttribute("data-swa").split(":"), kind = P[0], act = P[1], key = P.slice(2).join(":");
       if (kind === "ped") { var pp = st.pedidos.filter(function (x) { return String(x.r) === key; })[0], nx = pp && advNext(pp); closeSw(); if (nx) patchPedido(pp.r, nx[0], true); return; }
+      if (kind === "col") { closeSw(); var cq = (st.cola || []).filter(function (z) { return String(z.r) === key; })[0]; if (!cq) return; if (act === "add") colaSet(cq, cq.est === "Avisado" ? "Esperando" : "Avisado").then(function (ok) { if (ok) render(true); }); else confirmM("¿Eliminar a " + cq.nombre + " de la cola?", function () { colaDel(cq).then(function (ok) { if (ok) { render(true); toast("Eliminado ✓"); } }); }); return; }
       if (kind === "prd") { closeSw(); var pq = st.productos.filter(function (x) { return String(x.r) === key; })[0]; if (!pq) return; if (act === "add") simplePop(pq); else if (act === "vis") visP(pq, !pq.vi).then(function (ok) { if (ok) { render(true); toast(pq.vi ? "Visible ✓" : "Oculto ✓"); } }); else if (act === "arch" || act === "unarch") archP(pq, act === "arch").then(function (ok) { if (ok) { render(true); toast(act === "arch" ? "Archivado ✓" : "Restaurado ✓"); } }); else confirmM("¿Eliminar «" + pq.nombre + "»? Se borra de la tienda.", function () { delProd(pq).then(function (ok) { if (ok) { render(true); toast("Eliminado ✓"); } }); }); return; }
       if (kind === "rec") { closeSw(); if (act === "add") { var pr9 = st.productos.filter(function (x) { return nrm(x.nombre) === nrm(key); })[0]; prodPop(pr9 ? pr9.r : 0, key, true); } else confirmM("¿Eliminar la receta de «" + key + "»?", function () { (DEMO ? Promise.resolve({ ok: true, recetas: st.recetas.filter(function (z) { return z.nombre !== key; }) }) : api("delReceta", { nombre: key })).then(function (j) { if (j && j.ok) { st.recetas = j.recetas; st.loaded.productos = false; render(true); toast("Receta eliminada ✓"); } else toast(j && j.msg || "No se pudo"); }).catch(function () { toast("No se pudo"); }); }); return; }
       if (kind === "pak" || kind === "cup") {

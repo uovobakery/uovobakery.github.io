@@ -628,6 +628,23 @@ button.scale:hover { background: #FFEBA3; }
       </div>
       <p class="note">Se abre WhatsApp con tu pedido ya escrito. El pedido queda enviado cuando apretás enviar ahí.</p>
     </div>
+    <div class="step" id="step-wait" hidden>
+      <h2>Ahora no estamos tomando pedidos</h2>
+      <p class="note" style="margin-top:0">Dejanos tu número y te avisamos apenas abramos. Tu pedido queda guardado en la cola.</p>
+      <ul class="lines" id="w-lines"></ul>
+      <div class="total"><span>Total</span><span id="w-total"></span></div>
+      <div style="display:grid;gap:14px;margin-top:12px">
+        <div class="field"><label for="wn">Tu nombre</label><input id="wn" type="text" maxlength="60" autocomplete="given-name" placeholder="Así te identificamos"><span class="err" id="wn-err" hidden>Escribí tu nombre.</span></div>
+        <div class="field"><label for="wt">Tu WhatsApp</label><input id="wt" type="tel" inputmode="tel" maxlength="20" autocomplete="tel" placeholder="Ej: 291 5123456 (con código de área)"><span class="err" id="wt-err" hidden>Escribí tu número con código de área.</span></div>
+        <div class="field"><label for="wm">Tu mail (opcional)</label><input id="wm" type="email" maxlength="100" autocomplete="email" placeholder="nombre@ejemplo.com"></div>
+      </div>
+      <div class="actions"><button class="btn" id="w-go" type="button">Agregarme a la cola</button><button class="btn ghost" id="w-back" type="button">Volver al pedido</button></div>
+    </div>
+    <div class="step" id="step-waitok" hidden>
+      <button class="iconbtn" id="w-x" type="button" aria-label="Cerrar" title="Cerrar">×</button>
+      <h2>¡Listo, estás en la cola!</h2>
+      <p class="note">Guardamos tu pedido. Apenas abramos los pedidos te escribimos por WhatsApp para que lo confirmes.</p>
+    </div>
     <div class="step" id="step-done" hidden>
       <button class="iconbtn" id="done-x" type="button" aria-label="Cerrar" title="Cerrar">×</button>
       <h2 id="done-title">¡Gracias por tu pedido!</h2>
@@ -775,7 +792,7 @@ var DEFAULTS = {
   var qty = {};          // nombre de cookie -> cantidad
   var cq = {};           // nombre de combo -> cantidad
   var pk = [];           // packs armados: { q, sel: { nombre: cantidad } }
-  var cycle = null, closeTxt = "", deliveryTxt = "";
+  var cycle = null, closeTxt = "", deliveryTxt = "", waitMode = false;
   var orderId = "";
 
   function money(n) { return "$" + Number(n || 0).toLocaleString("es-AR"); }
@@ -844,6 +861,7 @@ var DEFAULTS = {
     cycle = null;
     for (var i = 0; i < data.tandas.length; i++) { if (parseDay(data.tandas[i].cierre) >= now) { cycle = data.tandas[i]; break; } }
     var paused = !isYes(c.pedidos_activos);
+    waitMode = !(cycle && !paused);
     if (cycle && !paused) {
       var dc = parseDay(cycle.cierre), de = parseDay(cycle.entrega);
       closeTxt = longDate(dc);
@@ -1746,7 +1764,7 @@ var DEFAULTS = {
   }
   function setTransf(el, total) { el.hidden = !discPct() || !total; if (!el.hidden) el.innerHTML = "<span>Pagando por transferencia (−" + discPct() + "%)</span><span>" + money(transf(total)) + "</span>"; }
   function renderCart() {
-    var x = totals(), ok = x.n > 0 && cycle && deliveryTxt;
+    var x = totals(), ok = x.n > 0 && (waitMode || (cycle && deliveryTxt));
     $("c-lines").innerHTML = cartLinesHtml(true);
     $("c-empty").hidden = x.n > 0;
     var ph = promoHint(), pe = $("c-promo"); pe.hidden = !ph; if (ph) pe.innerHTML = "<span>" + esc(ph.txt) + '</span><div class="bar"><i style="width:' + ph.pct + '%"></i></div>';
@@ -1757,6 +1775,7 @@ var DEFAULTS = {
     if (!ce.hidden) ce.textContent = cb0.min > x.base ? fill(data.config.texto_cupon_minimo, { min: money(cb0.min), nombre: cb0.nombre, pct: cb0.pct }) : fill(data.config.texto_cupon, { texto: cb0.texto || cb0.nombre, nombre: cb0.nombre, pct: cb0.pct });
     $("c-total").textContent = money(x.t); setTransf($("c-transf"), x.t);
     var note = $("c-note"); note.hidden = !(x.n > 0 && !ok); note.textContent = "Por ahora no estamos tomando pedidos.";
+    $("cart-go").textContent = waitMode ? "Anotarme en la cola" : data.config.boton_enviar;
     $("cart-go").disabled = !ok;
   }
   function openCart() {
@@ -1776,7 +1795,30 @@ var DEFAULTS = {
   });
   $("cart-btn").addEventListener("click", function () { if ($("drawer").classList.contains("open")) closeCart(); else openCart(); });
   $("cart-x").addEventListener("click", closeCart);
-  $("cart-go").addEventListener("click", openModal);
+  $("cart-go").addEventListener("click", function () { if (waitMode) openWait(); else openModal(); });
+  function waitSummary() {
+    var p = chosen().map(function (q) { return qty[q.nombre] + " x " + q.nombre; });
+    chosenCombos().forEach(function (cb) { p.push("PACK " + cb.nombre + " x " + cq[cb.nombre]); });
+    validPacks().forEach(function (k) { p.push("PACK " + k.q + " (" + Object.keys(k.sel).filter(function (n) { return k.sel[n] > 0; }).map(function (n) { return k.sel[n] + " " + n; }).join(" + ") + ")"); });
+    return p.join(", ");
+  }
+  function openWait() {
+    var s = null; try { s = JSON.parse(localStorage.getItem("uovo-cliente") || "null"); } catch (err) {}
+    if (s && s.n) { $("wn").value = s.n; $("wt").value = s.t || ""; $("wm").value = s.e || ""; }
+    $("wn-err").hidden = true; $("wt-err").hidden = true; $("w-lines").innerHTML = cartLinesHtml(false); $("w-total").textContent = money(totals().t);
+    $("step-confirm").hidden = true; $("step-done").hidden = true; $("step-wait").hidden = false; $("step-waitok").hidden = true;
+    closeCart(); lastFocus = document.activeElement; $("modal").hidden = false; $("wn").focus();
+  }
+  $("w-go").addEventListener("click", function () {
+    var n = $("wn").value.trim(), t = $("wt").value.replace(/[^\d+]/g, ""), m = $("wm").value.trim();
+    $("wn-err").hidden = n.length > 0; $("wt-err").hidden = t.replace(/\D/g, "").length >= 8;
+    if (!n || t.replace(/\D/g, "").length < 8) return;
+    try { localStorage.setItem("uovo-cliente", JSON.stringify({ n: n, e: m, t: t })); } catch (err) {}
+    try { fetch(ENDPOINT, { method: "POST", mode: "no-cors", keepalive: true, body: JSON.stringify({ accion: "cola", nombre: n, telefono: t, email: m, resumen: waitSummary(), total: totals().t }) }).catch(function () {}); } catch (err) {}
+    $("step-wait").hidden = true; $("step-waitok").hidden = false;
+  });
+  $("w-back").addEventListener("click", function () { closeModal(); openCart(); });
+  $("w-x").addEventListener("click", closeModal);
   $("cart-close").addEventListener("click", closeCart);
   $("back").addEventListener("click", function () { closeModal(); openCart(); });
   var hp = $("help");

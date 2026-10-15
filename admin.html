@@ -281,6 +281,8 @@ body.selmode .nav{visibility:hidden}
       var d = (window.__dd = window.__dd || JSON.parse(JSON.stringify(demo)));
       if (op === "me") return res({ ok: true, email: "demo@uovo.com", nombre: "Demo", rol: (location.search.match(/rol=([\w,]+)/) || [])[1] || "Dueño" });
       if (op === "addPedido") { var nid = "U-" + Math.random().toString(36).slice(2, 6).toUpperCase(), tot = 0, cks = 0, ptx = []; (extra.items || []).forEach(function (it) { var pz = d.productos.filter(function (z) { return z.nombre === it.nombre; })[0]; tot += (pz ? pz.precio : 0) * it.cantidad; cks += it.cantidad; ptx.push(it.cantidad + " x " + it.nombre); }); demo.pedidos.unshift({ r: 90 + demo.pedidos.length, id: nid, fecha: "13/10/2026 01:40", nombre: extra.nombre, tel: extra.telefono || "", mail: extra.email || "", mail: "", pedido: ptx.join(", "), cant: cks, total: extra.total || tot, entrega: extra.entrega, pago: extra.pago || "", ap: !!extra.aprobado, he: false, en: false, notas: "Cargado a mano", cc: false, cl: false, cupon: "", estado: "" }); return res({ ok: true, id: nid }); }
+      if (op === "costosPed") return res({ ok: true, costos: d.cpd || [] });
+      if (op === "setCostosPed") { d.cpd = d.cpd || []; JSON.parse(extra.datos || "[]").forEach(function (it) { if (!d.cpd.some(function (z) { return z.id === it.id; })) d.cpd.push(it); }); return res({ ok: true }); }
       if (op === "editPedido") { var ep = d.pedidos.filter(function (z) { return z.id === extra.id; })[0]; if (!ep) return res({ ok: false, msg: "No encontré el pedido." }); if (extra.nombre != null) ep.nombre = extra.nombre; if (extra.telefono != null) ep.tel = extra.telefono; if (extra.email != null) ep.mail = extra.email; if (extra.entrega != null) ep.entrega = extra.entrega; if (extra.pago != null) ep.pago = extra.pago; if (extra.items && extra.items.length) { var tt = 0, cc = 0, tx = []; extra.items.forEach(function (it) { var pz = d.productos.filter(function (z) { return z.nombre === it.nombre; })[0]; tt += (pz ? pz.precio : 0) * it.cantidad; cc += it.cantidad; tx.push(it.cantidad + " x " + it.nombre); }); ep.pedido = tx.join(", "); ep.cant = cc; ep.total = tt; } if (extra.total > 0) ep.total = extra.total; return res({ ok: true, id: ep.id }); }
       if (op === "session") return res({ ok: true, session: "S1.demo" });
       if (op === "cola" || op === "setCola" || op === "delCola") { d.cola = d.cola || [{ r: 2, fecha: "14/10/2026 20:10", nombre: "Carla", tel: "2915001122", mail: "", pedido: "3 x Red Velvet, 1 x Chocomarsh", total: 10000, est: "Esperando" }, { r: 3, fecha: "14/10/2026 21:30", nombre: "Tomás", tel: "2914003344", mail: "t@mail.com", pedido: "PACK 6 (3 Red Velvet + 3 Trichoc)", total: 13500, est: "Esperando" }]; if (op === "setCola") d.cola.forEach(function (x) { if (x.r === extra.r) x.est = extra.est; }); if (op === "delCola") d.cola = d.cola.filter(function (x) { return x.r !== extra.r; }); return res({ ok: true, cola: d.cola }); }
@@ -343,8 +345,36 @@ body.selmode .nav{visibility:hidden}
   function curTanda() { var t = todayIso(); return (st.tandas || []).filter(function (x) { return x.cierre >= t; })[0] || null; }
   function fillEnt(L) { (L || []).forEach(function (p) { if (p.entAuto || !p.entrega) { var t = tandaOf(p); if (t) { p.entrega = fmtIso(t.entrega); p.entAuto = true; } } }); }
   var api0 = api;
+  /* ---------- Costos congelados por pedido ---------- */
+  var COSTOPS = { saveReceta: 1, delReceta: 1, setProveedor: 1, stockMov: 1, setUso: 1, delInsumo: 1 }, MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+  function entD(sx) { var m = nrm(sx).match(/(\d{1,2}) de ([a-z]+)/); if (!m) return null; var mi = MESES.indexOf(m[2]); if (mi < 0) return null; var n = new Date(), d = new Date(n.getFullYear(), mi, +m[1]); if (d - n > 200 * 864e5) d.setFullYear(d.getFullYear() - 1); return d; }
+  function pClosed(p) { if (p.en || p.he) return true; var d = entD(p.entrega), t = new Date(); t.setHours(0, 0, 0, 0); return !!(d && d < t); }
+  function cpdOf(p, k) { var c = st.cpd && st.cpd[p.id]; return c && c[k] != null ? Number(c[k]) : undefined; }
+  function cpdLoad() {
+    if (st.cpd) return Promise.resolve();
+    if (st.cpdp) return st.cpdp;
+    return st.cpdp = api0("costosPed").then(function (j) { st.cpd = {}; if (j && j.ok) j.costos.forEach(function (x) { st.cpd[x.id] = x.c; }); st.cpdp = null; }).catch(function () { st.cpdp = null; });
+  }
+  function cpdFreeze(only) {
+    return cpdLoad().then(function () {
+      if (!st.cpd) return;
+      return (st.productos && st.productos.length ? Promise.resolve() : api0("catalogo").then(function (j) { if (j && j.ok) st.productos = j.catalogo; })).then(function () {
+        var L = [];
+        (only || st.pedidos || []).forEach(function (p) {
+          if (!p || !p.id || st.cpd[p.id] || p.cc || p.cl || (!only && !pClosed(p))) return;
+          var it = pedItems(p), c = {}, n = 0; Object.keys(it.cookies).forEach(function (k) { var v = costoDe(k); if (v != null) { c[k] = v; n++; } });
+          if (n) L.push({ id: p.id, c: c });
+        });
+        if (!L.length) return;
+        L.forEach(function (x) { st.cpd[x.id] = x.c; });
+        return api0("setCostosPed", { datos: JSON.stringify(L) }).then(function (j) { if (!j || !j.ok) L.forEach(function (x) { delete st.cpd[x.id]; }); });
+      });
+    });
+  }
+  function cpdSweep() { if (st.cpdsw || DEMO && !st.pedidos) return; st.cpdsw = 1; cpdFreeze().catch(function () { st.cpdsw = 0; }); }
   api = function (op, extra) {
-    if (op === "pedidos") return api0(op, extra).then(function (j) { if (!(j && j.ok)) return j; var w = st.tandas ? Promise.resolve() : api0("tandas").then(function (k) { if (k && k.ok) st.tandas = k.tandas; }).catch(function () {}); return w.then(function () { fillEnt(j.pedidos); return j; }); });
+    if (op === "pedidos") return api0(op, extra).then(function (j) { if (!(j && j.ok)) return j; var w = st.tandas ? Promise.resolve() : api0("tandas").then(function (k) { if (k && k.ok) st.tandas = k.tandas; }).catch(function () {}); return w.then(function () { fillEnt(j.pedidos); setTimeout(cpdSweep, 2500); return j; }); });
+    if (COSTOPS[op] && !(op === "stockMov" && !(extra && extra.tipo === "compra"))) return cpdFreeze().catch(function () {}).then(function () { return api0(op, extra); });
     return api0(op, extra).then(function (j) { if ((op === "tandas" || op === "saveTandas") && j && j.ok) { st.tandas = j.tandas; fillEnt(st.pedidos); } return j; });
   };
 
@@ -698,7 +728,7 @@ body.selmode .nav{visibility:hidden}
     var old = p[campo], oldcc = p.cc; p[campo] = valor; if (campo === "te") p.cc = valor; render(true);
     api("setPedido", { r: r, id: p.id, campo: campo, valor: valor }).then(function (j) {
       if (!j || !j.ok) { p[campo] = old; p.cc = oldcc; render(true); toast(j && j.msg || "No se pudo guardar"); return; }
-      for (var k in j.p) p[k] = j.p[k]; render(true);
+      for (var k in j.p) p[k] = j.p[k]; render(true); if ((campo === "en" || campo === "he") && valor) cpdFreeze([p]).catch(function () {});
     }).catch(function () { p[campo] = old; p.cc = oldcc; render(true); toast("No se pudo guardar"); });
   }
 
@@ -1372,12 +1402,12 @@ body.selmode .nav{visibility:hidden}
   function costoDe(name) { var pr = fnd(st.productos || [], name); return pr && pr.costo != null ? Number(pr.costo) : null; }
   function finRango() { var a = new Date(st.fd + "T00:00:00"), b = new Date(st.fh + "T23:59:59"); if (a > b) { var t = a; a = b; b = t; } return [a, b]; }
   function finAgg(a, b) {
-    var r = { v: 0, n: 0, ck: 0, packs: 0, combos: 0, costo: 0, sinCosto: 0, sabores: {}, mails: {} };
+    var r = { v: 0, n: 0, ck: 0, packs: 0, combos: 0, costo: 0, repo: 0, vivo: 0, sinCosto: 0, sabores: {}, mails: {} };
     (st.pedidos || []).forEach(function (p) {
       if (p.cc || p.cl || !p.ap) return; var d = pf(p.fecha); if (!d || d < a || d > b) return;
       r.v += Number(p.total) || 0; r.n++; r.ck += Number(p.cant) || 0; if (p.mail) r.mails[String(p.mail).toLowerCase()] = 1;
       var it = pedItems(p); r.packs += it.packs; r.combos += it.combos;
-      Object.keys(it.cookies).forEach(function (k) { r.sabores[k] = (r.sabores[k] || 0) + it.cookies[k]; var c = costoDe(k); if (c == null) r.sinCosto += it.cookies[k]; else r.costo += c * it.cookies[k]; });
+      Object.keys(it.cookies).forEach(function (k) { r.sabores[k] = (r.sabores[k] || 0) + it.cookies[k]; var cr = costoDe(k); if (cr != null) r.repo += cr * it.cookies[k]; var c = cpdOf(p, k); if (c === undefined) { c = costoDe(k); if (c != null) r.vivo += it.cookies[k]; } if (c == null) r.sinCosto += it.cookies[k]; else r.costo += c * it.cookies[k]; });
     });
     return r;
   }
@@ -1400,6 +1430,7 @@ body.selmode .nav{visibility:hidden}
     if (st.fm === "pat" && !st.bal && !st.balf) { st.balf = 1; api("balance").then(function (j) { st.bal = j && j.ok ? j.items : []; if (st.v === "finanzas") render(true); }).catch(function () { st.bal = []; }); }
   }
   function renderFinanzas() {
+    if (!st.cpd) { cpdLoad().then(function () { if (st.v === "finanzas") render(true); }); return '<div class="empty">Cargando…</div>'; }
     if (!st.fm || st.fm === "m") st.fm = "r";
     if (!st.fd) finPreset("mes");
     finLoads();
@@ -1432,9 +1463,9 @@ body.selmode .nav{visibility:hidden}
     var neto = bruto - (mo || 0) - (gs || 0), mg = g.v ? Math.round(neto / g.v * 100) : 0;
     var h = '<div class="hero' + (neto < 0 ? " neg" : "") + '" id="fin-res"><small>' + (neto < 0 ? "Resultado del período: perdiste" : "Resultado del período: te quedó") + "</small><b>" + money(Math.abs(neto)) + "</b><small>Margen " + mg + "% sobre ventas</small></div>";
     h += '<div class="nm" style="margin:6px 2px 8px">Estado de resultados</div><div class="card" id="fin-lines">' +
-      frow("Ventas (pedidos aprobados)", money(g.v)) + frow("− Costo de las cookies vendidas", money(g.costo), 0, 1) + frow("Resultado bruto", money(bruto), 1, bruto < 0) +
+      frow("Ventas (pedidos aprobados)", money(g.v)) + frow("− Costo de las cookies vendidas", money(g.costo), 0, 1) + frow("Resultado bruto", money(bruto), 1, bruto < 0) + (Math.abs(g.repo - g.costo) > 1 ? '<div class="meta" style="margin:-2px 2px 8px">Referencia: reponer lo vendido hoy costaría ' + money(g.repo) + " (" + (g.repo > g.costo ? "+" : "−") + money(Math.abs(g.repo - g.costo)) + " vs. el costo de ese momento)</div>" : "") +
       (mo != null ? frow("− Mano de obra, luz y envío <small>(prorrateado)</small>", money(mo), 0, 1) : "") + (gs != null ? frow("− Gastos del negocio <small>(prorrateado)</small>", money(gs), 0, 1) : "") + frow("Resultado neto", money(neto), 1, neto < 0) + "</div>";
-    h += '<div class="meta" style="margin:6px 2px">' + g.n + " pedidos · " + g.ck + " cookies. Costo según tus Recetas" + (g.sinCosto ? " (<b>" + g.sinCosto + " cookies sin receta</b> no suman costo: cargá su receta)" : "") + ". Mano de obra y gastos salen de la planilla mensual repartidos por días.</div>";
+    h += '<div class="meta" style="margin:6px 2px">' + g.n + " pedidos · " + g.ck + " cookies. El costo de cada pedido queda fijo al marcarlo Hecho o Entregado (o al pasar su fecha de entrega): si cambiás recetas o precios, lo ya vendido no se modifica" + (g.vivo ? " (" + g.vivo + " cookies todavía con el costo actual)" : "") + (g.sinCosto ? " (<b>" + g.sinCosto + " cookies sin receta</b> no suman costo: cargá su receta)" : "") + ". Mano de obra y gastos salen de la planilla mensual repartidos por días.</div>";
     var comp = finMovs(R[0], R[1]); if (st.movs) h += '<div class="card">' + frow("Compras de insumos del período <small>(plata que salió)</small>", money(comp)) + "</div>";
     return h;
   }

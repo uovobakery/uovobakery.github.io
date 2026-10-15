@@ -165,7 +165,7 @@ body{background:radial-gradient(1200px 500px at 50% -120px,#DCE9FF 0,transparent
 .nav{left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));border:0;border-radius:24px;box-shadow:0 10px 30px rgba(11,40,100,.18);background:rgba(255,255,255,.94);backdrop-filter:blur(14px);padding-bottom:0;overflow:hidden}
 .nav button{padding:11px 2px 9px;transition:color .15s}.nav button.on{color:var(--blue)}.nav button.on svg{transform:translateY(-2px) scale(1.1)}.nav button svg{transition:transform .15s}
 body{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
-.toast{bottom:calc(104px + env(safe-area-inset-bottom));border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.toast{z-index:300!important;bottom:calc(104px + env(safe-area-inset-bottom));border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
 .modal{backdrop-filter:blur(3px);place-items:center;padding:18px}.modal .box{border-radius:24px;max-width:420px;width:100%;margin:0 auto;padding:22px 20px;animation:pop .22s ease backwards;box-shadow:0 20px 60px rgba(0,0,0,.3);max-height:86vh;overflow:auto}
 .modal .box>.btn{width:100%}.modal .box .sw .card{box-shadow:0 0 0 1px #E1EAF8}
 @keyframes pop{from{transform:scale(.92);opacity:0}to{transform:none;opacity:1}}
@@ -700,13 +700,19 @@ body.selmode .nav{visibility:hidden}
     m.innerHTML = '<div class="box" style="width:100%;max-height:86vh;overflow:auto"><h3>' + esc(name) + '</h3><div class="meta" style="margin:0 0 8px">Para ' + r.need + " cookies" + (r.s === "falta" ? " · alcanza para " + r.can : "") + "</div>" + r.ing.map(function (i) { var bad = i.falta > 1e-9; return '<div class="frow"><span' + (bad ? ' style="color:#b3261e;font-weight:700"' : "") + ">" + esc(i.n) + '<div class="meta" style="margin:0">Necesitás ' + esc(cmpFmt(i.need, i.uni)) + (i.have == null ? " · sin stock cargado" : " · tenés " + esc(cmpFmt(i.have, i.uni))) + "</div></span>" + (bad ? '<b style="color:#b3261e">falta ' + esc(cmpFmt(i.falta, i.uni)) + "</b>" : i.have == null ? '<span class="meta">?</span>' : '<b style="color:#1B7A3A">ok</b>') + "</div>"; }).join("") + '<button class="btn" data-px="1" style="margin-top:8px">Cerrar</button></div>';
     document.body.appendChild(m); m.addEventListener("click", function (e) { if (e.target === m || e.target.closest("[data-px]")) m.remove(); });
   }
+  function noRecPop(name) {
+    var m = document.createElement("div"); m.className = "modal"; m.style.zIndex = 70;
+    m.innerHTML = '<div class="box" style="width:100%"><h3>' + esc(name) + '</h3><p>No encuentro una receta con este nombre, así que no puedo calcular los insumos. Revisá que la receta se llame igual que la cookie.</p><button class="btn" data-rc="1">Abrir receta</button><button class="sm" data-px="1" style="margin-top:8px">Cerrar</button></div>';
+    document.body.appendChild(m);
+    m.addEventListener("click", function (e) { if (e.target === m || e.target.closest("[data-px]")) { m.remove(); return; } if (e.target.closest("[data-rc]")) { var pr = (st.productos || []).filter(function (x) { return nrm(x.nombre) === nrm(name); })[0]; document.querySelectorAll(".modal").forEach(function (z) { z.remove(); }); prodPop(pr ? pr.r : 0, name, true); } });
+  }
   function entPop(nk) {
     var m = document.createElement("div"); m.className = "modal"; var PL = null;
     function lst() { return st.pedidos.filter(function (p) { var e = estadoDe(p); return e !== "ent" && e !== "canc" && e !== "test" && nrm(p.entrega || "Sin fecha") === nk; }); }
     function draw() {
       var L = lst(), need = {}, q = 0, hh = 0, lab = L[0] ? (L[0].entrega || "Sin fecha") : "Sin fecha";
       L.forEach(function (p) { if (p.he) { hh++; return; } var it = pedItems(p).cookies; Object.keys(it).forEach(function (n) { need[n] = (need[n] || 0) + it[n]; q += it[n]; }); });
-      PL = st.stock && st.recetas ? entPlan(need) : null; m.__pl = PL;
+      PL = st.stock && st.recetas && st.recetas.length ? entPlan(need) : null; m.__pl = PL;
       var rows = Object.keys(need).sort(function (a, b) { return need[b] - need[a]; }).map(function (n) {
         var r = PL && PL[n], st1 = !PL ? "" : r.s === "falta" ? '<span class="rdz">' + '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18.5v.01"/></svg>' + " " + r.can + " de " + r.need + "</span>" : r.s === "norec" ? '<span class="meta">sin receta</span>' : "";
         return '<div class="entr' + (r && r.s === "falta" ? " bad" : "") + '" data-ens="' + esc(n) + '"><span class="en">' + esc(n) + "</span>" + st1 + "<b>" + need[n] + '</b><span style="color:var(--soft)">›</span></div>';
@@ -714,11 +720,11 @@ body.selmode .nav{visibility:hidden}
       m.innerHTML = '<div class="box" style="width:100%;max-height:88vh;overflow:auto"><div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><h3 style="margin:0;flex:1">' + esc(entLab(lab)) + "</h3>" + dchip({ lab: lab, q: q, hh: hh }) + "</div>" + (q ? '<div class="meta" style="margin:0 0 6px">Para preparar: ' + q + " cookies" + (hh ? " · " + hh + " pedidos ya hechos" : "") + (PL ? "" : " · calculando stock…") + "</div>" + rows : '<div class="empty">Todo hecho, esperando entrega.</div>') + '<button class="btn" data-a="x" style="margin-top:8px">Cerrar</button></div>';
     }
     draw(); document.body.appendChild(m);
-    var L0 = []; if (!st.stock) L0.push(api("stock").then(function (j) { if (j && j.ok) { st.stock = j.stock; st.alertas = !!j.alertas; } })); if (!st.recetas) L0.push(api("recetas2").then(function (j) { if (j && j.ok) { st.recetas = j.recetas; st.insumos = j.insumos; } }));
+    var L0 = []; if (!st.stock) L0.push(api("stock").then(function (j) { if (j && j.ok) { st.stock = j.stock; st.alertas = !!j.alertas; } })); if (!(st.recetas && st.recetas.length)) L0.push(api("recetas2").then(function (j) { if (j && j.ok) { st.recetas = j.recetas; st.insumos = j.insumos; } }));
     if (L0.length) Promise.all(L0.map(function (p) { return p.catch(function () {}); })).then(function () { if (document.body.contains(m)) draw(); });
     m.addEventListener("click", function (e) {
       if (e.target === m || e.target.closest("[data-a=x]")) { m.remove(); return; }
-      var en = e.target.closest("[data-ens]"); if (en && m.__pl) { var n = en.getAttribute("data-ens"), r = m.__pl[n]; if (!r) return; if (r.s === "norec") { toast("Esa cookie no tiene receta cargada"); return; } ingPop(n, r); }
+      var en = e.target.closest("[data-ens]"); if (en && m.__pl) { var n = en.getAttribute("data-ens"), r = m.__pl[n]; if (!r) return; if (r.s === "norec") { noRecPop(n); return; } ingPop(n, r); }
     });
     window.__entRedraw = function () { if (document.body.contains(m)) draw(); };
   }
@@ -1122,7 +1128,7 @@ body.selmode .nav{visibility:hidden}
     cmpDraw();
     var L = [];
     if (!st.stock) L.push(api("stock").then(function (j) { if (j && j.ok) { st.stock = j.stock; st.alertas = !!j.alertas; } }));
-    if (!st.recetas) L.push(api("recetas2").then(function (j) { if (j && j.ok) { st.recetas = j.recetas; st.insumos = j.insumos; } }));
+    if (!(st.recetas && st.recetas.length)) L.push(api("recetas2").then(function (j) { if (j && j.ok) { st.recetas = j.recetas; st.insumos = j.insumos; } }));
     if (!st.prov) L.push(api("proveedores").then(function (j) { if (j && j.ok) st.prov = j.proveedores; }));
     Promise.all(L.map(function (p) { return p.catch(function () {}); })).then(function () { CMP.ld = false; if ($("cmpm")) cmpDraw(); });
   }
@@ -1260,7 +1266,7 @@ body.selmode .nav{visibility:hidden}
     var L = [];
     if (allowed("cupones")) L.push(api("cupones").then(function (j) { if (j && j.ok) st.cupones = j.cupones; }));
     if (allowed("packs")) L.push(api("packs2").then(function (j) { if (j && j.ok) st.packs = j.packs; }));
-    if (allowed("proveedores") && !st.recetas) L.push(api("recetas2").then(function (j) { if (j && j.ok) { st.recetas = j.recetas; st.insumos = j.insumos; } }));
+    if (allowed("proveedores") && !(st.recetas && st.recetas.length)) L.push(api("recetas2").then(function (j) { if (j && j.ok) { st.recetas = j.recetas; st.insumos = j.insumos; } }));
     if (allowed("tandas")) L.push(api("tandas").catch(function () {}));
     if (allowed("proveedores") && !st.stock) L.push(api("stock").then(function (j) { if (j && j.ok) { st.stock = j.stock; st.alertas = !!j.alertas; } }));
     colLoad();

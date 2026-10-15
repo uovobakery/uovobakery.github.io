@@ -214,6 +214,8 @@ body.selmode .nav{visibility:hidden}
 .cks{width:100%;text-align:left;display:flex!important;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px!important;margin-bottom:8px;background:linear-gradient(120deg,#fff 30%,#DDEAFC)!important;border:0;box-shadow:var(--shadow2)}
 .dchip{flex:none;min-width:54px;padding:5px 9px;border-radius:14px;text-align:center;display:flex;flex-direction:column;align-items:center;line-height:1.05}.dchip b{font-size:1.15rem}.dchip small{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em}.dchip.g{background:#E3F4E8;color:#1B7A3A}.dchip.y{background:#FFF1D6;color:#B26A00}.dchip.r{background:#FBE9E7;color:#B3261E}.dchip.ok{background:linear-gradient(135deg,#1F6FE0,#0B3F91);color:#fff}.dchip.ok b{font-size:.85rem}.dchip.n{background:#EEF1F7;color:#667}
 .entr{display:flex;align-items:center;gap:10px;padding:11px 4px;border-top:1px solid #E6EDF8;cursor:pointer}.entr .en{flex:1;font-weight:600}.entr.bad .en{color:#b3261e}.rdz{color:#b3261e;font-size:.78rem;font-weight:700}
+.atplus{border:2px dashed #9DB8E8 !important;background:#F3F7FE !important;color:#0F59C4}.atplus .ic{font-style:normal;font-weight:800}
+.atl{display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid #EEF2F8}.atl b{flex:1}
 .atmsg{font-size:.78rem;color:#0F59C4;font-weight:700;background:#EAF2FD;border-radius:10px;padding:7px 10px;margin-bottom:8px;text-align:center}.atg.edit{outline:2px dashed #7aa7ee;outline-offset:4px;border-radius:14px}.atg.edit .at{box-shadow:0 0 0 2px #7aa7ee,0 6px 14px rgba(15,89,196,.18)}.at b{font-size:.84rem;line-height:1.15}.at small{font-size:.7rem;color:var(--soft);font-weight:600}.at.al small{color:#b45309}
 .adl{background:#fff;border-radius:14px;overflow:hidden;margin-bottom:12px;box-shadow:0 4px 12px rgba(15,35,70,.06)}
 .adl button{display:flex;width:100%;align-items:center;justify-content:space-between;border:0;background:none;padding:13px 16px;font:inherit;font-weight:600;color:inherit;text-align:left}
@@ -1077,7 +1079,9 @@ body.selmode .nav{visibility:hidden}
     return inixOrd().filter(function (k) { return !inixCfg().hid[k] && B[k]; }).map(function (k) { return B[k]; }).join("");
   }
   /* ---------- Personalizar inicio ---------- */
-  var IXK = "uovo_adm_inix", IXB = [["cur", "Pedidos en curso"], ["banner", "Aviso de lista de espera"], ["hero", "Ventas del mes y por venir"], ["kpis", "Pendientes, a cocinar, para entregar"], ["alertas", "Alertas"], ["cocinar", "Para cocinar"], ["atajos", "Atajos rápidos"], ["hoy", "Hoy"], ["insumos", "Insumos para pedidos"]], IXA = ["compras", "cupones", "packs", "recetas", "stock", "textos", "cola", "tandas"];
+  var IXK = "uovo_adm_inix", IXB = [["cur", "Pedidos en curso"], ["banner", "Aviso de lista de espera"], ["hero", "Ventas del mes y por venir"], ["kpis", "Pendientes, a cocinar, para entregar"], ["alertas", "Alertas"], ["cocinar", "Para cocinar"], ["atajos", "Atajos rápidos"], ["hoy", "Hoy"], ["insumos", "Insumos para pedidos"]], IXA = ["compras", "cupones", "packs", "recetas", "stock", "textos", "cola", "tandas", "proveedores", "nuevoped", "productos", "finanzas", "resenas"], ATNAV = { proveedores: "proveedores", nuevoped: "pedidos", productos: "productos", finanzas: "finanzas", resenas: "resenas" }, ATDH = { nuevoped: 1, productos: 1, finanzas: 1, resenas: 1 };
+  function atHid(k) { var c = inixCfg(); return !!c.ath[k] || (ATDH[k] && !(c.ats || {})[k]); }
+  function atOk(k) { return allowed(k === "nuevoped" ? "pedidos" : k); }
   var KPS = { pend: "Pendientes", coc: "A cocinar", list: "Para entregar", ent: "Entregados", canc: "Cancelados", hoy: "Hoy", cur: "En curso" };
   function inixKp() { var r = (inixCfg().kp || ["pend", "coc", "list"]).filter(function (k) { return KPS[k]; }); return r.length ? r : ["pend", "coc", "list"]; }
   function kpAddPop() {
@@ -1093,14 +1097,14 @@ body.selmode .nav{visibility:hidden}
   function inixPop(tab) {
     var old = $("inixm"); if (old) old.remove();
     var m = document.createElement("div"); m.className = "modal"; m.id = "inixm"; document.body.appendChild(m);
-    function lab(k) { var b = IXB.filter(function (x) { return x[0] === k; })[0]; return b ? b[1] : (SCT[k] || k); }
+    function lab(k) { var b = IXB.filter(function (x) { return x[0] === k; })[0]; return b ? b[1] : (SCT[k] || SCS[k] || k); }
     function row(kind, k, hid, i, n) {
       var inner = '<article class="card pc" style="padding:10px 12px"><div style="display:flex;align-items:center;gap:8px"><div class="nm" style="flex:1;font-size:.95rem' + (hid ? ";opacity:.45;text-decoration:line-through" : "") + '">' + esc(lab(k)) + '</div><button class="sm" data-mv="' + kind + ":" + k + ':-1"' + (i === 0 ? " disabled" : "") + ' aria-label="Subir">↑</button><button class="sm" data-mv="' + kind + ":" + k + ':1"' + (i === n - 1 ? " disabled" : "") + ' aria-label="Bajar">↓</button></div></article>';
       return swrap("inx", kind + ":" + k, inner, true, true, hid ? "Mostrar" : "Mostrar", "Ocultar");
     }
     function draw() {
-      var c = inixCfg(), O = inixOrd(), A = inixAt();
-      m.innerHTML = '<div class="box" style="width:100%;max-height:88vh;overflow:auto"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><h3 style="margin:0;flex:1">Personalizar inicio</h3><button class="sm" data-ix="x">Listo</button></div><div class="meta" style="margin:0 0 8px">Ordená con las flechas. Deslizá → para mostrar y ← para ocultar.</div><div class="nm" style="margin:6px 2px">Bloques</div>' + O.map(function (k, i) { return row("b", k, c.hid[k], i, O.length); }).join("") + '<div class="nm" style="margin:10px 2px 6px">Atajos rápidos</div>' + A.map(function (k, i) { return row("a", k, c.ath[k], i, A.length); }).join("") + '<button class="sm red" data-ix="reset" style="margin-top:6px">Restablecer</button></div>';
+      var c = inixCfg(), O = inixOrd(), A = inixAt().filter(atOk);
+      m.innerHTML = '<div class="box" style="width:100%;max-height:88vh;overflow:auto"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><h3 style="margin:0;flex:1">Personalizar inicio</h3><button class="sm" data-ix="x">Listo</button></div><div class="meta" style="margin:0 0 8px">Ordená con las flechas. Deslizá → para mostrar y ← para ocultar.</div><div class="nm" style="margin:6px 2px">Bloques</div>' + O.map(function (k, i) { return row("b", k, c.hid[k], i, O.length); }).join("") + '<div class="nm" style="margin:10px 2px 6px">Atajos rápidos</div>' + A.map(function (k, i) { return row("a", k, atHid(k), i, A.length); }).join("") + '<button class="sm red" data-ix="reset" style="margin-top:6px">Restablecer</button></div>';
     }
     m.__draw = draw; draw();
     m.addEventListener("click", function (e) {
@@ -1110,10 +1114,10 @@ body.selmode .nav{visibility:hidden}
       if ((b = t.closest("[data-mv]"))) { var P = b.getAttribute("data-mv").split(":"), isB = P[0] === "b", L = isB ? inixOrd() : inixAt(), i = L.indexOf(P[1]), j = i + Number(P[2]); if (j < 0 || j >= L.length) return; L.splice(j, 0, L.splice(i, 1)[0]); c[isB ? "ord" : "at"] = L; lsW(IXK, c); draw(); render(true); return; }
     });
   }
-  function inixSwipe(act, key) { var P = key.split(":"), c = inixCfg(), h = P[0] === "b" ? c.hid : c.ath; if (act === "add") delete h[P[1]]; else h[P[1]] = 1; lsW(IXK, c); var m = $("inixm"); if (m && m.__draw) m.__draw(); render(true); }
+  function inixSwipe(act, key) { var P = key.split(":"), c = inixCfg(), h = P[0] === "b" ? c.hid : c.ath; if (act === "add") { delete h[P[1]]; if (P[0] === "a") { c.ats = c.ats || {}; c.ats[P[1]] = true; } } else { h[P[1]] = 1; if (c.ats) delete c.ats[P[1]]; } lsW(IXK, c); var m = $("inixm"); if (m && m.__draw) m.__draw(); render(true); }
   /* orden con mantener apretado: atajos y estados */
   (function () {
-    var T = null, X0 = 0, Y0 = 0, D = null, SEL = "#atajos .at, #kp-ped .kpi";
+    var T = null, X0 = 0, Y0 = 0, D = null, SEL = "#atajos .at:not(.atplus), #kp-ped .kpi";
     function flag(a) { return a.closest("#kp-ped") ? "kpEdit" : "atEdit"; }
     document.addEventListener("pointerdown", function (e) {
       var a = e.target.closest && e.target.closest(SEL); if (!a || st.v !== "inicio") return;
@@ -1318,14 +1322,14 @@ body.selmode .nav{visibility:hidden}
 
   /* ---------- Atajos rápidos (popup) y accesos directos ---------- */
   var SCT = { cupones: "Cupones", packs: "Packs y combos", recetas: "Recetas", stock: "Stock", textos: "Textos de la página", compras: "Lista de compras", cola: "Lista de espera", tandas: "Tandas" };
-  var SCS = { compras: "Compras", cupones: "Cupones", packs: "Packs", recetas: "Recetas", stock: "Stock", textos: "Textos", cola: "Espera", tandas: "Tandas" };
+  var SCS = { proveedores: "Proveedores", nuevoped: "Nuevo pedido", productos: "Productos", finanzas: "Finanzas", resenas: "Reseñas", compras: "Compras", cupones: "Cupones", packs: "Packs", recetas: "Recetas", stock: "Stock", textos: "Textos", cola: "Espera", tandas: "Tandas" };
   function scBadge(k) {
     if (k === "compras") return st.stock && st.recetas ? cmpPend() : 0;
     if (k === "stock") return (st.stock || []).filter(function (x) { return x.mov && x.nivel && x.nivel !== "ok"; }).length;
     if (k === "cola") return colWait().length;
     return 0;
   }
-  var SCI = { cupones: "🏷️", packs: "🎁", recetas: "🧁", stock: "📦", textos: "✏️", compras: "🛒", cola: "🔔", tandas: "📅" };
+  var SCI = { proveedores: "🚚", nuevoped: "➕", productos: "🍪", finanzas: "📊", resenas: "⭐", cupones: "🏷️", packs: "🎁", recetas: "🧁", stock: "📦", textos: "✏️", compras: "🛒", cola: "🔔", tandas: "📅" };
   function scMeta(k) {
     if (k === "cupones") { var n = (st.cupones || []).filter(function (x) { return x.activo; }).length; return st.cupones ? n + (n === 1 ? " activo" : " activos") : "Ver y crear"; }
     if (k === "packs") { var p = (st.packs || []).filter(function (x) { return x.ac; }).length; return st.packs ? p + (p === 1 ? " activo" : " activos") : "Activar y pausar"; }
@@ -1351,8 +1355,8 @@ body.selmode .nav{visibility:hidden}
   }
   function renderAtajos() {
     scPre();
-    var q = inixAt().filter(function (k) { return allowed(k) && !inixCfg().ath[k]; });
-    var h = '<div style="display:flex;align-items:center;justify-content:space-between;margin:6px 2px 8px"><div class="nm">Atajos rápidos</div>' + (st.atEdit ? '<button class="sm" data-atdone="1">Listo</button>' : '<button class="sm" data-inixopen="1" style="padding:4px 10px;font-size:.75rem">Personalizar</button>') + '</div>' + (st.atEdit ? '<div class="atmsg">Arrastrá los atajos para ordenarlos</div>' : "") + '<div class="atg' + (st.atEdit ? " edit" : "") + '" id="atajos">' + q.map(function (k) { var bd = scBadge(k); return '<button class="at' + (bd ? " al" : "") + '" data-sc="' + k + '"><i class="ic">' + SCI[k] + "</i><b>" + (SCS[k] || SCT[k]) + "</b>" + (bd ? '<em class="bd">' + bd + "</em>" : "") + "</button>"; }).join("") + "</div>";
+    var q = inixAt().filter(function (k) { return atOk(k) && !atHid(k); });
+    var h = '<div style="display:flex;align-items:center;justify-content:space-between;margin:6px 2px 8px"><div class="nm">Atajos rápidos</div>' + (st.atEdit ? '<button class="sm" data-atdone="1">Listo</button>' : '<button class="sm" data-inixopen="1" style="padding:4px 10px;font-size:.75rem">Personalizar</button>') + '</div>' + (st.atEdit ? '<div class="atmsg">Arrastrá los atajos para ordenarlos</div>' : "") + '<div class="atg' + (st.atEdit ? " edit" : "") + '" id="atajos">' + q.map(function (k) { var bd = scBadge(k); return '<button class="at' + (bd ? " al" : "") + '" data-sc="' + k + '"><i class="ic">' + SCI[k] + "</i><b>" + (SCS[k] || SCT[k]) + "</b>" + (bd ? '<em class="bd">' + bd + "</em>" : "") + "</button>"; }).join("") + (st.atEdit ? '<button class="at atplus" data-atplus="1"><i class="ic">＋</i><b>Agregar</b></button>' : "") + "</div>";
     return h;
   }
   function scNeed(k) {
@@ -1389,7 +1393,14 @@ body.selmode .nav{visibility:hidden}
     h += '<div id="sc-l">' + (st.sc.loading ? '<div class="empty">Cargando…</div>' : scRows()) + '</div></div>';
     m.innerHTML = h;
   }
+  function atPop() {
+    var m = document.createElement("div"); m.className = "modal"; m.style.zIndex = 70;
+    function draw() { var L = IXA.filter(atOk); m.innerHTML = '<div class="box" style="width:100%;max-height:84vh;overflow:auto"><div class="phd"><h3 style="flex:1">Atajos rápidos</h3><button class="sm" data-px="1">✕</button></div><div class="meta" style="margin:0 0 6px">Elegí cuáles ver en Inicio.</div>' + L.map(function (k) { var on = !atHid(k); return '<div class="atl"><span style="font-size:1.2rem">' + SCI[k] + "</span><b>" + esc(SCT[k] || SCS[k]) + '</b><button class="sw' + (on ? " on" : "") + '" data-atg="' + k + '" style="border:0;background:none;padding:0"><i></i></button></div>'; }).join("") + "</div>"; }
+    draw(); document.body.appendChild(m);
+    m.addEventListener("click", function (e) { if (e.target === m || e.target.closest("[data-px]")) { m.remove(); render(true); return; } var b = e.target.closest("[data-atg]"); if (!b) return; var k = b.getAttribute("data-atg"), c = inixCfg(), on = !atHid(k); c.ats = c.ats || {}; if (on) { c.ath[k] = true; delete c.ats[k]; } else { delete c.ath[k]; c.ats[k] = true; } lsW(IXK, c); draw(); });
+  }
   function scOpen(k) {
+    if (ATNAV[k]) { if (!atOk(k)) return; if (k === "nuevoped") { st.pnew = true; st.pnf = st.pnf || {}; } goto(ATNAV[k]); return; }
     if (!SCT[k] || !allowed(k)) return; if (k === "compras") { cmpOpen(); return; } var old = $("scm"); if (old) old.remove();
     var m = document.createElement("div"); m.className = "modal"; m.id = "scm"; document.body.appendChild(m); st.sc = { k: k, q: "", add: false, loading: true }; scDraw();
     m.addEventListener("click", function (e) { scClick(e, m); });
@@ -2215,7 +2226,7 @@ body.selmode .nav{visibility:hidden}
     inicio: [["#hero", "Tu panel", "Acá ves cuánto vendiste este mes y cuántos pedidos y cookies fueron."],
       ["#kp-ped", "Pedidos por atender", "Tocá una etapa y se abre un popup con esos pedidos. En «A cocinar» tocá una fecha para ver las cookies, las masas y qué insumos faltan. Mantené apretado para mover u ocultar."],
       [".insc", "Insumos para pedidos", "Suma las masas de todos tus pedidos pendientes y compara con tu stock. Tocá el carrito para agregar lo que falta a la lista de compras."],
-      ["#atajos", "Atajos", "Creá un producto, abrí Packs, Textos o Insumos con un toque."],
+      ["#atajos", "Atajos", "Abrí Compras, Stock, Proveedores y más con un toque. Mantené apretado para moverlos; el ＋ que aparece te deja elegir cuáles ver."],
       ["#nav [data-v=mas]", "Más funciones", "Textos, Proveedores, Recetas, Packs y Accesos están en Más."],
       ["#vfab", "Asistente de voz 🎙️", "Tocá el micrófono y preguntale lo que no te acuerdes: «¿cómo cambio un precio?». Te explica paso a paso y te lleva ahí."],
       ["#bell", "Notificaciones 🔔", "Pedidos nuevos, insumos que faltan y cosas del carrito. Abrila y el número desaparece. Deslizá una para marcarla leída, «Limpiar» las saca todas, y abajo de todo están las Leídas para recuperarlas."],
@@ -2887,6 +2898,7 @@ body.selmode .nav{visibility:hidden}
       if (e.target.closest && e.target.closest("[data-masas]")) { e.stopPropagation(); var L9 = []; if (!(st.recetas && st.recetas.length)) L9.push(api("recetas2").then(function (j) { if (j && j.ok) { st.recetas = j.recetas; st.insumos = j.insumos; } }).catch(function () {})); Promise.all(L9).then(masasPop); return; }
       if (e.target.closest && e.target.closest("[data-insall2]")) { e.stopPropagation(); insPop(st.insl || [], "Insumos para pedidos"); return; }
       if (e.target.closest && e.target.closest("[data-inixopen]")) { e.stopPropagation(); inixPop(); return; }
+      if (e.target.closest && e.target.closest("[data-atplus]")) { e.stopPropagation(); atPop(); return; }
       if (e.target.closest && e.target.closest("[data-atdone]")) { e.stopPropagation(); st.atEdit = false; render(true); return; }
       var scb = e.target.closest && e.target.closest("[data-sc]"); if (scb && !scb.closest(".modal")) { e.stopPropagation(); if (st.atEdit || (st.atLp && Date.now() - st.atLp < 900)) return; scOpen(scb.getAttribute("data-sc")); return; }
       var cbn = e.target.closest && e.target.closest("[data-colb]"); if (cbn && !e.target.closest(".swb,.swl")) { e.stopPropagation(); goto("cola"); return; }

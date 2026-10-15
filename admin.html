@@ -570,7 +570,7 @@ body.selmode .nav{visibility:hidden}
     });
     if (!st.loaded.productos && !st.pprf) { st.pprf = 1; api("catalogo").then(function (j) { if (j && j.ok) { st.productos = j.catalogo; st.loaded.productos = true; if (st.v === "pedidos") render(true); } }).catch(function () {}); }
     var PP = [["todo", "Todo"], ["hoy", "Hoy"], ["sem", "Esta semana"], ["mes", "Este mes"], ["anio", "Este año"]];
-    var h = colBanner() + '<button class="btn" data-pnew="1" style="margin-bottom:10px">' + (st.pnew ? "✕ Cerrar" : "＋ Nuevo pedido") + "</button>" + (st.pnew ? pedForm() : "") +
+    var h = colBanner() + '<button class="btn" data-pnew="1" style="margin-bottom:10px">' + (st.pnew ? "✕ Cerrar" : "＋ Nuevo pedido") + '</button><button class="sm" data-masas="1" style="margin:-2px 0 10px">🥣 Masas y sobrantes</button>' + (st.pnew ? pedForm() : "") +
       '<input class="search" id="pq" type="search" placeholder="Buscar por nombre, código o pedido…" value="' + esc(st.q) + '">' +
       '<div class="meta" style="margin:2px 4px 4px">Fecha en que se hizo el pedido</div><div class="chips">' + PP.map(function (x) { return '<button class="chip' + ((st.pdp || "todo") === x[0] ? " on" : "") + '" data-pdp="' + x[0] + '">' + x[1] + "</button>"; }).join("") + '</div><div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-bottom:8px"><label class="meta">Desde<input class="inp" type="date" id="pd-d" value="' + esc(st.pdd || "") + '"></label><label class="meta">Hasta<input class="inp" type="date" id="pd-h" value="' + esc(st.pdh || "") + '"></label></div>' +
       '<div class="chips">' + FILS.map(function (f) { var n = f[0] === "todos" ? base.length : f[0] === "apr" ? base.filter(function (p) { return p.ap && !p.cc && !p.cl; }).length : (cnt[f[0]] || 0); return '<button class="chip' + (st.fil === f[0] ? " on" : "") + '" data-f="' + f[0] + '">' + f[1] + "<b>" + n + "</b></button>"; }).join("") + "</div>";
@@ -694,11 +694,11 @@ body.selmode .nav{visibility:hidden}
     Object.keys(need).sort(function (a, b) { return need[b] - need[a]; }).forEach(function (k) {
       var rec = (st.recetas || []).filter(function (r) { return nrm(r.nombre) === nrm(k); })[0];
       if (!rec || !rec.y || !rec.items || !rec.items.length) { out[k] = { s: "norec", need: need[k] }; return; }
-      var mk = need[k], mi = need[k], ing = [];
-      rec.items.forEach(function (x) { var a = av[nrm(x.n)], per = x.q / rec.y; if (a) { var can = Math.floor(a.q / per + 1e-9); if (can < mk) mk = can; var c0 = Math.floor(av0[nrm(x.n)] / per + 1e-9); if (c0 < mi) mi = c0; } ing.push({ n: x.n, uni: x.u, per: per, have: a ? a.q : null, orig: a ? av0[nrm(x.n)] : null, need: per * need[k] }); });
+      var nm = Math.max(1, Math.ceil(need[k] / rec.y - 1e-9)), mk = nm, mi = nm, ing = [];
+      rec.items.forEach(function (x) { var a = av[nrm(x.n)]; if (a && x.q > 0) { var can = Math.floor(a.q / x.q + 1e-9); if (can < mk) mk = can; var c0 = Math.floor(av0[nrm(x.n)] / x.q + 1e-9); if (c0 < mi) mi = c0; } ing.push({ n: x.n, uni: x.u, per: x.q, have: a ? a.q : null, orig: a ? av0[nrm(x.n)] : null, need: x.q * nm }); });
       ing.forEach(function (i) { i.falta = i.have == null ? 0 : Math.max(0, i.need - i.have); i.res = i.have == null ? 0 : Math.max(0, i.orig - i.have); });
-      rec.items.forEach(function (x) { var a = av[nrm(x.n)]; if (a) a.q = Math.max(0, a.q - x.q / rec.y * Math.max(0, mk)); });
-      out[k] = { s: mk >= need[k] ? "ok" : "falta", need: need[k], can: Math.max(0, mk), ing: ing, shared: mk < need[k] && mi >= need[k] };
+      rec.items.forEach(function (x) { var a = av[nrm(x.n)]; if (a) a.q = Math.max(0, a.q - x.q * Math.max(0, mk)); });
+      out[k] = { s: mk >= nm ? "ok" : "falta", need: need[k], y: rec.y, masas: nm, mcan: Math.max(0, mk), sob: nm * rec.y - need[k], can: Math.min(need[k], Math.max(0, mk) * rec.y), ing: ing, shared: mk < nm && mi >= nm };
     });
     return out;
   }
@@ -708,7 +708,7 @@ body.selmode .nav{visibility:hidden}
     Object.keys(needC).forEach(function (k) {
       var rec = (st.recetas || []).filter(function (r) { return nrm(r.nombre) === nrm(k); })[0];
       if (!rec || !rec.y || !rec.items || !rec.items.length) { nor.push(k); return; }
-      rec.items.forEach(function (x) { var kk = nrm(x.n); tot[kk] = (tot[kk] || 0) + x.q / rec.y * needC[k]; nm[kk] = x.n; un[kk] = x.u; });
+      rec.items.forEach(function (x) { var kk = nrm(x.n); tot[kk] = (tot[kk] || 0) + x.q * Math.max(1, Math.ceil(needC[k] / rec.y - 1e-9)); nm[kk] = x.n; un[kk] = x.u; });
     });
     Object.keys(tot).forEach(function (kk) {
       var s0 = (st.stock || []).filter(function (z) { return nrm(z.ins) === kk; })[0]; if (!s0 || !s0.mov) return;
@@ -737,13 +737,25 @@ body.selmode .nav{visibility:hidden}
     m.innerHTML = '<div class="box" style="width:100%;max-height:86vh;overflow:auto"><div class="phd"><h3>' + esc(title || "Insumos que faltan") + '</h3><button class="sm" data-px="1">✕</button></div>' + (rows.length ? rows.map(function (i) { return insRowH(i); }).join("") : '<div class="empty">No falta nada.</div>') + "</div>";
     document.body.appendChild(m); m.addEventListener("click", function (e) { if (e.target === m || e.target.closest("[data-px]")) m.remove(); });
   }
+  function masasPop() {
+    var pn = pendNeed(), ks = Object.keys(pn).sort(function (a, b) { return pn[b] - pn[a]; }), tm = 0;
+    var rows = ks.map(function (k) {
+      var rec = (st.recetas || []).filter(function (r) { return nrm(r.nombre) === nrm(k); })[0];
+      if (!rec || !rec.y) return '<div class="ing"><div style="flex:1"><div class="in">' + esc(k) + '</div><div class="meta" style="margin:0">' + pn[k] + " cookies · sin receta</div></div></div>";
+      var nz = Math.max(1, Math.ceil(pn[k] / rec.y - 1e-9)), so = nz * rec.y - pn[k]; tm += nz;
+      return '<div class="ing"><div style="flex:1;min-width:0"><div class="in">' + esc(k) + '</div><div class="meta" style="margin:0">' + pn[k] + " pedidas · " + nz + (nz === 1 ? " masa" : " masas") + " × " + rec.y + " = " + nz * rec.y + '</div></div><b style="color:' + (so ? "#1B7A3A" : "var(--soft)") + '">' + (so ? "sobran " + so : "justas") + "</b></div>";
+    }).join("");
+    var m = document.createElement("div"); m.className = "modal"; m.style.zIndex = 70;
+    m.innerHTML = '<div class="box" style="width:100%;max-height:86vh;overflow:auto"><div class="phd"><h3>🥣 Masas y sobrantes</h3><button class="sm" data-px="1">✕</button></div>' + (ks.length ? '<div class="meta" style="margin:0 0 4px">Pedidos pendientes y a cocinar · ' + tm + (tm === 1 ? " masa" : " masas") + " en total</div>" + rows : '<div class="empty">No hay cookies por preparar.</div>') + "</div>";
+    document.body.appendChild(m); m.addEventListener("click", function (e) { if (e.target === m || e.target.closest("[data-px]")) m.remove(); });
+  }
   function insRowH(i) {
     var pc = Math.max(4, Math.min(100, Math.round(i.have / i.need * 100)));
     return '<div class="ing"><div style="flex:1;min-width:0"><div class="in">' + esc(i.n) + '</div><div class="meta" style="margin:0"><span style="color:#b3261e;font-weight:700">tenés ' + esc(cmpFmt(i.have, i.uni)) + '</span> de <span style="color:#1B7A3A;font-weight:700">' + esc(cmpFmt(i.need, i.uni)) + '</span></div><div class="ibar"><i style="width:' + pc + '%"></i></div></div><b class="ifa">falta ' + esc(cmpFmt(i.falta, i.uni)) + "</b>" + cartBtn(i) + "</div>";
   }
   function ingPop(name, r) {
     var m = document.createElement("div"); m.className = "modal"; m.style.zIndex = 70;
-    m.innerHTML = '<div class="box" style="width:100%;max-height:86vh;overflow:auto"><div class="phd"><h3>' + esc(name) + '</h3><button class="sm" data-px="1">✕</button></div><div class="meta" style="margin:0 0 4px">Para ' + r.need + " cookies" + (r.s === "falta" ? " · alcanza para " + r.can : "") + (r.shared ? " · otras cookies usan estos insumos" : "") + "</div>" + r.ing.map(function (i) {
+    m.innerHTML = '<div class="box" style="width:100%;max-height:86vh;overflow:auto"><div class="phd"><h3>' + esc(name) + '</h3><button class="sm" data-px="1">✕</button></div><div class="meta" style="margin:0 0 4px">Para ' + r.need + " cookies = " + r.masas + (r.masas === 1 ? " masa" : " masas") + " de " + r.y + " · sobran " + r.sob + (r.s === "falta" ? " · te alcanza para " + r.mcan + (r.mcan === 1 ? " masa" : " masas") : "") + (r.shared ? " · otras cookies usan estos insumos" : "") + "</div>" + r.ing.map(function (i) {
       var bad = i.falta > 1e-9;
       return '<div class="ing"><div style="flex:1;min-width:0"><div class="in"' + (bad ? ' style="color:#b3261e"' : "") + ">" + esc(i.n) + '</div><div class="meta" style="margin:0">Necesitás ' + esc(cmpFmt(i.need, i.uni)) + (i.have == null ? " · sin stock cargado" : " · quedan " + esc(cmpFmt(i.have, i.uni)) + (i.res > 1e-9 ? " (otras cookies reservan " + esc(cmpFmt(i.res, i.uni)) + ")" : "")) + "</div></div>" + (bad ? '<b class="ifa">falta ' + esc(cmpFmt(i.falta, i.uni)) + "</b>" + cartBtn({ n: i.n, uni: i.uni, falta: i.falta }) : i.have == null ? '<span class="meta">?</span>' : '<b style="color:#1B7A3A">ok</b>') + "</div>";
     }).join("") + "</div>";
@@ -763,7 +775,7 @@ body.selmode .nav{visibility:hidden}
       L.forEach(function (p) { if (p.he) { hh++; return; } var it = pedItems(p).cookies; Object.keys(it).forEach(function (n) { need[n] = (need[n] || 0) + it[n]; q += it[n]; }); });
       PL = st.stock && st.recetas && st.recetas.length ? entPlan(need) : null; m.__pl = PL;
       var rows = Object.keys(need).sort(function (a, b) { return need[b] - need[a]; }).map(function (n) {
-        var r = PL && PL[n], st1 = !PL ? "" : r.s === "falta" ? '<span class="rdz">' + '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18.5v.01"/></svg>' + " " + r.can + " de " + r.need + (r.shared ? " · comparte insumos" : "") + "</span>" : r.s === "norec" ? '<span class="meta">sin receta</span>' : "";
+        var r = PL && PL[n], st1 = !PL ? "" : r.s === "falta" ? '<span class="rdz">' + '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18.5v.01"/></svg>' + " " + r.mcan + " de " + r.masas + (r.masas === 1 ? " masa" : " masas") + (r.shared ? " · comparte insumos" : "") + "</span>" : r.s === "ok" ? '<span class="meta">' + r.masas + (r.masas === 1 ? " masa" : " masas") + " · sobran " + r.sob + "</span>" : r.s === "norec" ? '<span class="meta">sin receta</span>' : "";
         return '<div class="entr' + (r && r.s === "falta" ? " bad" : "") + '" data-ens="' + esc(n) + '"><span class="en">' + esc(n) + "</span>" + st1 + "<b>" + need[n] + '</b><span style="color:var(--soft)">›</span></div>';
       }).join("");
       var IL = PL ? insList(need) : null, ban = IL && IL.rows.length ? '<button class="insban" data-insall="1"><span>Sumando todas las cookies faltan <b>' + IL.rows.length + (IL.rows.length === 1 ? " insumo" : " insumos") + "</b></span><span>Ver ›</span></button>" : (PL ? '<div class="insok">Alcanzan los insumos para todas</div>' : ""); m.__il = IL;
@@ -1123,13 +1135,12 @@ body.selmode .nav{visibility:hidden}
   function cmpPlan() {
     if (!st.stock || !st.recetas || !st.pedidos) return null;
     var need = {}, nm = {}, un = {}, nor = {}, buy = [];
-    st.pedidos.forEach(function (p) {
-      var e = estadoDe(p); if (e !== "pend" && e !== "coc") return; var it = pedItems(p);
-      Object.keys(it.cookies).forEach(function (k) {
-        var rec = st.recetas.filter(function (r) { return nrm(r.nombre) === nrm(k); })[0];
-        if (!rec || !rec.y || !rec.items || !rec.items.length) { nor[k] = 1; return; }
-        rec.items.forEach(function (x) { var kk = nrm(x.n); need[kk] = (need[kk] || 0) + x.q / rec.y * it.cookies[k]; nm[kk] = x.n; un[kk] = un[kk] || x.u; });
-      });
+    var pn0 = pendNeed();
+    Object.keys(pn0).forEach(function (k) {
+      var rec = st.recetas.filter(function (r) { return nrm(r.nombre) === nrm(k); })[0];
+      if (!rec || !rec.y || !rec.items || !rec.items.length) { nor[k] = 1; return; }
+      var nmz = Math.max(1, Math.ceil(pn0[k] / rec.y - 1e-9));
+      rec.items.forEach(function (x) { var kk = nrm(x.n); need[kk] = (need[kk] || 0) + x.q * nmz; nm[kk] = x.n; un[kk] = un[kk] || x.u; });
     });
     Object.keys(need).forEach(function (kk) {
       var s0 = st.stock.filter(function (z) { return nrm(z.ins) === kk; })[0], have = s0 && s0.mov ? Number(s0.stock) || 0 : 0, m = need[kk] - have;
@@ -1818,10 +1829,12 @@ body.selmode .nav{visibility:hidden}
   }
   function stkDemand() {
     var need = {}, out = [];
+    var cq = {};
     (st.pedidos || []).forEach(function (p) {
       if (p.cc || p.cl || p.he) return; var it = pedItems(p);
-      Object.keys(it.cookies).forEach(function (k) { var rec = (st.recetas || []).filter(function (r) { return nrm(r.nombre) === nrm(k); })[0]; if (!rec || !rec.y) return; rec.items.forEach(function (x) { var kk = nrm(x.n); need[kk] = (need[kk] || 0) + x.q / rec.y * it.cookies[k]; }); });
+      Object.keys(it.cookies).forEach(function (k) { cq[k] = (cq[k] || 0) + it.cookies[k]; });
     });
+    Object.keys(cq).forEach(function (k) { var rec = (st.recetas || []).filter(function (r) { return nrm(r.nombre) === nrm(k); })[0]; if (!rec || !rec.y || !rec.items) return; var nz = Math.max(1, Math.ceil(cq[k] / rec.y - 1e-9)); rec.items.forEach(function (x) { var kk = nrm(x.n); need[kk] = (need[kk] || 0) + x.q * nz; }); });
     (st.stock || []).forEach(function (x) { var n = need[nrm(x.ins)]; if (n && x.mov && n > x.stock + 1e-9) out.push({ ins: x.ins, uni: x.uni, need: n, have: x.stock, falta: n - x.stock }); });
     return out;
   }
@@ -2186,7 +2199,8 @@ body.selmode .nav{visibility:hidden}
   /* ---------- Asistente (wizard) ---------- */
   var TOUR = {
     inicio: [["#hero", "Tu panel", "Acá ves cuánto vendiste este mes y cuántos pedidos y cookies fueron."],
-      ["#kp-ped", "Pedidos por atender", "Cada número es una etapa. Tocalo y vas directo a esos pedidos."],
+      ["#kp-ped", "Pedidos por atender", "Tocá una etapa y se abre un popup con esos pedidos. En «A cocinar» tocá una fecha para ver las cookies, las masas y qué insumos faltan. Mantené apretado para mover u ocultar."],
+      [".insc", "Insumos para pedidos", "Suma las masas de todos tus pedidos pendientes y compara con tu stock. Tocá el carrito para agregar lo que falta a la lista de compras."],
       ["#atajos", "Atajos", "Creá un producto, abrí Packs, Textos o Insumos con un toque."],
       ["#nav [data-v=mas]", "Más funciones", "Textos, Proveedores, Recetas, Packs y Accesos están en Más."],
       ["#vfab", "Asistente de voz 🎙️", "Tocá el micrófono y preguntale lo que no te acuerdes: «¿cómo cambio un precio?». Te explica paso a paso y te lleva ahí."],
@@ -2194,6 +2208,7 @@ body.selmode .nav{visibility:hidden}
     pedidos: [["#pq", "Buscador", "Escribí un nombre, un código o un sabor para encontrar un pedido."],
       [".chips", "Etapas", "Filtrá por Pendientes, A cocinar, Listos, Entregados o Cancelados. El número es la cantidad."],
       [".pc", "Tocá un pedido", "Se abre y ves el detalle, el WhatsApp del cliente, la nota, y los botones Aprobado, Hecho y Entregado."],
+      ["[data-masas]", "Masas y sobrantes 🥣", "Cuántas masas completas tenés que hacer por sabor y cuántas cookies te sobran de cada una."],
       ["[data-dlote]", "Eliminar pedidos", "Borrá de una vez todos los pedidos de la lista (por ejemplo los de prueba o los cancelados). También podés borrar uno abierto con 🗑. Es definitivo."]],
     productos: [["#newp", "Nuevo producto", "Creá una cookie nueva: nombre, descripción, precio y categoría."],
       [".help", "Tus productos", "Cambios acá se ven en la tienda al instante."],
@@ -2854,6 +2869,7 @@ body.selmode .nav{visibility:hidden}
       var kr = e.target.closest && e.target.closest("[data-kprm]"); if (kr) { e.stopPropagation(); var c9 = inixCfg(), K9 = inixKp().filter(function (z) { return z !== kr.getAttribute("data-kprm"); }); if (K9.length) { c9.kp = K9; lsW(IXK, c9); render(true); } return; }
       if (kb && (st.kpEdit || (st.kpLp && Date.now() - st.kpLp < 900))) { e.stopPropagation(); return; }
       var cb = e.target.closest && e.target.closest("[data-cart]"); if (cb) { e.stopPropagation(); var cr = CRT[Number(cb.getAttribute("data-cart"))]; if (cr) cartAddPop(cr); return; }
+      if (e.target.closest && e.target.closest("[data-masas]")) { e.stopPropagation(); var L9 = []; if (!(st.recetas && st.recetas.length)) L9.push(api("recetas2").then(function (j) { if (j && j.ok) { st.recetas = j.recetas; st.insumos = j.insumos; } }).catch(function () {})); Promise.all(L9).then(masasPop); return; }
       if (e.target.closest && e.target.closest("[data-insall2]")) { e.stopPropagation(); insPop(st.insl || [], "Insumos para pedidos"); return; }
       if (e.target.closest && e.target.closest("[data-inixopen]")) { e.stopPropagation(); inixPop(); return; }
       if (e.target.closest && e.target.closest("[data-atdone]")) { e.stopPropagation(); st.atEdit = false; render(true); return; }

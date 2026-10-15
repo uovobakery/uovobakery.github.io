@@ -214,6 +214,7 @@ body.selmode .nav{visibility:hidden}
 .cks{width:100%;text-align:left;display:flex!important;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px!important;margin-bottom:8px;background:linear-gradient(120deg,#fff 30%,#DDEAFC)!important;border:0;box-shadow:var(--shadow2)}
 .dchip{flex:none;min-width:54px;padding:5px 9px;border-radius:14px;text-align:center;display:flex;flex-direction:column;align-items:center;line-height:1.05}.dchip b{font-size:1.15rem}.dchip small{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em}.dchip.g{background:#E3F4E8;color:#1B7A3A}.dchip.y{background:#FFF1D6;color:#B26A00}.dchip.r{background:#FBE9E7;color:#B3261E}.dchip.ok{background:linear-gradient(135deg,#1F6FE0,#0B3F91);color:#fff}.dchip.ok b{font-size:.85rem}.dchip.n{background:#EEF1F7;color:#667}
 .entr{display:flex;align-items:center;gap:10px;padding:11px 4px;border-top:1px solid #E6EDF8;cursor:pointer}.entr .en{flex:1;font-weight:600}.entr.bad .en{color:#b3261e}.rdz{color:#b3261e;font-size:.78rem;font-weight:700}
+.atg .at{position:relative}.atrm{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:#d93a2f;color:#fff;font:800 16px/21px Nunito,sans-serif;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.25);z-index:2}
 .atplus{border:2px dashed #9DB8E8 !important;background:#F3F7FE !important;color:#0F59C4}.atplus .ic{font-style:normal;font-weight:800}
 .atl{display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid #EEF2F8}.atl b{flex:1}
 .atmsg{font-size:.78rem;color:#0F59C4;font-weight:700;background:#EAF2FD;border-radius:10px;padding:7px 10px;margin-bottom:8px;text-align:center}.atg.edit{outline:2px dashed #7aa7ee;outline-offset:4px;border-radius:14px}.atg.edit .at{box-shadow:0 0 0 2px #7aa7ee,0 6px 14px rgba(15,89,196,.18)}.at b{font-size:.84rem;line-height:1.15}.at small{font-size:.7rem;color:var(--soft);font-weight:600}.at.al small{color:#b45309}
@@ -373,7 +374,10 @@ body.selmode .nav{visibility:hidden}
   var COSTOPS = { saveReceta: 1, delReceta: 1, setProveedor: 1, stockMov: 1, setUso: 1, delInsumo: 1 }, MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
   function entD(sx) { var m = nrm(sx).match(/(\d{1,2}) de ([a-z]+)/); if (!m) return null; var mi = MESES.indexOf(m[2]); if (mi < 0) return null; var n = new Date(), d = new Date(n.getFullYear(), mi, +m[1]); if (d - n > 200 * 864e5) d.setFullYear(d.getFullYear() - 1); return d; }
   function pClosed(p) { if (p.en || p.he) return true; var d = entD(p.entrega), t = new Date(); t.setHours(0, 0, 0, 0); return !!(d && d < t); }
-  function cpdOf(p, k) { var c = st.cpd && st.cpd[p.id]; return c && c[k] != null ? Number(c[k]) : undefined; }
+  /* Arranque: los pedidos que se entregan antes de esta fecha usan siempre el costo actual (se estaban cargando insumos). */
+  var CPD_FROM = new Date(2026, 9, 18);
+  function cpdElig(p) { var d = entD(p.entrega); if (!d) { var m = String(p.fecha || "").match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); d = m ? new Date(+m[3], +m[2] - 1, +m[1]) : null; } return !d || d >= CPD_FROM; }
+  function cpdOf(p, k) { if (!cpdElig(p)) return undefined; var c = st.cpd && st.cpd[p.id]; return c && c[k] != null ? Number(c[k]) : undefined; }
   function cpdLoad() {
     if (st.cpd) return Promise.resolve();
     if (st.cpdp) return st.cpdp;
@@ -385,7 +389,7 @@ body.selmode .nav{visibility:hidden}
       return (st.productos && st.productos.length ? Promise.resolve() : api0("catalogo").then(function (j) { if (j && j.ok) st.productos = j.catalogo; })).then(function () {
         var L = [];
         (only || st.pedidos || []).forEach(function (p) {
-          if (!p || !p.id || st.cpd[p.id] || p.cc || p.cl || (!only && !pClosed(p))) return;
+          if (!p || !p.id || st.cpd[p.id] || p.cc || p.cl || !cpdElig(p) || (!only && !pClosed(p))) return;
           var it = pedItems(p), c = {}, n = 0; Object.keys(it.cookies).forEach(function (k) { var v = costoDe(k); if (v != null) { c[k] = v; n++; } });
           if (n) L.push({ id: p.id, c: c });
         });
@@ -1121,7 +1125,7 @@ body.selmode .nav{visibility:hidden}
     function flag(a) { return a.closest("#kp-ped") ? "kpEdit" : "atEdit"; }
     document.addEventListener("pointerdown", function (e) {
       var a = e.target.closest && e.target.closest(SEL); if (!a || st.v !== "inicio") return;
-      if (e.target.closest("[data-kprm]")) return;
+      if (e.target.closest("[data-kprm],[data-atrm]")) return;
       var fl = flag(a);
       if (st[fl]) { D = a; X0 = e.clientX; Y0 = e.clientY; a.classList.add("drg"); try { a.setPointerCapture(e.pointerId); } catch (x) {} return; }
       X0 = e.clientX; Y0 = e.clientY; T = setTimeout(function () { T = null; st[fl] = true; st[fl === "kpEdit" ? "kpLp" : "atLp"] = Date.now(); render(true); try { navigator.vibrate && navigator.vibrate(25); } catch (x) {} }, 520);
@@ -1356,7 +1360,7 @@ body.selmode .nav{visibility:hidden}
   function renderAtajos() {
     scPre();
     var q = inixAt().filter(function (k) { return atOk(k) && !atHid(k); });
-    var h = '<div style="display:flex;align-items:center;justify-content:space-between;margin:6px 2px 8px"><div class="nm">Atajos rápidos</div>' + (st.atEdit ? '<button class="sm" data-atdone="1">Listo</button>' : '<button class="sm" data-inixopen="1" style="padding:4px 10px;font-size:.75rem">Personalizar</button>') + '</div>' + (st.atEdit ? '<div class="atmsg">Arrastrá los atajos para ordenarlos</div>' : "") + '<div class="atg' + (st.atEdit ? " edit" : "") + '" id="atajos">' + q.map(function (k) { var bd = scBadge(k); return '<button class="at' + (bd ? " al" : "") + '" data-sc="' + k + '"><i class="ic">' + SCI[k] + "</i><b>" + (SCS[k] || SCT[k]) + "</b>" + (bd ? '<em class="bd">' + bd + "</em>" : "") + "</button>"; }).join("") + (st.atEdit ? '<button class="at atplus" data-atplus="1"><i class="ic">＋</i><b>Agregar</b></button>' : "") + "</div>";
+    var h = '<div style="display:flex;align-items:center;justify-content:space-between;margin:6px 2px 8px"><div class="nm">Atajos rápidos</div>' + (st.atEdit ? '<button class="sm" data-atdone="1">Listo</button>' : '<button class="sm" data-inixopen="1" style="padding:4px 10px;font-size:.75rem">Personalizar</button>') + '</div>' + (st.atEdit ? '<div class="atmsg">Arrastrá los atajos para ordenarlos</div>' : "") + '<div class="atg' + (st.atEdit ? " edit" : "") + '" id="atajos">' + q.map(function (k) { var bd = st.atEdit ? 0 : scBadge(k); return '<button class="at' + (bd ? " al" : "") + '" data-sc="' + k + '">' + (st.atEdit ? '<span class="atrm" data-atrm="' + k + '">−</span>' : "") + '<i class="ic">' + SCI[k] + "</i><b>" + (SCS[k] || SCT[k]) + "</b>" + (bd ? '<em class="bd">' + bd + "</em>" : "") + "</button>"; }).join("") + (st.atEdit ? '<button class="at atplus" data-atplus="1"><i class="ic">＋</i><b>Agregar</b></button>' : "") + "</div>";
     return h;
   }
   function scNeed(k) {
@@ -2898,6 +2902,7 @@ body.selmode .nav{visibility:hidden}
       if (e.target.closest && e.target.closest("[data-masas]")) { e.stopPropagation(); var L9 = []; if (!(st.recetas && st.recetas.length)) L9.push(api("recetas2").then(function (j) { if (j && j.ok) { st.recetas = j.recetas; st.insumos = j.insumos; } }).catch(function () {})); Promise.all(L9).then(masasPop); return; }
       if (e.target.closest && e.target.closest("[data-insall2]")) { e.stopPropagation(); insPop(st.insl || [], "Insumos para pedidos"); return; }
       if (e.target.closest && e.target.closest("[data-inixopen]")) { e.stopPropagation(); inixPop(); return; }
+      var arm = e.target.closest && e.target.closest("[data-atrm]"); if (arm) { e.stopPropagation(); var kk = arm.getAttribute("data-atrm"), cc = inixCfg(); cc.ath[kk] = true; if (cc.ats) delete cc.ats[kk]; lsW(IXK, cc); render(true); return; }
       if (e.target.closest && e.target.closest("[data-atplus]")) { e.stopPropagation(); atPop(); return; }
       if (e.target.closest && e.target.closest("[data-atdone]")) { e.stopPropagation(); st.atEdit = false; render(true); return; }
       var scb = e.target.closest && e.target.closest("[data-sc]"); if (scb && !scb.closest(".modal")) { e.stopPropagation(); if (st.atEdit || (st.atLp && Date.now() - st.atLp < 900)) return; scOpen(scb.getAttribute("data-sc")); return; }

@@ -1263,11 +1263,12 @@ var DEFAULTS = {
   }
   function loadUso(mail, done) {
     mail = String(mail || "").trim().toLowerCase();
-    if (!ENDPOINT || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(mail)) { if (done) done(); return; }
-    if (usoMail === mail && !done) return;
-    fetch(ENDPOINT + "?limites=1&mail=" + encodeURIComponent(mail) + "&entrega=" + encodeURIComponent(deliveryTxt || ""), { method: "GET" })
+    var tel = ($("phone") ? $("phone").value : "").replace(/\D/g, ""), mailOk = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(mail), telOk = tel.length >= 8;
+    if (!ENDPOINT || (!mailOk && !telOk)) { if (done) done(); return; }
+    if (usoMail === mail + "|" + tel && !done) return;
+    fetch(ENDPOINT + "?limites=1&mail=" + encodeURIComponent(mailOk ? mail : "") + "&tel=" + encodeURIComponent(tel) + "&entrega=" + encodeURIComponent(deliveryTxt || ""), { method: "GET" })
       .then(function (r) { return r.json(); })
-      .then(function (j) { uso = (j && j.uso) || {}; usoMail = mail; updLimits(); if (done) done(); })
+      .then(function (j) { uso = (j && j.uso) || {}; usoMail = mail + "|" + tel; updLimits(); if (done) done(); })
       .catch(function () { if (done) done(); });
   }
   function overLimit() {
@@ -1610,7 +1611,7 @@ var DEFAULTS = {
   }
   function loadCupones() {
     if (!ENDPOINT || !memToken) return;
-    fetch(ENDPOINT + "?cupones=1&token=" + encodeURIComponent(memToken)).then(function (r) { return r.json(); }).then(function (j) {
+    fetch(ENDPOINT + "?cupones=1&token=" + encodeURIComponent(memToken) + "&tel=" + encodeURIComponent((function () { try { return (JSON.parse(localStorage.getItem("uovo-cliente") || "{}").t || "").replace(/\D/g, ""); } catch (e) { return ""; } })())).then(function (r) { return r.json(); }).then(function (j) {
       cupones = (j && j.cupones) || []; if (data) { refresh(); if ($("drawer").classList.contains("open")) renderCart(); }
     }).catch(function () {});
   }
@@ -1830,7 +1831,7 @@ var DEFAULTS = {
   $("modal").addEventListener("click", function (e) { if (e.target === $("modal")) closeModal(); });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") { if (!$("pk-modal").hidden) closePack(); else if (!$("modal").hidden) closeModal(); else { closeOrders(); closeCart(); } } });
   $("name").addEventListener("input", function () { $("name-err").hidden = true; syncLinks(); });
-  $("phone").addEventListener("input", function () { $("phone-err").hidden = true; });
+  $("phone").addEventListener("input", function () { $("phone-err").hidden = true; if ($("phone").value.replace(/\D/g, "").length >= 8) loadUso($("email").value); });
   $("email").addEventListener("input", function () { $("email-err").hidden = true; $("lim-err").hidden = true; syncLinks(); loadUso($("email").value); });
 
   var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -1842,7 +1843,7 @@ var DEFAULTS = {
     if (!okName || !okMail || !okPhone) { e.preventDefault(); showWho(false); (!okName ? $("name") : !okMail ? $("email") : $("phone")).focus(); return; }
     if (needsCheck() && ENDPOINT) {
       var em = $("email").value.trim().toLowerCase();
-      if (usoMail !== em) { e.preventDefault(); $("lim-err").textContent = "Verificando tu pedido… tocá de nuevo en un instante."; $("lim-err").hidden = false; loadUso(em, function () { $("lim-err").hidden = true; }); return; }
+      if (usoMail !== em + "|" + $("phone").value.replace(/\D/g, "")) { e.preventDefault(); $("lim-err").textContent = "Verificando tu pedido… tocá de nuevo en un instante."; $("lim-err").hidden = false; loadUso(em, function () { $("lim-err").hidden = true; }); return; }
       var bad = overLimit();
       if (bad) { e.preventDefault(); $("lim-err").textContent = fill(data.config.texto_limite_error, { nombre: bad }); $("lim-err").hidden = false; return; }
     }

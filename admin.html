@@ -187,6 +187,10 @@ body.selmode .nav{visibility:hidden}
 #selbar .sba button i{display:none}
 #selbar .sbh button{border-radius:10px;font-size:.8rem}
 .sp-seg{display:flex;gap:6px;margin:6px 0}.sp-seg button{flex:1;border:1px solid #dde6f4;background:#fff;border-radius:12px;padding:10px;font-weight:700;color:#0C2247}.sp-seg button.on{background:#0C2247;color:#fff;border-color:#0C2247}
+#view input,#view select,#view textarea{max-width:100%;min-width:0;box-sizing:border-box}
+#view .tgl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+#view .tgl .tg{min-width:0;width:100%}
+.chips{max-width:100%}
 </style>
 </head>
 <body>
@@ -514,7 +518,7 @@ body.selmode .nav{visibility:hidden}
     var PP = [["todo", "Todo"], ["hoy", "Hoy"], ["sem", "Esta semana"], ["mes", "Este mes"], ["anio", "Este año"]];
     var h = colBanner() + '<button class="btn" data-pnew="1" style="margin-bottom:10px">' + (st.pnew ? "✕ Cerrar" : "＋ Nuevo pedido") + "</button>" + (st.pnew ? pedForm() : "") +
       '<input class="search" id="pq" type="search" placeholder="Buscar por nombre, código o pedido…" value="' + esc(st.q) + '">' +
-      '<div class="meta" style="margin:2px 4px 4px">Fecha en que se hizo el pedido</div><div class="chips">' + PP.map(function (x) { return '<button class="chip' + ((st.pdp || "todo") === x[0] ? " on" : "") + '" data-pdp="' + x[0] + '">' + x[1] + "</button>"; }).join("") + '</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px"><label class="meta">Desde<input class="inp" type="date" id="pd-d" value="' + esc(st.pdd || "") + '"></label><label class="meta">Hasta<input class="inp" type="date" id="pd-h" value="' + esc(st.pdh || "") + '"></label></div>' +
+      '<div class="meta" style="margin:2px 4px 4px">Fecha en que se hizo el pedido</div><div class="chips">' + PP.map(function (x) { return '<button class="chip' + ((st.pdp || "todo") === x[0] ? " on" : "") + '" data-pdp="' + x[0] + '">' + x[1] + "</button>"; }).join("") + '</div><div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-bottom:8px"><label class="meta">Desde<input class="inp" type="date" id="pd-d" value="' + esc(st.pdd || "") + '"></label><label class="meta">Hasta<input class="inp" type="date" id="pd-h" value="' + esc(st.pdh || "") + '"></label></div>' +
       '<div class="chips">' + FILS.map(function (f) { var n = f[0] === "todos" ? base.length : f[0] === "apr" ? base.filter(function (p) { return p.ap && !p.cc && !p.cl; }).length : (cnt[f[0]] || 0); return '<button class="chip' + (st.fil === f[0] ? " on" : "") + '" data-f="' + f[0] + '">' + f[1] + "<b>" + n + "</b></button>"; }).join("") + "</div>";
     if (!list.length) h += '<div class="empty">No hay pedidos en esta vista.</div>';
     else h += '<div class="meta" style="margin:0 4px 8px">' + list.length + " pedidos · " + money(list.reduce(function (a, p) { return a + (Number(p.total) || 0); }, 0)) + " · hechos entre " + esc(String(list[list.length - 1].fecha).slice(0, 10)) + " y " + esc(String(list[0].fecha).slice(0, 10)) + "</div>";

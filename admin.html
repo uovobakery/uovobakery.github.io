@@ -183,6 +183,7 @@ body{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
 #selbar .sba{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}#selbar .sba button{flex:1 0 auto;min-width:72px;border:0;border-radius:16px;padding:9px 8px;background:rgba(255,255,255,.12);color:#fff;font-weight:700;font-size:.74rem;display:flex;flex-direction:column;align-items:center;gap:3px}#selbar .sba button i{font-style:normal;font-size:1.25rem}#selbar .sba button.d{background:#d93a2f}
 .pm{max-width:440px!important;width:100%;padding:18px!important}.pm .pmh{display:flex;align-items:center;gap:8px;margin-bottom:12px}.pm .pmt{flex:1;font-size:1.25rem;color:#0C2247;word-break:break-word}.pm .pen{border:0;background:#EAF1FD;border-radius:12px;width:38px;height:38px;font-size:1.05rem}.pm .pmx{border:0;background:#EAF1FD;border-radius:12px;width:38px;height:38px;font-weight:800;color:#0F59C4}
 .pm .pmrow{display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap}.pm .pmrow .pr{display:flex;align-items:center;gap:6px;flex:1;min-width:130px}.pm .inp{margin-bottom:8px}.pm .pmsec{font-weight:800;color:#0F59C4;margin:14px 0 8px;font-size:1.02rem}.pm .pmrow2{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.pm .pmin.nop{color:#b3261e;cursor:pointer}.pm .pmin.nop small{display:block;font-size:.66rem;font-weight:700;opacity:.8}.nopm{font-size:.74rem;color:#b3261e;background:#FDECEA;border-radius:10px;padding:6px 10px;margin:0 0 8px}
 .pm .pmit{display:grid;grid-template-columns:1fr 78px 74px 40px;gap:6px;align-items:center;margin-bottom:6px}.pm .pmit .inp{margin:0;padding:10px 8px}.pm .pmin{font-weight:700;min-width:0;word-break:break-word}.pm .pmr{display:block;width:100%;text-align:left;border:0;background:#F1F6FE;border-radius:12px;padding:11px 14px;margin-bottom:6px;font-weight:700;color:#0F59C4}.pm .pmr small{opacity:.6;font-weight:500}.pm .btn{margin-top:8px}.pm .btn.dng{background:#fff;color:#C0392B;box-shadow:0 0 0 1.5px #C0392B inset}
 body.selmode .nav{visibility:hidden}
 .mi{transition:background .12s}.mi:active{background:#f0f5ff}
@@ -908,6 +909,29 @@ body.selmode .nav{visibility:hidden}
       toast(j && j.msg || "No se pudo eliminar"); return false;
     }).catch(function () { toast("No se pudo eliminar"); return false; });
   }
+  function prPrecioPop(n, done) {
+    var x = null, t = "a"; ["a", "p"].forEach(function (k) { (st.prov && st.prov[k] || []).forEach(function (z) { if (!x && nrm(z.ins) === nrm(n)) { x = z; t = k; } }); });
+    if (!x) { toast("No encuentro ese insumo en Proveedores"); return; }
+    var units = {}; UNL.forEach(function (z) { units[z] = 1; });
+    var m = document.createElement("div"); m.className = "modal"; m.style.zIndex = 95;
+    m.innerHTML = '<div class="box" style="width:100%;max-width:360px"><h3 style="font-size:1.05rem;margin-bottom:2px">' + esc(x.ins) + '</h3><div class="meta" style="margin:0 0 10px;color:#b3261e">No hay precio cargado para este insumo.</div><label class="meta">¿Cuánto compraste?</label><div style="display:flex;gap:8px;margin:4px 0 10px"><input class="inp" id="pp-c" inputmode="decimal" placeholder="Ej: 1" style="margin:0;flex:1"><input class="inp" id="pp-u" list="pp-ul" value="' + esc(x.uni || "g") + '" style="margin:0;width:96px"><datalist id="pp-ul">' + Object.keys(units).map(function (z) { return '<option value="' + esc(z) + '">'; }).join("") + '</datalist></div><label class="meta">¿Cuánto pagaste en total?</label><div style="display:flex;gap:8px;align-items:center;margin:4px 0 12px"><b>$</b><input class="inp" id="pp-p" inputmode="decimal" placeholder="Ej: 2500" style="margin:0;flex:1"></div><div style="display:flex;gap:8px"><button class="btn" data-ok="1" style="flex:1;margin:0">Guardar precio</button><button class="sm" data-px="1">Cancelar</button></div></div>';
+    document.body.appendChild(m); setTimeout(function () { var i = m.querySelector("#pp-c"); i && i.focus(); }, 30);
+    function save(b) {
+      var c = parseAR(m.querySelector("#pp-c").value), u = m.querySelector("#pp-u").value.trim(), pr = parseAR(m.querySelector("#pp-p").value);
+      if (!(c > 0)) { toast("Poné la cantidad"); return; } if (!(pr > 0)) { toast("Poné el precio"); return; }
+      b.disabled = true; b.textContent = "Guardando…";
+      var base = x.uni || "", cc = c; if (u && base && nrm(u) !== nrm(base)) { var pq = parseQty(String(c) + " " + u, base); if (!pq) { b.disabled = false; b.textContent = "Guardar precio"; toast("No puedo pasar " + u + " a " + base); return; } cc = pq.n; }
+      var sets = []; if (u && !base) sets.push(["uni", u]); sets.push(["cant", String(cc)]); sets.push(["precio", String(pr)]); c = cc;
+      var last = null;
+      (DEMO ? Promise.resolve((x.uni = x.uni || u, x.cant = c, x.precio = pr, x.costo = pr / c, { ok: true })) : sets.reduce(function (P, s2) { return P.then(function (j) { if (j && !j.ok) return j; return api("setProveedor", { t: t, r: x.r, ins: x.ins, campo: s2[0], valor: s2[1] }).then(function (k) { if (k && k.ok && k.proveedores) last = k.proveedores; return k; }); }); }, Promise.resolve({ ok: true }))).then(function (j) {
+        if (!j || !j.ok) { b.disabled = false; b.textContent = "Guardar precio"; toast(j && j.msg || "No se pudo guardar"); return; }
+        if (last) st.prov = last; if (typeof VC !== "undefined") VC.prov = null; st.stock = null; st.recf = 0;
+        m.remove(); toast("Precio guardado ✓"); if (done) done();
+      }).catch(function () { b.disabled = false; b.textContent = "Guardar precio"; toast("No se pudo guardar"); });
+    }
+    m.addEventListener("click", function (e) { if (e.target === m || e.target.closest("[data-px]")) { m.remove(); return; } var b = e.target.closest("[data-ok]"); if (b) save(b); });
+    m.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); var b = m.querySelector("[data-ok]"); if (!b.disabled) save(b); } });
+  }
   function refreshCat(cb) { if (DEMO) { if (cb) cb(); return; } api("catalogo").then(function (j) { if (j && j.ok) st.productos = j.catalogo; if (cb) cb(); }).catch(function () { if (cb) cb(); }); }
   function newProdPop() {
     var m = document.createElement("div"); m.className = "modal";
@@ -953,6 +977,9 @@ body.selmode .nav{visibility:hidden}
     function loadRd() { var x = (st.recetas || []).filter(function (z) { return nrm(z.nombre) === nrm(name); })[0]; rd = x ? { y: x.y || x.q || "", ex: true, items: (x.items || []).map(function (i) { return { n: i.n, q: i.q }; }) } : { y: "", ex: false, items: [] };
       if (!drUsed) { drUsed = true; var d = drGet(); if (d && d.items && (d.items.length || d.y)) { rd.y = d.y; rd.items = d.items; dirty = true; setTimeout(function () { toast("Recuperé tu receta sin guardar ✏️"); }, 300); } } }
     m.addEventListener("input", function () { setTimeout(drSave, 0); }); m.addEventListener("change", function () { setTimeout(drSave, 0); }); m.addEventListener("click", function () { setTimeout(drSave, 50); });
+    function prCosts() { if (!st.prov) return null; var c = {}; ["a", "p"].forEach(function (t) { (st.prov[t] || []).forEach(function (z) { c[nrm(z.ins)] = Number(z.costo) || 0; }); }); return c; }
+    if (!st.prov) api("proveedores").then(function (j) { if (j && j.ok) { st.prov = j.proveedores; if (document.body.contains(m)) draw(); } }).catch(function () {});
+    m.addEventListener("click", function (e) { var np = e.target.closest("[data-nop]"); if (!np) return; e.stopPropagation(); prPrecioPop(np.getAttribute("data-nop"), function () { refreshCat(function () { if (p) p = st.productos.filter(function (x) { return x.r === p.r; })[0] || p; if (document.body.contains(m)) draw(); render(true); }); }); }, true);
     function resHtml() {
       var t = nrm(qs); if (!t) return "";
       var have = rd.items.map(function (i) { return nrm(i.n); });
@@ -966,7 +993,8 @@ body.selmode .nav{visibility:hidden}
           '<input class="inp" data-pf="cat" list="cat-list" placeholder="Categoría" value="' + esc(p.cat) + '"><datalist id="cat-list">' + catOpts() + '</datalist><textarea class="inp" rows="2" data-pf="desc" placeholder="Descripción">' + esc(p.desc) + '</textarea><input class="inp" data-pf="ing" placeholder="Ingredientes para el buscador" value="' + esc(p.ing) + '"><button class="sm" data-pm="fotos" style="width:100%">📎 Fotos</button>';
       }
       h += '<div class="pmsec">Receta' + (rd.ex ? "" : " · sin cargar") + '</div><div class="pmrow2"><span>Una masa rinde</span><input class="inp" id="pm-y" type="number" inputmode="numeric" value="' + (rd.y || "") + '" style="width:80px;margin:0"><span>cookies</span></div>';
-      h += rd.items.map(function (it, i) { return '<div class="pmit"><div class="pmin">' + esc(it.n) + '</div><input class="inp" data-pq="' + i + '" type="text" inputmode="decimal" value="' + (it.q === "" ? "" : String(it.q).replace(".", ",")) + '" placeholder="Cant."><input class="inp" data-pu="' + i + '" list="u-all" value="' + esc(u[it.n] || "") + '" placeholder="unidad"><button class="sm red" data-pm="rm" data-i="' + i + '">×</button></div>'; }).join("");
+      var pmc = prCosts();
+      h += (pmc && rd.items.some(function (it) { return !(pmc[nrm(it.n)] > 0); }) ? '<div class="nopm">Los insumos en rojo no tienen precio. Tocalos para cargarlo.</div>' : "") + rd.items.map(function (it, i) { var np = pmc && !(pmc[nrm(it.n)] > 0); return '<div class="pmit"><div class="pmin' + (np ? ' nop" data-nop="' + esc(it.n) + '"' : '"') + '>' + esc(it.n) + (np ? "<small>sin precio ›</small>" : "") + '</div><input class="inp" data-pq="' + i + '" type="text" inputmode="decimal" value="' + (it.q === "" ? "" : String(it.q).replace(".", ",")) + '" placeholder="Cant."><input class="inp" data-pu="' + i + '" list="u-all" value="' + esc(u[it.n] || "") + '" placeholder="unidad"><button class="sm red" data-pm="rm" data-i="' + i + '">×</button></div>'; }).join("");
       h += '<input class="inp" id="pm-s" placeholder="＋ Buscar insumo para agregar…" value="' + esc(qs) + '" autocomplete="off"><div id="pm-res">' + resHtml() + '</div><datalist id="u-all">' + UNL.map(function (x) { return '<option value="' + x + '">'; }).join("") + '</datalist>';
       h += '<button class="btn" data-pm="save">Guardar receta</button>' + (rd.ex ? '<button class="sm red" data-pm="delr" style="width:100%;margin-top:8px">Eliminar receta</button>' : "") + (only ? "" : '<button class="btn dng" data-pm="delp">Eliminar producto</button>');
       box.innerHTML = h; box.scrollTop = sc;
@@ -2245,7 +2273,7 @@ body.selmode .nav{visibility:hidden}
       [".pr", "Precio", "Tocá el número, escribí el nuevo precio y listo."],
       ["[data-sw=ag]", "Agotada", "Márcala cuando no hay stock: el cliente la ve apagada."],
       ["[data-sw=vi]", "Visible", "Mostrá u ocultá la cookie en la tienda."],
-      ["[data-edit]", "Editar", "Cambiá descripción, categoría e ingredientes. Se guarda al salir del campo."]],
+      ["[data-edit]", "Editar", "Cambiá descripción, categoría, ingredientes y la receta. En la receta podés crear insumos nuevos desde el buscador, y los que están en rojo no tienen precio: tocalos para cargarlo."]],
     textos: [["#cq", "Buscador", "Escribí una palabra para encontrar el texto que querés cambiar."],
       [".card", "Editá y listo", "Cambiá el texto y salí del campo: se guarda y se ve en la tienda."]],
     proveedores: [["#pvq", "Buscador", "Escribí una palabra y te salta el insumo. Tocalo para cargar proveedor, cantidad y precio."],

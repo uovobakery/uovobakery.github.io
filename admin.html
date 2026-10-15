@@ -191,7 +191,7 @@ body.selmode .nav{visibility:hidden}
 #view .tgl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 #view .tgl .tg{min-width:0;width:100%}
 .chips{max-width:100%}
-.hero .hpv{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.22);color:#fff;cursor:pointer}.hero .hpv b{font-size:1.15rem;margin-left:6px}.at i.ic{font-style:normal;display:block;font-size:1.3rem;margin-bottom:4px}.atg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.cr .ck,.msf+x{}.ck{width:26px;height:26px;flex:none;border-radius:8px;border:2px solid #1F6FE0;background:#fff;color:#fff;padding:0;font-size:1rem;display:inline-flex;align-items:center;justify-content:center}.ck.on{background:#1F6FE0}.cr.dn{opacity:.55}.cr.sl{background:#E6F0FF}.msf{position:sticky;bottom:-22px;background:#fff;padding:10px 0 2px;margin-top:10px;border-top:1px solid #E1EAF8}.hero .hpv{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.22);color:#fff;cursor:pointer}.hero .hpv b{font-size:1.15rem;margin-left:6px}.at i.ic{font-style:normal;display:block;font-size:1.3rem;margin-bottom:4px}.atg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px}
 .at{border:0;background:#fff;border-radius:14px;padding:12px 10px;text-align:left;box-shadow:0 1px 0 rgba(15,89,196,.08),0 4px 12px rgba(15,35,70,.06);display:flex;flex-direction:column;gap:3px;min-height:64px;color:var(--ink,#0C2247);font:inherit}
 .at b{font-size:.84rem;line-height:1.15}.at small{font-size:.7rem;color:var(--soft);font-weight:600}.at.al small{color:#b45309}
 .adl{background:#fff;border-radius:14px;overflow:hidden;margin-bottom:12px;box-shadow:0 4px 12px rgba(15,35,70,.06)}
@@ -247,7 +247,7 @@ body.selmode .nav{visibility:hidden}
   function can(a) { var r = st.me && st.me.rol; if (!r) return false; if (r === "Dueño" || r === "Total") return true; return String(r).toLowerCase().split(/[,;\s]+/).indexOf(a) >= 0; }
   function permList(p) { if (!p || p === "Dueño" || p === "Total") return AREAS.map(function (x) { return x[0]; }); return String(p).toLowerCase().split(/[,;\s]+/); }
   var VAREA = { inicio: "pedidos", pedidos: "pedidos", productos: "productos", finanzas: "finanzas", packs: "packs", recetas: "recetas", proveedores: "proveedores", stock: "proveedores", puntos: "proveedores", cupones: "packs", textos: "textos", tandas: "textos", cola: "pedidos", resenas: "resenas" };
-  function allowed(v) { if (v === "mas") return true; if (v === "accesos" || v === "voz") return !!(st.me && st.me.rol === "Dueño"); return can(VAREA[v]); }
+  function allowed(v) { if (v === "mas") return true; if (v === "compras") v = "proveedores"; if (v === "accesos" || v === "voz") return !!(st.me && st.me.rol === "Dueño"); return can(VAREA[v]); }
   function firstView() { var o = ["inicio", "pedidos", "productos", "finanzas", "mas"]; for (var i = 0; i < o.length; i++) if (allowed(o[i])) return o[i]; return "mas"; }
   function applyPerms() { Array.prototype.forEach.call($("nav").querySelectorAll("button"), function (b) { b.hidden = !allowed(b.getAttribute("data-v")); }); }
   var tt = null;
@@ -917,15 +917,194 @@ body.selmode .nav{visibility:hidden}
     return curH + h;
   }
 
+
+  /* ---------- Lista de compras ---------- */
+  var CK = "uovo_adm_carts", BK = "uovo_adm_buyx", HK = "uovo_adm_buyh", CMP = { sel: "auto", ms: null, mv: false };
+  function lsR(k) { try { return JSON.parse(localStorage.getItem(k) || "{}") || {}; } catch (e) { return {}; } }
+  function lsW(k, o) { try { localStorage.setItem(k, JSON.stringify(o)); } catch (e) {} }
+  function cmpC() { var o = lsR(CK); if (!o.list) o.list = []; if (!o.auto) o.auto = []; return o; }
+  function cmpFmt(q, uni) { var u = nrm(uni), n = Math.ceil(q * 100 - 1e-9) / 100; if (u === "g" && n >= 1000) return fm(Math.ceil(n / 10) / 100) + " kg"; if (u === "ml" && n >= 1000) return fm(Math.ceil(n / 10) / 100) + " l"; return fm(n) + " " + (uni || ""); }
+  function cmpPlan() {
+    if (!st.stock || !st.recetas || !st.pedidos) return null;
+    var need = {}, nm = {}, un = {}, nor = {}, buy = [];
+    st.pedidos.forEach(function (p) {
+      var e = estadoDe(p); if (e !== "pend" && e !== "coc") return; var it = pedItems(p);
+      Object.keys(it.cookies).forEach(function (k) {
+        var rec = st.recetas.filter(function (r) { return nrm(r.nombre) === nrm(k); })[0];
+        if (!rec || !rec.y || !rec.items || !rec.items.length) { nor[k] = 1; return; }
+        rec.items.forEach(function (x) { var kk = nrm(x.n); need[kk] = (need[kk] || 0) + x.q / rec.y * it.cookies[k]; nm[kk] = x.n; un[kk] = un[kk] || x.u; });
+      });
+    });
+    Object.keys(need).forEach(function (kk) {
+      var s0 = st.stock.filter(function (z) { return nrm(z.ins) === kk; })[0], have = s0 && s0.mov ? Number(s0.stock) || 0 : 0, m = need[kk] - have;
+      if (m > 1e-9) buy.push({ n: s0 ? s0.ins : nm[kk], uni: s0 ? s0.uni : un[kk], q: m, why: "p" });
+    });
+    st.stock.forEach(function (x) { if (x.mov && x.nivel === "rojo" && x.min !== "" && !buy.some(function (b) { return nrm(b.n) === nrm(x.ins); })) { var m = Number(x.min) - (Number(x.stock) || 0); buy.push({ n: x.ins, uni: x.uni, q: m > 0 ? m : 0, why: "m" }); } });
+    buy.sort(function (a, b) { return (a.why === b.why ? 0 : a.why === "p" ? -1 : 1) || a.n.localeCompare(b.n); });
+    return { buy: buy, nor: Object.keys(nor) };
+  }
+  function cmpRows(o, id) {
+    var mr = function (it, i) { return { k: "m" + i, n: it.n, q: it.q || "", man: i, done: !!it.done, price: it.price || 0 }; };
+    if (id === "auto") {
+      var P = cmpPlan(), ck = lsR(BK), hx = lsR(HK), A = P ? P.buy.filter(function (b) { return hx[nrm(b.n) + "|" + b.q] == null; }).map(function (b) { var v = ck[nrm(b.n)]; return { k: "a:" + nrm(b.n), n: b.n, q: b.q > 0 ? cmpFmt(b.q, b.uni) : "reponer", qn: b.q, uni: b.uni, why: b.why, done: !!v, price: v && v !== 1 ? v : 0, hk: nrm(b.n) + "|" + b.q }; }) : [];
+      return A.concat(o.auto.map(mr));
+    }
+    var c = o.list.filter(function (z) { return z.id === id; })[0]; return c ? c.items.map(mr) : [];
+  }
+  function cmpCart(o, id) { return id === "auto" ? { items: o.auto } : o.list.filter(function (z) { return z.id === id; })[0]; }
+  function cmpPend() { var o = cmpC(); return cmpRows(o, "auto").filter(function (x) { return !x.done; }).length; }
+  function cmpSetDone(o, id, rw, v, price) {
+    if (rw.man != null) { var it = cmpCart(o, id).items[rw.man]; it.done = v; it.price = v ? price || 0 : 0; lsW(CK, o); }
+    else { var ck = lsR(BK); if (v) ck[nrm(rw.n)] = price > 0 ? price : 1; else delete ck[nrm(rw.n)]; lsW(BK, ck); }
+  }
+  function cmpRemove(o, id, rws) {
+    var hx = lsR(HK), it = cmpCart(o, id).items;
+    rws.filter(function (x) { return x.man != null; }).sort(function (a, b) { return b.man - a.man; }).forEach(function (x) { it.splice(x.man, 1); });
+    rws.filter(function (x) { return x.man == null; }).forEach(function (x) { hx[x.hk] = 1; });
+    lsW(HK, hx); lsW(CK, o);
+  }
+  function cmpProvs() { var s = {}; ["a", "p"].forEach(function (t) { ((st.prov || {})[t] || []).forEach(function (x) { if (x.prov) s[x.prov] = 1; }); }); return Object.keys(s).sort(); }
+  function cmpBuy(rw, price, prov) {
+    var s0 = (st.stock || []).filter(function (z) { return nrm(z.ins) === nrm(rw.n); })[0];
+    var cant = rw.qn > 0 ? rw.qn : (s0 && rw.q ? (parseQty(rw.q, s0.uni) || {}).n : 0);
+    if (!s0 || !(cant > 0)) return Promise.resolve({ ok: 0, fail: "", skip: true });
+    return stkApply([{ ins: s0.ins, uni: s0.uni, tipo: "compra", cant: cant, precio: price > 0 ? price : 0 }]).then(function (r) {
+      var x = lastBuy(s0.ins), pm = {}; if (prov && (!x || x.prov !== prov)) pm[s0.ins] = prov;
+      return finProv(pm).then(function () { return r; });
+    });
+  }
+  function cmpOpen() {
+    var old = $("cmpm"); if (old) old.remove();
+    var m = document.createElement("div"); m.className = "modal"; m.id = "cmpm"; document.body.appendChild(m); m.__draw = cmpDraw; CMP.ms = null; CMP.mv = false; CMP.ld = true;
+    m.addEventListener("click", cmpClick);
+    var LP = null;
+    m.addEventListener("pointerdown", function (e) { var r = e.target.closest(".cr"); if (!r || CMP.ms || e.target.closest("button,input")) return; var k = r.getAttribute("data-k"); LP = setTimeout(function () { LP = null; CMP.ms = {}; CMP.ms[k] = 1; CMP.lp = Date.now(); cmpDraw(); try { navigator.vibrate && navigator.vibrate(20); } catch (x) {} }, 480); });
+    ["pointerup", "pointerleave", "pointermove", "pointercancel"].forEach(function (ev) { m.addEventListener(ev, function () { if (LP) { clearTimeout(LP); LP = null; } }); });
+    m.addEventListener("keydown", function (e) { if (e.key === "Enter" && e.target.id && e.target.id.indexOf("cm-") === 0) { e.preventDefault(); var a = m.querySelector("#cm-add"); if (a) a.click(); } });
+    cmpDraw();
+    var L = [];
+    if (!st.stock) L.push(api("stock").then(function (j) { if (j && j.ok) { st.stock = j.stock; st.alertas = !!j.alertas; } }));
+    if (!st.recetas) L.push(api("recetas2").then(function (j) { if (j && j.ok) { st.recetas = j.recetas; st.insumos = j.insumos; } }));
+    if (!st.prov) L.push(api("proveedores").then(function (j) { if (j && j.ok) st.prov = j.proveedores; }));
+    Promise.all(L.map(function (p) { return p.catch(function () {}); })).then(function () { CMP.ld = false; if ($("cmpm")) cmpDraw(); });
+  }
+  function cmpRow(x, MS) {
+    var sel = MS && MS[x.k], so = "";
+    var inner = '<article class="card pc cr' + (x.done ? " dn" : "") + (sel ? " sl" : "") + '" data-k="' + esc(x.k) + '" style="padding:12px 14px"><div style="display:flex;align-items:center;gap:10px">' +
+      (MS ? '<span class="ck' + (sel ? " on" : "") + '">' + (sel ? "✓" : "") + "</span>" : '<button type="button" class="ck' + (x.done ? " on" : "") + '" data-ck="' + esc(x.k) + '" aria-label="Comprado">' + (x.done ? "✓" : "") + "</button>") +
+      '<div style="flex:1;min-width:0"><div class="nm" style="font-size:1rem' + (x.done ? ";text-decoration:line-through" : "") + '">' + esc(x.n) + "</div>" + (x.why === "m" ? '<div class="meta" style="margin:0">Punto de pedido</div>' : x.why === "p" ? '<div class="meta" style="margin:0">Para tus pedidos</div>' : "") + "</div>" +
+      (x.q ? "<b>" + esc(x.q) + "</b>" : "") + (x.done && x.price ? '<b style="color:var(--ok)">' + money(x.price) + "</b>" : "") + "</div></article>";
+    return MS ? inner.replace('class="card pc cr', 'class="card cr') : swrap("cmp", x.k, inner, true, true, x.done ? "Deshacer" : "Comprado", "Quitar");
+  }
+  function cmpDraw() {
+    var m = $("cmpm"); if (!m) return; var o = cmpC(), id = CMP.sel; if (id !== "auto" && !o.list.some(function (z) { return z.id === id; })) id = CMP.sel = "auto";
+    var R = cmpRows(o, id), MS = CMP.ms, P = id === "auto" ? cmpPlan() : null, n0 = cmpPend();
+    var chips = '<div class="chips" style="flex-wrap:nowrap;overflow-x:auto;margin-bottom:8px"><button class="chip' + (id === "auto" ? " on" : "") + '" data-cs="auto">Automática <b>' + n0 + "</b></button>" + o.list.map(function (z) { return '<button class="chip' + (id === z.id ? " on" : "") + '" data-cs="' + z.id + '">' + esc(z.n) + " <b>" + z.items.filter(function (i) { return !i.done; }).length + "</b></button>"; }).join("") + '<button class="chip" data-cnew="1">＋ Carrito</button></div>';
+    var dl = '<datalist id="cm-dl">' + (st.stock || []).map(function (z) { return '<option value="' + esc(z.ins) + '">'; }).join("") + "</datalist>";
+    var body = id === "auto" ? '<div class="meta">Se arma sola con lo que falta para los pedidos pendientes y los puntos de pedido.</div>' : '<div class="meta" style="display:flex;gap:8px;align-items:center"><span style="flex:1">Carrito propio</span><button class="sm" data-crn="1">Renombrar</button><button class="sm red" data-crd="1">Eliminar</button></div>';
+    if (id === "auto" && CMP.ld) body += '<div class="empty">Calculando…</div>';
+    if (P && P.nor.length) body += '<div class="meta" style="color:var(--err);margin-top:6px">Sin receta (no cuentan): ' + P.nor.map(esc).join(", ") + "</div>";
+    body += '<div style="margin-top:8px">' + (R.length ? R.map(function (x) { return cmpRow(x, MS); }).join("") : (CMP.ld && id === "auto" ? "" : '<div class="empty">' + (id === "auto" ? "No te falta nada por ahora." : "Carrito vacío.") + "</div>")) + "</div>";
+    var foot;
+    if (MS) {
+      var ns = Object.keys(MS).length;
+      foot = '<div class="msf"><div class="meta" style="margin-bottom:6px"><b>' + ns + "</b> elegidos</div>" + (CMP.mv ? '<div class="chips" style="flex-wrap:wrap;margin-bottom:6px">' + (id !== "auto" ? '<button class="chip" data-mvt="auto">Automática</button>' : "") + o.list.filter(function (z) { return z.id !== id; }).map(function (z) { return '<button class="chip" data-mvt="' + z.id + '">' + esc(z.n) + "</button>"; }).join("") + '</div><div style="display:flex;gap:6px;margin-bottom:6px"><input class="inp" id="cm-mvn" placeholder="Nuevo carrito" style="flex:1;min-width:0"><button class="btn" data-mvnew="1" style="padding:6px 12px">Crear y mover</button></div>' : "") + '<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="sm" data-msall="1">Todos</button><button class="sm" data-mmv="1">Mover a…</button><button class="sm" data-mbuy="1">Comprados</button><button class="sm red" data-mdel="1">Quitar</button><button class="sm" data-mx="1">Cancelar</button></div></div>';
+    } else {
+      foot = '<div style="display:flex;gap:6px;margin-top:10px"><input class="inp" id="cm-n" list="cm-dl" autocomplete="off" placeholder="Agregar (ej. manteca)" style="flex:2;min-width:0"><input class="inp" id="cm-q" placeholder="Cant." style="flex:1;min-width:0"><button class="btn" id="cm-add" style="width:48px;padding:0;font-size:1.4rem">＋</button></div>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="sm" id="cm-wa">WhatsApp</button><button class="sm" id="cm-cp">Copiar</button>' + (R.length ? '<button class="sm red" id="cm-vac">Vaciar</button>' : "") + (R.some(function (x) { return x.done; }) ? '<button class="sm" id="cm-cl">Destildar</button>' : "") + "</div>";
+    }
+    var keep = $("cm-n") && document.activeElement === $("cm-n") ? [$("cm-n").value, $("cm-q").value] : null;
+    m.innerHTML = '<div class="box" style="width:100%;max-height:88vh;overflow:auto"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><h3 style="margin:0;flex:1">Lista de compras</h3><button class="sm" data-cx="1">Cerrar</button></div>' + dl + chips + body + foot + "</div>";
+    if (keep) { $("cm-n").value = keep[0]; $("cm-q").value = keep[1]; $("cm-n").focus(); }
+  }
+  function cmpText(o, id) {
+    var R = cmpRows(o, id).filter(function (x) { return !x.done; }), c = id === "auto" ? "Lista de compras" : cmpCart(o, id).n;
+    return ["Lista de compras · " + c + " · Uovo"].concat(R.length ? R.map(function (x) { return "• " + x.n + (x.q ? " — " + x.q : ""); }) : ["(vacía)"]).join("\n");
+  }
+  function cmpPay(rw, edit) {
+    var id = CMP.sel, x0 = lastBuy(rw.n), prov0 = (x0 && x0.prov) || "", vig = x0 && x0.costo ? x0 : null, p = document.createElement("div"); p.className = "modal"; p.style.zIndex = 70;
+    p.innerHTML = '<div class="box" style="width:100%"><h3>' + esc(rw.n) + (rw.q && rw.q !== "reponer" ? " · " + esc(rw.q) : "") + '</h3><div class="meta" style="margin-bottom:8px">' + (vig ? "Última vez: " + money(vig.costo) + " / " + esc(vig.uni) + (prov0 ? " · " + esc(prov0) : "") : "Sin compras anteriores") + '</div><div class="meta">Pagué (total) $</div><input class="inp" id="cp-p" inputmode="decimal" value="' + esc(rw.price || "") + '" placeholder="0" style="font-size:1.3rem;font-weight:800;margin-bottom:8px"><input class="inp" id="cp-v" list="cp-dl" placeholder="Proveedor" value="' + esc(prov0) + '"><datalist id="cp-dl">' + cmpProvs().map(function (z) { return '<option value="' + esc(z) + '">'; }).join("") + '</datalist><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn" data-pok="1" style="flex:1">' + (edit ? "Guardar precio" : "Comprado") + "</button>" + (edit ? "" : '<button class="sm" data-psp="1">Sin precio</button>') + '<button class="sm" data-px="1">Cancelar</button></div></div>';
+    document.body.appendChild(p); setTimeout(function () { var i = p.querySelector("#cp-p"); if (i) { i.focus(); i.select(); } }, 30);
+    function fin(price, prov, noreg) {
+      var o = cmpC(), cur = cmpRows(o, id).filter(function (x) { return x.k === rw.k; })[0] || rw;
+      if (edit || noreg) { cmpSetDone(o, id, cur, true, price); p.remove(); cmpDraw(); toast(edit ? "Precio anotado" : "Anotado sin registrar en stock"); return; }
+      var b = p.querySelector("[data-pok]"); b.disabled = true;
+      cmpBuy(cur, price, prov).then(function (r) { cmpSetDone(o, id, cur, true, price); p.remove(); cmpDraw(); toast(r.skip ? "Anotado (no está en stock)" : r.fail ? r.fail : "Compra registrada ✓"); }).catch(function () { b.disabled = false; toast("No se pudo registrar"); });
+    }
+    p.addEventListener("click", function (e) {
+      var t = e.target; if (t === p || t.closest("[data-px]")) { p.remove(); return; }
+      if (t.closest("[data-psp]")) { fin(0, "", true); return; }
+      if (t.closest("[data-pok]")) { var pv = parseAR(p.querySelector("#cp-p").value) || 0; if (!(pv > 0)) { toast("Poné cuánto pagaste (o 'Sin precio')"); return; } fin(pv, p.querySelector("#cp-v").value.trim()); }
+    });
+    p.addEventListener("keydown", function (e) { if (e.key === "Enter" && e.target.id === "cp-p") { e.preventDefault(); p.querySelector("[data-pok]").click(); } });
+  }
+  function cmpEdit(rw) {
+    var id = CMP.sel, p = document.createElement("div"); p.className = "modal"; p.style.zIndex = 70;
+    p.innerHTML = '<div class="box" style="width:100%"><h3>Editar</h3><input class="inp" id="ce-n" list="cm-dl" value="' + esc(rw.n) + '" placeholder="Producto"><input class="inp" id="ce-q" value="' + esc(rw.q === "reponer" ? "" : rw.q) + '" placeholder="Cantidad (ej. 2 kg)"><div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn" data-eok="1" style="flex:1">Guardar</button>' + (rw.done ? "" : '<button class="sm" data-ebuy="1">Comprado</button>') + '<button class="sm" data-px="1">Cancelar</button></div></div>';
+    document.body.appendChild(p);
+    p.addEventListener("click", function (e) {
+      var t = e.target; if (t === p || t.closest("[data-px]")) { p.remove(); return; }
+      if (t.closest("[data-ebuy]")) { p.remove(); cmpPay(rw, false); return; }
+      if (!t.closest("[data-eok]")) return;
+      var n = p.querySelector("#ce-n").value.trim(), q = p.querySelector("#ce-q").value.trim(); if (!n) { toast("Poné el nombre"); return; }
+      var o = cmpC();
+      if (rw.man != null) { var it = cmpCart(o, id).items[rw.man]; it.n = n; it.q = q; lsW(CK, o); }
+      else { var hx = lsR(HK); hx[rw.hk] = 1; lsW(HK, hx); o.auto.push({ n: n, q: q || (rw.q === "reponer" ? "" : rw.q), done: false }); lsW(CK, o); }
+      p.remove(); cmpDraw(); toast("Guardado ✓");
+    });
+  }
+  function cmpSwipe(act, key) {
+    var o = cmpC(), id = CMP.sel, rw = cmpRows(o, id).filter(function (x) { return x.k === key; })[0]; if (!rw) return;
+    if (act === "add") { if (rw.done) { cmpSetDone(o, id, rw, false); cmpDraw(); } else cmpPay(rw, false); return; }
+    cmpRemove(o, id, [rw]); cmpDraw(); toast("Quitado ✓");
+  }
+  function cmpClick(e) {
+    var m = $("cmpm"), t = e.target, o = cmpC(), id = CMP.sel, b;
+    if (CMP.lp && Date.now() - CMP.lp < 600) return;
+    if (t === m || t.closest("[data-cx]")) { m.remove(); return; }
+    if ((b = t.closest("[data-cs]"))) { CMP.sel = b.getAttribute("data-cs"); CMP.ms = null; cmpDraw(); return; }
+    if (t.closest("[data-cnew]")) { var p0 = document.createElement("div"); p0.className = "modal"; p0.style.zIndex = 70; p0.innerHTML = '<div class="box" style="width:100%"><h3>Nuevo carrito</h3><input class="inp" id="cn-n" placeholder="Nombre (ej. Verdulería)"><div style="display:flex;gap:8px;margin-top:8px"><button class="btn" data-ok="1" style="flex:1">Crear</button><button class="sm" data-px="1">Cancelar</button></div></div>'; document.body.appendChild(p0); setTimeout(function () { p0.querySelector("#cn-n").focus(); }, 30); p0.addEventListener("click", function (ev) { if (ev.target === p0 || ev.target.closest("[data-px]")) { p0.remove(); return; } if (ev.target.closest("[data-ok]")) { var nm = p0.querySelector("#cn-n").value.trim(); if (!nm) return; var o2 = cmpC(), nid = "c" + Date.now(); o2.list.push({ id: nid, n: nm, items: [] }); lsW(CK, o2); CMP.sel = nid; p0.remove(); cmpDraw(); } }); return; }
+    if (t.closest("[data-crn]")) { var c0 = cmpCart(o, id), p1 = document.createElement("div"); p1.className = "modal"; p1.style.zIndex = 70; p1.innerHTML = '<div class="box" style="width:100%"><h3>Renombrar</h3><input class="inp" id="cn-n" value="' + esc(c0.n) + '"><div style="display:flex;gap:8px;margin-top:8px"><button class="btn" data-ok="1" style="flex:1">Guardar</button><button class="sm" data-px="1">Cancelar</button></div></div>'; document.body.appendChild(p1); p1.addEventListener("click", function (ev) { if (ev.target === p1 || ev.target.closest("[data-px]")) { p1.remove(); return; } if (ev.target.closest("[data-ok]")) { var nm = p1.querySelector("#cn-n").value.trim(); if (!nm) return; var o2 = cmpC(); cmpCart(o2, id).n = nm; lsW(CK, o2); p1.remove(); cmpDraw(); } }); return; }
+    if (t.closest("[data-crd]")) { var c1 = cmpCart(o, id); confirmM("¿Eliminar el carrito «" + c1.n + "»?", function () { var o2 = cmpC(); o2.list = o2.list.filter(function (z) { return z.id !== id; }); lsW(CK, o2); CMP.sel = "auto"; cmpDraw(); }); return; }
+    function selRows() { var MS = CMP.ms || {}; return cmpRows(o, id).filter(function (x) { return MS[x.k]; }); }
+    if (CMP.ms) {
+      if (t.closest("[data-mx]")) { CMP.ms = null; CMP.mv = false; cmpDraw(); return; }
+      if (t.closest("[data-msall]")) { cmpRows(o, id).forEach(function (x) { CMP.ms[x.k] = 1; }); cmpDraw(); return; }
+      if (t.closest("[data-mmv]")) { CMP.mv = !CMP.mv; cmpDraw(); return; }
+      var mt = t.closest("[data-mvt]"), mn = t.closest("[data-mvnew]");
+      if (mt || mn) {
+        var tid = mt ? mt.getAttribute("data-mvt") : null;
+        if (mn) { var nn = $("cm-mvn").value.trim(); if (!nn) { toast("Poné el nombre"); return; } tid = "c" + Date.now(); o.list.push({ id: tid, n: nn, items: [] }); }
+        var rs = selRows(), tg = cmpCart(o, tid); rs.forEach(function (x) { tg.items.push({ n: x.n, q: x.q === "reponer" ? "" : x.q, done: false }); });
+        cmpRemove(o, id, rs); CMP.ms = null; CMP.mv = false; CMP.sel = tid; cmpDraw(); toast("Movidos ✓"); return;
+      }
+      if (t.closest("[data-mdel]")) { var rs2 = selRows(); if (!rs2.length) return; cmpRemove(o, id, rs2); CMP.ms = null; cmpDraw(); toast("Quitados ✓"); return; }
+      if (t.closest("[data-mbuy]")) { selRows().forEach(function (x) { cmpSetDone(o, id, x, true, 0); o = cmpC(); }); CMP.ms = null; cmpDraw(); return; }
+      var r0 = t.closest(".cr"); if (r0) { var k0 = r0.getAttribute("data-k"); if (CMP.ms[k0]) delete CMP.ms[k0]; else CMP.ms[k0] = 1; if (!Object.keys(CMP.ms).length) CMP.ms = null; cmpDraw(); }
+      return;
+    }
+    if ((b = t.closest("[data-ck]"))) { var rw1 = cmpRows(o, id).filter(function (x) { return x.k === b.getAttribute("data-ck"); })[0]; if (!rw1) return; if (rw1.done) { cmpSetDone(o, id, rw1, false); cmpDraw(); } else cmpPay(rw1, false); return; }
+    if (t.closest("#cm-add")) { var nm = $("cm-n").value.trim(); if (!nm) { toast("Escribí qué comprar"); return; } cmpCart(o, id).items.push({ n: nm, q: $("cm-q").value.trim(), done: false }); lsW(CK, o); cmpDraw(); setTimeout(function () { if ($("cm-n")) $("cm-n").focus(); }, 30); return; }
+    if (t.closest("#cm-wa")) { window.open("https://wa.me/?text=" + encodeURIComponent(cmpText(o, id)), "_blank"); return; }
+    if (t.closest("#cm-cp")) { try { navigator.clipboard.writeText(cmpText(o, id)); toast("Lista copiada ✓"); } catch (x) { toast("No pude copiar"); } return; }
+    if ((b = t.closest("#cm-vac"))) {
+      if (!b.classList.contains("arm")) { b.classList.add("arm"); b.textContent = "¿Vaciar? Tocá de nuevo"; setTimeout(function () { if (b.isConnected) { b.classList.remove("arm"); b.textContent = "Vaciar"; } }, 3500); return; }
+      cmpRemove(o, id, cmpRows(o, id)); cmpDraw(); toast("Lista vaciada ✓"); return;
+    }
+    if (t.closest("#cm-cl")) { cmpRows(o, id).filter(function (x) { return x.done; }).forEach(function (x) { cmpSetDone(o = cmpC(), id, x, false); }); cmpDraw(); return; }
+    var r1 = t.closest(".cr"); if (r1 && !t.closest("button")) { var rw2 = cmpRows(o, id).filter(function (x) { return x.k === r1.getAttribute("data-k"); })[0]; if (rw2) { if (rw2.done) cmpPay(rw2, true); else cmpEdit(rw2); } }
+  }
+
   /* ---------- Atajos rápidos (popup) y accesos directos ---------- */
-  var SCT = { cupones: "Cupones", packs: "Packs y combos", recetas: "Recetas", stock: "Stock", textos: "Textos de la página", cola: "Lista de espera", tandas: "Tandas" };
-  var SCI = { cupones: "🏷️", packs: "🎁", recetas: "🧁", stock: "📦", textos: "✏️", cola: "🔔", tandas: "📅" };
+  var SCT = { cupones: "Cupones", packs: "Packs y combos", recetas: "Recetas", stock: "Stock", textos: "Textos de la página", compras: "Lista de compras", cola: "Lista de espera", tandas: "Tandas" };
+  var SCI = { cupones: "🏷️", packs: "🎁", recetas: "🧁", stock: "📦", textos: "✏️", compras: "🛒", cola: "🔔", tandas: "📅" };
   function scMeta(k) {
     if (k === "cupones") { var n = (st.cupones || []).filter(function (x) { return x.activo; }).length; return st.cupones ? n + (n === 1 ? " activo" : " activos") : "Ver y crear"; }
     if (k === "packs") { var p = (st.packs || []).filter(function (x) { return x.ac; }).length; return st.packs ? p + (p === 1 ? " activo" : " activos") : "Activar y pausar"; }
     if (k === "recetas") return "";
     if (k === "stock") { var a = (st.stock || []).filter(function (x) { return x.mov && x.nivel && x.nivel !== "ok"; }).length; return st.stock ? (a ? a + " para reponer" : "Todo en orden") : "Consultar"; }
     if (k === "textos") return "";
+    if (k === "compras") { var cn = st.stock && st.recetas ? cmpPend() : null; return cn == null ? "" : cn ? cn + (cn === 1 ? " para comprar" : " para comprar") : "Al día"; }
     if (k === "cola") { var w = colWait().length; return st.cola ? (w ? w + " esperando" : "Vacía") : "Clientes en espera"; }
     if (k === "tandas") { var t = curTanda(); return t ? "Cierra " + fmSh2(t.cierre) : "Cargar tanda"; }
     return "";
@@ -936,6 +1115,7 @@ body.selmode .nav{visibility:hidden}
     var L = [];
     if (allowed("cupones")) L.push(api("cupones").then(function (j) { if (j && j.ok) st.cupones = j.cupones; }));
     if (allowed("packs")) L.push(api("packs2").then(function (j) { if (j && j.ok) st.packs = j.packs; }));
+    if (allowed("proveedores") && !st.recetas) L.push(api("recetas2").then(function (j) { if (j && j.ok) { st.recetas = j.recetas; st.insumos = j.insumos; } }));
     if (allowed("tandas")) L.push(api("tandas").catch(function () {}));
     if (allowed("proveedores") && !st.stock) L.push(api("stock").then(function (j) { if (j && j.ok) { st.stock = j.stock; st.alertas = !!j.alertas; } }));
     colLoad();
@@ -943,8 +1123,8 @@ body.selmode .nav{visibility:hidden}
   }
   function renderAtajos() {
     scPre();
-    var q = ["cupones", "packs", "recetas", "stock", "textos", "cola", "tandas"].filter(function (k) { return allowed(k); });
-    var h = '<div class="nm" style="margin:6px 2px 8px">Atajos rápidos</div><div class="atg" id="atajos">' + q.map(function (k) { var al = (k === "cola" && colWait().length) || (k === "stock" && /reponer/.test(scMeta(k))); return '<button class="at' + (al ? " al" : "") + '" data-sc="' + k + '"><i class="ic">' + SCI[k] + "</i><b>" + SCT[k] + "</b>" + (scMeta(k) ? "<small>" + esc(scMeta(k)) + "</small>" : "") + "</button>"; }).join("") + "</div>";
+    var q = ["compras", "cupones", "packs", "recetas", "stock", "textos", "cola", "tandas"].filter(function (k) { return allowed(k); });
+    var h = '<div class="nm" style="margin:6px 2px 8px">Atajos rápidos</div><div class="atg" id="atajos">' + q.map(function (k) { var al = (k === "cola" && colWait().length) || (k === "stock" && /reponer/.test(scMeta(k))) || (k === "compras" && /para comprar/.test(scMeta(k))); return '<button class="at' + (al ? " al" : "") + '" data-sc="' + k + '"><i class="ic">' + SCI[k] + "</i><b>" + SCT[k] + "</b>" + (scMeta(k) ? "<small>" + esc(scMeta(k)) + "</small>" : "") + "</button>"; }).join("") + "</div>";
     return h;
   }
   function scNeed(k) {
@@ -982,7 +1162,7 @@ body.selmode .nav{visibility:hidden}
     m.innerHTML = h;
   }
   function scOpen(k) {
-    if (!SCT[k] || !allowed(k)) return; var old = $("scm"); if (old) old.remove();
+    if (!SCT[k] || !allowed(k)) return; if (k === "compras") { cmpOpen(); return; } var old = $("scm"); if (old) old.remove();
     var m = document.createElement("div"); m.className = "modal"; m.id = "scm"; document.body.appendChild(m); st.sc = { k: k, q: "", add: false, loading: true }; scDraw();
     m.addEventListener("click", function (e) { scClick(e, m); });
     m.addEventListener("input", function (e) { if (e.target.id === "sc-q") { st.sc.q = e.target.value; $("sc-l").innerHTML = scRows(); } });
@@ -2482,6 +2662,7 @@ body.selmode .nav{visibility:hidden}
       var a = e.target.closest && e.target.closest("[data-swa]"); if (!a) return; e.stopPropagation();
       var P = a.getAttribute("data-swa").split(":"), kind = P[0], act = P[1], key = P.slice(2).join(":");
       if (kind === "ped") { var pp = st.pedidos.filter(function (x) { return String(x.r) === key; })[0], nx = pp && advNext(pp); closeSw(); if (nx) patchPedido(pp.r, nx[0], true); return; }
+      if (kind === "cmp") { closeSw(); cmpSwipe(act, key); return; }
       if (kind === "colb") { closeSw(); if (act === "hide") { st.colhide = true; render(true); } else goto("cola"); return; }
       if (kind === "topen") { closeSw(); setAbierto(act === "cl" ? "NO" : "SI"); return; }
       if (kind === "tn") { closeSw(); var ti = Number(key); if (act === "add") tnPop(ti); else confirmM("¿Eliminar esta tanda?", function () { var L2 = (st.tandas || []).map(function (t) { return tnC(t); }); L2.splice(ti, 1); tnSave(L2, "Eliminada ✓"); }); return; }

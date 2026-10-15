@@ -151,7 +151,7 @@ button { cursor:pointer; }
 :root{--bg:#F1F5FC;--shadow:0 6px 22px rgba(15,60,140,.08);--shadow2:0 2px 8px rgba(15,60,140,.07)}
 body{background:radial-gradient(1200px 500px at 50% -120px,#DCE9FF 0,transparent 70%),var(--bg);background-attachment:fixed}
 .top{background:linear-gradient(135deg,#0F59C4,#0B3F91);border-radius:0 0 22px 22px;box-shadow:0 6px 18px rgba(11,63,145,.25);padding-bottom:14px}
-.card{border:0;border-radius:20px;box-shadow:var(--shadow);animation:rise .28s ease backwards}
+.card{border:0;border-radius:20px;box-shadow:var(--shadow)}#view.enter .card{animation:rise .28s ease backwards}
 @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .hero{background:linear-gradient(135deg,#1F6FE0,#0B3F91);border-radius:20px;box-shadow:0 8px 18px rgba(11,63,145,.22);padding:12px 16px;margin-bottom:10px}
 .hero b{font-size:1.65rem;letter-spacing:-.5px;margin:2px 0}.hero small{font-size:.78rem}
@@ -506,6 +506,7 @@ body.selmode .nav{visibility:hidden}
   /* ---------- Navegación ---------- */
   var SUB = ["packs", "recetas", "tandas", "cola", "textos", "proveedores", "stock", "puntos", "cupones", "accesos", "voz", "resenas"];
   function goto(v) {
+    (function () { var vw = document.getElementById("view"); if (vw) { vw.classList.add("enter"); clearTimeout(window.__entT); window.__entT = setTimeout(function () { vw.classList.remove("enter"); }, 450); } })();
     if (!allowed(v)) v = firstView();
     st.v = v; store("uovo_adm_v", v); var nk = SUB.indexOf(v) >= 0 ? "mas" : v;
     Array.prototype.forEach.call($("nav").querySelectorAll("button"), function (b) { b.classList.toggle("on", b.getAttribute("data-v") === nk); });

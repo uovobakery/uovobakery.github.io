@@ -860,7 +860,8 @@ var DEFAULTS = {
     var c = data.config, now = new Date();
     cycle = null;
     for (var i = 0; i < data.tandas.length; i++) { if (parseDay(data.tandas[i].cierre) >= now) { cycle = data.tandas[i]; break; } }
-    var paused = !isYes(c.pedidos_activos);
+    var sched = !!(cycle && cycle.apertura && parseDay(cycle.apertura) > now);
+    var paused = !isYes(c.pedidos_activos) || sched;
     waitMode = !(cycle && !paused);
     if (cycle && !paused) {
       var dc = parseDay(cycle.cierre), de = parseDay(cycle.entrega);
@@ -885,7 +886,8 @@ var DEFAULTS = {
     } else {
       closeTxt = ""; deliveryTxt = "";
       $("k-close").textContent = "Próxima tanda";
-      $("d-close").textContent = "Muy pronto";
+      $("d-close").textContent = sched ? longDate(parseDay(cycle.apertura)) : "Muy pronto";
+      if (sched) $("k-close").textContent = "Abrimos pedidos el";
       $("k-deliv").textContent = "Enterate";
       $("d-deliv").textContent = "En nuestro Instagram";
       $("cd-close").hidden = true; $("cd-deliv").hidden = true;

@@ -940,7 +940,13 @@ body.selmode .nav{visibility:hidden}
     var m = document.createElement("div"); m.className = "modal"; m.innerHTML = '<div class="box pm" id="pm-box"><div class="meta">Cargando…</div></div>'; document.body.appendChild(m);
     var box = m.firstChild;
     function un() { var u = {}; (st.insumos || []).forEach(function (i) { u[i.n] = i.u; }); return u; }
-    function loadRd() { var x = (st.recetas || []).filter(function (z) { return nrm(z.nombre) === nrm(name); })[0]; rd = x ? { y: x.y || x.q || "", ex: true, items: (x.items || []).map(function (i) { return { n: i.n, q: i.q }; }) } : { y: "", ex: false, items: [] }; }
+    var DK = "uovo_adm_rdraft", drUsed = false;
+    function drGet() { var o = lsR(DK); return o[nrm(name)]; }
+    function drClr() { var o = lsR(DK); delete o[nrm(name)]; lsW(DK, o); }
+    function drSave() { if (!dirty) return; var o = lsR(DK), its = rd.items.map(function (i, k) { var e = m.querySelector('[data-pq="' + k + '"]'), v = e ? e.value.trim().replace(",", ".") : ""; return { n: i.n, q: /^\d+(\.\d+)?$/.test(v) ? Number(v) : i.q }; }), ye = m.querySelector("#pm-y"); o[nrm(name)] = { y: ye ? ye.value : rd.y, items: its, ts: Date.now() }; lsW(DK, o); }
+    function loadRd() { var x = (st.recetas || []).filter(function (z) { return nrm(z.nombre) === nrm(name); })[0]; rd = x ? { y: x.y || x.q || "", ex: true, items: (x.items || []).map(function (i) { return { n: i.n, q: i.q }; }) } : { y: "", ex: false, items: [] };
+      if (!drUsed) { drUsed = true; var d = drGet(); if (d && d.items && (d.items.length || d.y)) { rd.y = d.y; rd.items = d.items; dirty = true; setTimeout(function () { toast("Recuperé tu receta sin guardar ✏️"); }, 300); } } }
+    m.addEventListener("input", function () { setTimeout(drSave, 0); }); m.addEventListener("change", function () { setTimeout(drSave, 0); }); m.addEventListener("click", function () { setTimeout(drSave, 50); });
     function resHtml() {
       var t = nrm(qs); if (!t) return "";
       var have = rd.items.map(function (i) { return nrm(i.n); });
@@ -1002,12 +1008,12 @@ body.selmode .nav{visibility:hidden}
         if (!(y > 0)) { toast("Poné cuántas cookies rinde una masa"); return; } if (!its.length) { toast("Agregá al menos un insumo con cantidad"); return; }
         b.disabled = true; b.textContent = "Guardando…";
         (DEMO ? Promise.resolve({ ok: true, recetas: (st.recetas || []).filter(function (z) { return nrm(z.nombre) !== nrm(name); }).concat([{ nombre: name, y: y, q: y, items: its }]), insumos: st.insumos }) : api("saveReceta", { nombre: name, y: y, items: its.map(function (i) { return [i.n, i.q]; }) })).then(function (j) {
-          if (j && j.ok) { st.recetas = j.recetas; st.insumos = j.insumos; dirty = false; loadRd(); refreshCat(function () { if (p) p = st.productos.filter(function (x) { return x.r === p.r; })[0] || p; draw(); render(true); toast("Receta guardada ✓"); }); }
+          if (j && j.ok) { st.recetas = j.recetas; st.insumos = j.insumos; dirty = false; drClr(); loadRd(); refreshCat(function () { if (p) p = st.productos.filter(function (x) { return x.r === p.r; })[0] || p; draw(); render(true); toast("Receta guardada ✓"); }); }
           else { b.disabled = false; b.textContent = "Guardar receta"; toast(j && j.msg || "No se pudo guardar"); }
         }).catch(function () { b.disabled = false; b.textContent = "Guardar receta"; toast("No se pudo guardar"); });
         return;
       }
-      if (a === "delr") { confirmM("¿Eliminar la receta de «" + name + "»?", function () { (DEMO ? Promise.resolve({ ok: true, recetas: (st.recetas || []).filter(function (z) { return nrm(z.nombre) !== nrm(name); }) }) : api("delReceta", { nombre: name })).then(function (j) { if (j && j.ok) { st.recetas = j.recetas; dirty = false; loadRd(); refreshCat(function () { draw(); render(true); toast("Receta eliminada"); }); } else toast(j && j.msg || "No se pudo"); }).catch(function () { toast("No se pudo"); }); }); return; }
+      if (a === "delr") { confirmM("¿Eliminar la receta de «" + name + "»?", function () { (DEMO ? Promise.resolve({ ok: true, recetas: (st.recetas || []).filter(function (z) { return nrm(z.nombre) !== nrm(name); }) }) : api("delReceta", { nombre: name })).then(function (j) { if (j && j.ok) { st.recetas = j.recetas; dirty = false; drClr(); loadRd(); refreshCat(function () { draw(); render(true); toast("Receta eliminada"); }); } else toast(j && j.msg || "No se pudo"); }).catch(function () { toast("No se pudo"); }); }); return; }
       if (a === "delp") { confirmM("¿Eliminar «" + p.nombre + "»? Se borra de la tienda.", function () { delProd(p).then(function (ok) { if (ok) { dirty = false; m.remove(); render(true); toast("Producto eliminado ✓"); } }); }); return; }
     });
   }

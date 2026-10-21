@@ -310,6 +310,7 @@ body.selmode .nav{visibility:hidden}
       if (op === "me") return res({ ok: true, email: "demo@uovo.com", nombre: "Demo", rol: (location.search.match(/rol=([\w,]+)/) || [])[1] || "Dueño" });
       if (op === "addPedido") { var nid = "U-" + Math.random().toString(36).slice(2, 6).toUpperCase(), tot = 0, cks = 0, ptx = []; (extra.items || []).forEach(function (it) { var pz = d.productos.filter(function (z) { return z.nombre === it.nombre; })[0]; tot += (pz ? pz.precio : 0) * it.cantidad; cks += it.cantidad; ptx.push(it.cantidad + " x " + it.nombre); }); demo.pedidos.unshift({ r: 90 + demo.pedidos.length, id: nid, fecha: "13/10/2026 01:40", nombre: extra.nombre, tel: extra.telefono || "", mail: extra.email || "", mail: "", pedido: ptx.join(", "), cant: cks, total: extra.total || tot, entrega: extra.entrega, pago: extra.pago || "", ap: !!extra.aprobado, he: false, en: false, notas: "Cargado a mano", cc: false, cl: false, cupon: "", estado: "" }); return res({ ok: true, id: nid }); }
       if (op === "costosPed") return res({ ok: true, costos: d.cpd || [] });
+      if (op === "addStockLote") { d.mov = d.mov || {}; d.ml = d.ml || []; var nl = 0; JSON.parse(extra.items).forEach(function (x) { if (d.ml.some(function (z) { return z[1] === x.ins && z[5] === extra.nota; })) return; d.ml.push(["20/10/2026 22:00", x.ins, "consumo", -x.cant, 0, extra.nota]); d.mov[x.ins] = (d.mov[x.ins] || 0) - x.cant; nl++; }); return res({ ok: true, n: nl, skip: 0 }); }
       if (op === "ckStock" || op === "setCkStock") { if (op === "setCkStock") { var ckd = JSON.parse(extra.datos); d.ck = ckd.stock; d.ckt = ckd.tandas; } return res({ ok: true, stock: d.ck || {}, tandas: d.ckt || [] }); }
       if (op === "setCostosPed") { d.cpd = d.cpd || []; JSON.parse(extra.datos || "[]").forEach(function (it) { if (!d.cpd.some(function (z) { return z.id === it.id; })) d.cpd.push(it); }); return res({ ok: true }); }
       if (op === "editPedido") { var ep = d.pedidos.filter(function (z) { return z.id === extra.id; })[0]; if (!ep) return res({ ok: false, msg: "No encontré el pedido." }); if (extra.nombre != null) ep.nombre = extra.nombre; if (extra.telefono != null) ep.tel = extra.telefono; if (extra.email != null) ep.mail = extra.email; if (extra.entrega != null) ep.entrega = extra.entrega; if (extra.pago != null) ep.pago = extra.pago; if (extra.items && extra.items.length) { var tt = 0, cc = 0, tx = []; extra.items.forEach(function (it) { var pz = d.productos.filter(function (z) { return z.nombre === it.nombre; })[0]; tt += (pz ? pz.precio : 0) * it.cantidad; cc += it.cantidad; tx.push(it.cantidad + " x " + it.nombre); }); ep.pedido = tx.join(", "); ep.cant = cc; ep.total = tt; } if (extra.total > 0) ep.total = extra.total; return res({ ok: true, id: ep.id }); }
@@ -2972,7 +2973,7 @@ body.selmode .nav{visibility:hidden}
       var ix = e.target.closest && e.target.closest("[data-inix]"); if (ix) { e.stopPropagation(); st.inix = st.inix === false; render(true); return; }
       var a = e.target.closest && e.target.closest("[data-swa]"); if (!a) return; e.stopPropagation();
       var P = a.getAttribute("data-swa").split(":"), kind = P[0], act = P[1], key = P.slice(2).join(":");
-      if (kind === "ntf" || kind === "ntr") { closeSw(); ntfSet(key, kind === "ntf" ? 1 : 0); return; }
+      if (kind === "ntf" || kind === "ntr") { closeSw(); if (act === "rm") ntfDel(key); else ntfSet(key, kind === "ntf" ? 1 : 0); return; }
       if (kind === "ped") { var pp = st.pedidos.filter(function (x) { return String(x.r) === key; })[0], nx = pp && advNext(pp); closeSw(); if (nx) patchPedido(pp.r, nx[0], true); return; }
       if (kind === "inx") { closeSw(); inixSwipe(act, key); return; }
       if (kind === "cmp") { closeSw(); cmpSwipe(act, key); return; }
@@ -3027,14 +3028,20 @@ body.selmode .nav{visibility:hidden}
     st.ckBusy = 1;
     var c = ckStock(); Object.keys(add).forEach(function (n) { c[n] = (Number(c[n]) || 0) + add[n]; });
     var L = Object.keys(cons).map(function (n) { var s0 = SK.filter(function (z) { return nrm(z.ins) === nrm(n); })[0]; return s0 && s0.mov ? { ins: s0.ins, cant: Math.round(cons[n] * 100) / 100 } : null; }).filter(Boolean), bad = 0;
-    var tag = consK.join("+");
-    L.reduce(function (P, i) { return P.then(function () { return api("stockMov", { ins: i.ins, tipo: "consumo", cant: i.cant, precio: 0, nota: "Tanda " + tag.replace(/cons:/g, ""), rid: "tanda-" + tag + "-" + nrm(i.ins) }).then(function (j) { if (!j || !j.ok) bad++; }).catch(function () { bad++; }); }); }, Promise.resolve()).then(function () {
+    var byK = {}; consK.forEach(function (ck) { byK[ck] = {}; });
+    Object.keys(G).forEach(function (k) { if (consK.indexOf("cons:" + k) < 0) return; var need = {}; G[k].L.forEach(function (p) { var it = pedItems(p).cookies; Object.keys(it).forEach(function (n) { need[n] = (need[n] || 0) + it[n]; }); }); Object.keys(need).forEach(function (n) { var rec = st.recetas.filter(function (r) { return nrm(r.nombre) === nrm(n); })[0]; if (!rec || !rec.y) return; var mz = Math.max(1, Math.ceil(need[n] / rec.y - 1e-9)); (rec.items || []).forEach(function (x) { if (x.q > 0) byK["cons:" + k][x.n] = (byK["cons:" + k][x.n] || 0) + x.q * mz; }); }); });
+    var bad = 0, nOk = 0, skipped = [];
+    consK.reduce(function (P, ck) { return P.then(function () {
+      var cm = byK[ck], items = Object.keys(cm).map(function (n) { var s0 = SK.filter(function (z) { return nrm(z.ins) === nrm(n); })[0]; if (!(s0 && s0.mov)) { skipped.push(n); return null; } return { ins: s0.ins, cant: Math.round(cm[n] * 100) / 100 }; }).filter(Boolean);
+      if (!items.length) return;
+      return api("addStockLote", { nota: "Tanda " + ck.slice(5), items: JSON.stringify(items) }).then(function (j) { if (!j || !j.ok) { bad++; return; } nOk += j.n; }).catch(function () { bad++; });
+    }); }, Promise.resolve()).then(function () {
       var keep = done.concat(nk).concat(bad ? [] : consK);
       return ckSet(c, keep);
     }).then(function () {
       st.ckBusy = 0; st.stock = null; st.movs = null; st.movf = 0; st.stkf = 0;
-      if (L.length && !bad) ntfAdd("cons:" + tag, "📦", "Descontado del stock por la tanda", L.map(function (i) { return i.ins + " −" + fm(i.cant); }).join(", "), "v:stock");
-      if (L.length) toast(bad ? "Algunos insumos no se pudieron descontar" : "📦 Descontados " + L.length + " insumos del stock");
+      if (nOk && !bad) ntfAdd("cons:" + consK.join("+") + ":" + Date.now(), "📦", "Descontado del stock por la tanda", nOk + " insumos descontados" + (skipped.length ? ". Sin stock cargado (no se descontaron): " + skipped.filter(function (v, i, a) { return a.indexOf(v) === i; }).join(", ") : ""), "v:stock");
+      if (nOk || bad) toast(bad ? "No se pudo descontar el stock, reintento al reabrir" : "📦 Descontados " + nOk + " insumos del stock");
       if (tot) setTimeout(function () { toast("🍪 Sumé " + tot + " cookies sobrantes al stock"); }, 2900);
       render(true);
     }).catch(function () { st.ckBusy = 0; });
@@ -3071,10 +3078,11 @@ body.selmode .nav{visibility:hidden}
   }
   function ntfReadPop() {
     var m = document.createElement("div"); m.className = "modal"; m.style.zIndex = 95; m.id = "ntrp";
-    function draw() { var o = ntfS(), L = o.items.filter(function (z) { return z.rd; }); m.innerHTML = '<div class="box" style="width:100%;max-height:80vh;overflow:auto"><div class="phd"><h3>Notificaciones leídas</h3><button class="sm" data-px="1">✕</button></div>' + (L.length ? '<div class="meta" style="margin:0 0 6px">Deslizá para marcar como no leída.</div>' + L.map(function (z) { return ntfRow(z, "ntr", "No leída", "No leída"); }).join("") : '<div class="empty">No hay leídas.</div>') + "</div>"; }
+    function draw() { var o = ntfS(), L = o.items.filter(function (z) { return z.rd; }); m.innerHTML = '<div class="box" style="width:100%;max-height:80vh;overflow:auto"><div class="phd"><h3>Notificaciones leídas</h3><button class="sm" data-px="1">✕</button></div>' + (L.length ? '<div class="meta" style="margin:0 0 6px">Deslizá → para marcar como no leída, ← para borrar.</div>' + L.map(function (z) { return ntfRow(z, "ntr", "No leída", "Eliminar"); }).join("") : '<div class="empty">No hay leídas.</div>') + "</div>"; }
     draw(); document.body.appendChild(m); m.__draw = draw;
     m.addEventListener("click", function (e) { if (e.target === m || e.target.closest("[data-px]")) m.remove(); });
   }
+  function ntfDel(id) { var o = ntfS(); o.items = o.items.filter(function (z) { return z.id !== id; }); lsW(NK, o); ntfBadge(); ntfDraw(); var m = $("ntrp"); if (m && m.__draw) m.__draw(); toast("Notificación eliminada"); }
   function ntfSet(id, rd) { var o = ntfS(); o.items.forEach(function (z) { if (z.id === id) z.rd = rd; }); lsW(NK, o); ntfBadge(); ntfDraw(); var m = $("ntrp"); if (m && m.__draw) m.__draw(); }
   function ckPop() {
     var m = document.createElement("div"); m.className = "modal"; m.style.zIndex = 96; m.id = "ckp";

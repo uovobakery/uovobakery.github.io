@@ -268,7 +268,8 @@ body.selmode .nav{visibility:hidden}
   var DEMO = /[?&]demo=1/.test(location.search);
   var $ = function (id) { return document.getElementById(id); };
   var st = { token: "", me: null, v: "inicio", fil: "pend", q: "", pedidos: [], productos: [], accesos: [], packs: [], recetas: [], fin: null, cfg: [], insumos: [], ppro: [], rd: null, pd: null, prov: null, pvt: "a", edit: 0, newp: false, cq: "", loaded: {}, rvs: [], rv: null, pdx: 0, pvq: "", pvx: 0, pvnew: false, npm: ["pedidos", "productos", "packs", "recetas", "proveedores", "textos", "finanzas", "resenas"] };
-  var FLTK = ["fil", "skf", "fm", "pvt", "pdp", "pdd", "pdh", "fp", "fd", "fh", "rpm", "rpg", "prarch"];
+  st.gv = { p: "hoy", a: "", b: "" }; st.rpc = { src: "ped", dim: "est", med: "cnt", ch: "bar", p: "mes", a: "", b: "" };
+  var FLTK = ["fil", "skf", "fm", "pvt", "pdp", "pdd", "pdh", "fp", "fd", "fh", "rpm", "rpg", "prarch", "gv", "rpc"];
   try { var FL0 = JSON.parse(localStorage.getItem("uovo_adm_flt") || "{}"); FLTK.forEach(function (k) { if (FL0[k] !== undefined) st[k] = FL0[k]; }); } catch (e) {}
   function saveFlt() { try { var o = {}; FLTK.forEach(function (k) { if (st[k] !== undefined) o[k] = st[k]; }); localStorage.setItem("uovo_adm_flt", JSON.stringify(o)); } catch (e) {} }
   function store(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
@@ -278,7 +279,7 @@ body.selmode .nav{visibility:hidden}
   var AREAS = [["pedidos", "Pedidos"], ["productos", "Productos"], ["packs", "Packs"], ["recetas", "Recetas"], ["proveedores", "Insumos"], ["textos", "Textos"], ["finanzas", "Finanzas"], ["resenas", "Reseñas"]];
   function can(a) { var r = st.me && st.me.rol; if (!r) return false; if (r === "Dueño" || r === "Total") return true; return String(r).toLowerCase().split(/[,;\s]+/).indexOf(a) >= 0; }
   function permList(p) { if (!p || p === "Dueño" || p === "Total") return AREAS.map(function (x) { return x[0]; }); return String(p).toLowerCase().split(/[,;\s]+/); }
-  var VAREA = { inicio: "pedidos", pedidos: "pedidos", productos: "productos", finanzas: "finanzas", packs: "packs", recetas: "recetas", proveedores: "proveedores", stock: "proveedores", puntos: "proveedores", cupones: "packs", textos: "textos", tandas: "textos", cola: "pedidos", resenas: "resenas" };
+  var VAREA = { reportes: "pedidos", inicio: "pedidos", pedidos: "pedidos", productos: "productos", finanzas: "finanzas", packs: "packs", recetas: "recetas", proveedores: "proveedores", stock: "proveedores", puntos: "proveedores", cupones: "packs", textos: "textos", tandas: "textos", cola: "pedidos", resenas: "resenas" };
   function allowed(v) { if (v === "mas") return true; if (v === "compras") v = "proveedores"; if (v === "accesos" || v === "voz") return !!(st.me && st.me.rol === "Dueño"); return can(VAREA[v]); }
   function firstView() { var o = ["inicio", "pedidos", "productos", "finanzas", "mas"]; for (var i = 0; i < o.length; i++) if (allowed(o[i])) return o[i]; return "mas"; }
   function applyPerms() { Array.prototype.forEach.call($("nav").querySelectorAll("button"), function (b) { b.hidden = !allowed(b.getAttribute("data-v")); }); }
@@ -534,8 +535,110 @@ body.selmode .nav{visibility:hidden}
     }).catch(function () { showLogin("No se pudo conectar. Revisá tu conexión."); });
   }
 
+  /* ---------- Gestionados y reportes ---------- */
+  var GK = "uovo_adm_gest", GVP = [["hoy", "Hoy"], ["sem", "Esta semana"], ["mes", "Este mes"], ["anio", "Este año"], ["todo", "Todo"], ["rng", "Fecha"]];
+  function gestLog(r, c, v) { try { var L = JSON.parse(localStorage.getItem(GK) || "[]"); L.push({ r: r, c: c, v: v, t: Date.now() }); if (L.length > 3000) L = L.slice(-3000); localStorage.setItem(GK, JSON.stringify(L)); } catch (e) {} }
+  function perIn(d, ob) {
+    var k = ob.p || "todo"; if (!d) return k === "todo";
+    var t = new Date(), x = new Date(d.getFullYear(), d.getMonth(), d.getDate()), d0 = new Date(t.getFullYear(), t.getMonth(), t.getDate());
+    if (k === "hoy") return +x === +d0;
+    if (k === "sem") { var s0 = new Date(d0); s0.setDate(s0.getDate() - ((s0.getDay() + 6) % 7)); return x >= s0 && x <= d0; }
+    if (k === "mes") return x.getMonth() === t.getMonth() && x.getFullYear() === t.getFullYear();
+    if (k === "anio") return x.getFullYear() === t.getFullYear();
+    if (k === "rng") { var a = ob.a ? new Date(ob.a + "T00:00") : null, b = ob.b ? new Date(ob.b + "T00:00") : null; return (!a || x >= a) && (!b || x <= b); }
+    return true;
+  }
+  function pzH(o, ob) { return '<div class="chips">' + GVP.map(function (x) { return '<button class="chip' + (ob.p === x[0] ? " on" : "") + '" data-pzo="' + o + '" data-pzv="' + x[0] + '">' + x[1] + "</button>"; }).join("") + "</div>" + (ob.p === "rng" ? '<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-bottom:8px"><label class="meta">Desde<input class="inp" type="date" data-pzo="' + o + '" data-pzk="a" value="' + esc(ob.a || "") + '"></label><label class="meta">Hasta<input class="inp" type="date" data-pzo="' + o + '" data-pzk="b" value="' + esc(ob.b || "") + '"></label></div>' : ""); }
+  function gestRows() { var M = {}; try { JSON.parse(localStorage.getItem(GK) || "[]").forEach(function (z) { if (z.v) M[z.r] = Math.max(M[z.r] || 0, z.t); }); } catch (e) {} var out = []; st.pedidos.forEach(function (p) { var t = M[p.r]; if (t && perIn(new Date(t), st.gv)) out.push({ p: p, t: t }); }); return out.sort(function (a, b) { return b.t - a.t; }); }
+  function gestCard(p) {
+    var e = estadoDe(p), nx = advNext(p), LB = { pend: "Pendiente", coc: "A cocinar", list: "Listo", ent: "Entregado", canc: "Cancelado" }, CL = { pend: "#B26A00", coc: "#0F59C4", list: "#1B7A3A", ent: "#1B7A3A", canc: "#B3261E" }, it = pedItems(p).cookies, n = 0;
+    Object.keys(it).forEach(function (k) { n += it[k]; });
+    var green = e === "ent" || e === "list";
+    return swrap("gest", p.r, '<article class="card pc" style="margin:0;' + (green ? "background:#E8F6EC;border-color:#9ED3AE;" : "") + '"><div class="row" style="align-items:center;gap:10px"><div style="min-width:0;flex:1"><div class="nm">Pedido ' + esc(p.id) + '</div><div class="meta">' + n + " cookies · " + money(p.total) + " · entrega " + esc(entLab(p.entrega || "Sin fecha")) + '</div></div><span style="background:' + (CL[e] || "#555") + ';color:#fff;border-radius:999px;padding:4px 10px;font-weight:700;font-size:.75rem;white-space:nowrap">' + (LB[e] || e) + "</span></div></article>", !!nx, true, nx ? nx[1] : "", "Más");
+  }
+  function gestBlock() { var G = gestRows(); return '<div class="nm" style="margin:6px 2px 8px">Gestionados</div>' + pzH("gv", st.gv) + (G.length ? G.map(function (x) { return gestCard(x.p); }).join("") : '<div class="empty">No gestionaste pedidos en este período.</div>'); }
+  var RSRC = [["ped", "🧾 Pedidos"], ["ven", "🍪 Cookies vendidas"], ["per", "📉 Pérdidas de cookies"], ["mov", "📋 Movimientos de cookies"], ["stk", "📦 Stock actual"]];
+  var RDIM = { ped: [["prod", "Producto"], ["est", "Estado"], ["dia", "Día"], ["mes", "Mes"], ["ent", "Fecha de entrega"]], ven: [["prod", "Producto"], ["dia", "Día"], ["mes", "Mes"], ["ent", "Fecha de entrega"]], per: [["prod", "Cookie"], ["mot", "Motivo"], ["eta", "Etapa"], ["dia", "Día"], ["mes", "Mes"]], mov: [["prod", "Cookie"], ["mot", "Motivo"], ["eta", "Etapa"], ["dia", "Día"], ["mes", "Mes"]], stk: [["prod", "Producto"], ["cat", "Categoría"]] };
+  var RMED = { ped: [["cant", "Cookies"], ["cnt", "Pedidos"], ["plata", "$ ventas"]], ven: [["cant", "Cookies"], ["cnt", "Pedidos"], ["plata", "$ aprox."]], per: [["cant", "Unidades perdidas"], ["cnt", "Eventos"]], mov: [["cant", "Unidades (+/−)"], ["cnt", "Movimientos"]], stk: [["cant", "Unidades en stock"]] };
+  var RCH = [["bar", "Barras"], ["hbar", "Barras horiz."], ["pie", "Torta"], ["line", "Líneas"]];
+  var RTPL = [["Ventas por producto (mes)", { src: "ven", dim: "prod", med: "cant", p: "mes" }], ["Pedidos por estado", { src: "ped", dim: "est", med: "cnt", p: "todo" }], ["Pérdidas por etapa", { src: "per", dim: "eta", med: "cant", p: "todo" }], ["Pérdidas por motivo (mes)", { src: "per", dim: "mot", med: "cant", p: "mes" }], ["$ ventas por día (mes)", { src: "ped", dim: "dia", med: "plata", p: "mes" }], ["Stock actual", { src: "stk", dim: "prod", med: "cant", p: "todo" }]];
+  var RCOL = ["#0F59C4", "#1B7A3A", "#E08A00", "#B3261E", "#6B3FA0", "#00897B", "#8D6E63", "#5C6BC0", "#EC407A", "#26A69A", "#FFA726", "#78909C"];
+  var REL = { pend: "Pendiente", coc: "A cocinar", list: "Listo", ent: "Entregado" };
+  function pad2(n) { return ("0" + n).slice(-2); }
+  function fmtMed(v, med) { return med === "plata" ? money(v) : fm(v); }
+  function repRows(c) {
+    var R = {};
+    function add(k, q, m, o) { k = String(k || "Sin dato"); var g = R[k] = R[k] || { k: k, cant: 0, cnt: 0, plata: 0 }; g.cant += q; g.cnt += o; g.plata += m; }
+    function dk(d, kind) { return kind === "dia" ? d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()) : d.getFullYear() + "-" + pad2(d.getMonth() + 1); }
+    if (c.src === "ped" || c.src === "ven") {
+      st.pedidos.forEach(function (p) {
+        var e = estadoDe(p); if (e === "canc" || e === "test") return; if (c.src === "ven" && !p.en) return;
+        var d = pf(p.fecha); if (!perIn(d, c)) return;
+        var it = pedItems(p).cookies, nq = 0; Object.keys(it).forEach(function (k) { nq += it[k]; }); if (!nq) return;
+        var tot = Number(p.total) || 0;
+        if (c.dim === "prod") Object.keys(it).forEach(function (k) { add(k, it[k], tot * it[k] / nq, 1); });
+        else { var key = c.dim === "est" ? REL[e] || e : c.dim === "ent" ? entLab(p.entrega || "Sin fecha") : d ? dk(d, c.dim) : "Sin fecha"; add(key, nq, tot, 1); }
+      });
+    } else if (c.src === "per" || c.src === "mov") {
+      (st.ckm || []).forEach(function (x) {
+        var d = ckDt(x.f); if (!perIn(d, c)) return; var q = Number(x.q) || 0;
+        if (c.src === "per" && (q >= 0 || /venta/i.test(x.m || ""))) return;
+        var key = c.dim === "prod" ? x.c : c.dim === "mot" ? (x.m || "Sin motivo") : c.dim === "eta" ? (x.e || "Sin etapa") : d ? dk(d, c.dim) : "Sin fecha";
+        add(key, c.src === "per" ? -q : q, 0, 1);
+      });
+    } else {
+      var CAT = {}; (st.productos || []).forEach(function (p) { if (p.nombre && !p.arch) CAT[nrm(p.nombre)] = (p.cat || "").trim() || "Sin categoría"; });
+      var cs = ckStock(); Object.keys(cs).forEach(function (n) { add(c.dim === "cat" ? CAT[nrm(n)] || "Sin categoría" : n, Number(cs[n]) || 0, 0, 1); });
+    }
+    var out = Object.keys(R).map(function (k) { return R[k]; }), timeDim = c.dim === "dia" || c.dim === "mes";
+    return out.sort(function (a, b) { return timeDim ? (a.k < b.k ? -1 : 1) : b[c.med] - a[c.med]; });
+  }
+  function repChart(R, c) {
+    var L = R.filter(function (g) { return g[c.med] > 0; }).slice(0, 14), tot = 0;
+    L.forEach(function (g) { tot += g[c.med]; });
+    if (!L.length) return '<div class="empty">Sin datos para graficar.</div>';
+    var W = 320, H = 220, mx = Math.max.apply(null, L.map(function (g) { return g[c.med]; })), col = function (i) { return RCOL[i % RCOL.length]; }, s = "";
+    if (c.ch === "bar" || c.ch === "line") {
+      var bw = (W - 20) / L.length, pts = [];
+      L.forEach(function (g, i) { var h = g[c.med] / mx * (H - 60), x = 10 + i * bw, y = H - 40 - h; if (c.ch === "bar") s += '<rect x="' + (x + bw * .15) + '" y="' + y + '" width="' + bw * .7 + '" height="' + h + '" rx="3" fill="' + col(i) + '"/>'; else pts.push((x + bw / 2) + "," + y); s += '<text x="' + (x + bw / 2) + '" y="' + (H - 26) + '" font-size="9" text-anchor="middle" fill="#666">' + esc(g.k.slice(0, 8)) + "</text>"; });
+      if (c.ch === "line") s = '<polyline points="' + pts.join(" ") + '" fill="none" stroke="#0F59C4" stroke-width="2.5"/>' + pts.map(function (q) { var z = q.split(","); return '<circle cx="' + z[0] + '" cy="' + z[1] + '" r="3.5" fill="#0F59C4"/>'; }).join("") + s;
+    } else if (c.ch === "hbar") {
+      H = L.length * 26 + 10;
+      L.forEach(function (g, i) { var w = g[c.med] / mx * 150, y = 6 + i * 26; s += '<text x="0" y="' + (y + 12) + '" font-size="11" fill="#333">' + esc(g.k.slice(0, 13)) + '</text><rect x="110" y="' + y + '" width="' + Math.max(w, 2) + '" height="16" rx="4" fill="' + col(i) + '"/><text x="' + (116 + w) + '" y="' + (y + 12) + '" font-size="10" fill="#333">' + esc(fmtMed(g[c.med], c.med)) + "</text>"; });
+    } else {
+      H = 220; W = 220; var a0 = -Math.PI / 2, cx = 110, cy = 110, r = 100;
+      if (L.length === 1) s = '<circle cx="110" cy="110" r="100" fill="' + col(0) + '"/>';
+      else L.forEach(function (g, i) { var ang = g[c.med] / tot * 2 * Math.PI, a1 = a0 + ang, x0 = cx + r * Math.cos(a0), y0 = cy + r * Math.sin(a0), x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1); s += '<path d="M' + cx + "," + cy + " L" + x0 + "," + y0 + " A" + r + "," + r + " 0 " + (ang > Math.PI ? 1 : 0) + " 1 " + x1 + "," + y1 + ' Z" fill="' + col(i) + '"/>'; a0 = a1; });
+    }
+    var svg = '<svg viewBox="0 0 ' + W + " " + H + '" width="100%" style="max-width:' + W + 'px;display:block;margin:0 auto">' + s + "</svg>";
+    var lg = L.map(function (g, i) { return '<div class="ing" style="padding:4px 0"><span style="width:10px;height:10px;border-radius:3px;background:' + col(i) + ';flex:none"></span><div class="meta" style="flex:1;min-width:0;margin:0 8px">' + esc(g.k) + '</div><b>' + esc(fmtMed(g[c.med], c.med)) + '</b><span class="meta" style="margin-left:6px">' + Math.round(g[c.med] / tot * 100) + "%</span></div>"; }).join("");
+    return svg + '<div style="margin-top:8px">' + lg + "</div>";
+  }
+  function rpLoad() {
+    var L = [];
+    if (!st.loaded.pedidos && !st.rpf1) { st.rpf1 = 1; L.push(api("pedidos").then(function (j) { if (j && j.ok) { st.pedidos = j.pedidos; st.loaded.pedidos = true; } })); }
+    if (!st.ckm && !st.rpf2) { st.rpf2 = 1; L.push(api("ckMovs").then(function (j) { st.ckm = (j && j.ok && j.movs) || []; })); }
+    if (!st.productos.length && !st.rpf3) { st.rpf3 = 1; L.push(api("catalogo").then(function (j) { if (j && j.ok) st.productos = j.catalogo; })); }
+    if (!st.ck) ckLoadNow(function () { if (st.v === "reportes") render(true); });
+    if (L.length) Promise.all(L).then(function () { if (st.v === "reportes") render(true); }).catch(function () { if (st.v === "reportes") render(true); });
+  }
+  function renderReportes() {
+    rpLoad();
+    var c = st.rpc, h = BACK + '<div class="nm" style="margin:4px 2px 8px;font-size:1.2rem">📊 Reportes</div>';
+    h += '<div class="meta" style="margin:0 2px 4px">Plantillas</div><div class="chips">' + RTPL.map(function (t, i) { return '<button class="chip" data-rptpl="' + i + '">' + esc(t[0]) + "</button>"; }).join("") + "</div>";
+    function sel(lbl, k, L) { return '<div class="meta" style="margin:8px 2px 4px">' + lbl + '</div><div class="chips">' + L.map(function (x) { return '<button class="chip' + (c[k] === x[0] ? " on" : "") + '" data-rpk="' + k + "|" + x[0] + '">' + esc(x[1]) + "</button>"; }).join("") + "</div>"; }
+    h += '<div class="card" style="padding:12px">' + sel("Fuente", "src", RSRC) + sel("Agrupar por", "dim", RDIM[c.src]) + sel("Medir", "med", RMED[c.src]) + '<div class="meta" style="margin:8px 2px 4px">Período</div>' + pzH("rpc", c) + "</div>";
+    var R = repRows(c), tot = 0; R.forEach(function (g) { tot += g[c.med]; });
+    var mlab = (RMED[c.src].filter(function (x) { return x[0] === c.med; })[0] || [0, ""])[1];
+    h += '<div class="hero" style="margin-top:12px"><small>' + esc(mlab) + '</small><b>' + esc(fmtMed(tot, c.med)) + "</b><small>" + R.length + " filas</small></div>";
+    h += '<div class="card" style="margin-top:12px">' + (R.length ? R.map(function (g) { return '<div class="ing"><div style="flex:1;min-width:0"><div class="in">' + esc(g.k) + '</div></div><b>' + esc(fmtMed(g[c.med], c.med)) + "</b></div>"; }).join("") : '<div class="empty">Sin datos para este período.</div>') + "</div>";
+    h += '<div class="card" style="margin-top:12px"><div class="meta" style="margin:0 0 6px">Gráfico</div><div class="chips">' + RCH.map(function (x) { return '<button class="chip' + (c.ch === x[0] ? " on" : "") + '" data-rpk="ch|' + x[0] + '">' + x[1] + "</button>"; }).join("") + "</div>" + repChart(R, c) + "</div>";
+    return h;
+  }
+  document.addEventListener("change", function (e) { var t = e.target; if (!t || !t.getAttribute) return; var o = t.getAttribute("data-pzo"), k = t.getAttribute("data-pzk"); if (o && (k === "a" || k === "b")) { st[o][k] = t.value; st[o].p = "rng"; render(true); } });
+
   /* ---------- Navegación ---------- */
-  var SUB = ["packs", "recetas", "tandas", "cola", "textos", "proveedores", "stock", "puntos", "cupones", "accesos", "voz", "resenas"];
+  var SUB = ["reportes", "packs", "recetas", "tandas", "cola", "textos", "proveedores", "stock", "puntos", "cupones", "accesos", "voz", "resenas"];
   function goto(v) {
     (function () { var vw = document.getElementById("view"); if (vw) { vw.classList.add("enter"); clearTimeout(window.__entT); window.__entT = setTimeout(function () { vw.classList.remove("enter"); }, 450); } })();
     if (!allowed(v)) v = firstView();
@@ -917,7 +1020,7 @@ body.selmode .nav{visibility:hidden}
     }).catch(function () { render(true); toast("No se pudo eliminar"); });
   }
   function patchPedido(r, campo, valor, undo) {
-    var p = st.pedidos.filter(function (x) { return x.r === r; })[0]; if (!p) return;
+    var p = st.pedidos.filter(function (x) { return x.r === r; })[0]; if (!p) return; gestLog(r, campo, valor);
     var old = p[campo], oldcc = p.cc; p[campo] = valor; if (campo === "te") p.cc = valor; render(true);
     api("setPedido", { r: r, id: p.id, campo: campo, valor: valor }).then(function (j) {
       if (!j || !j.ok) { p[campo] = old; p.cc = oldcc; render(true); toast(j && j.msg || "No se pudo guardar"); return; }
@@ -1172,7 +1275,7 @@ body.selmode .nav{visibility:hidden}
     var ks = Object.keys(ent).sort(function (a, b) { var x = entD(ent[a].lab), y = entD(ent[b].lab); return (x ? +x : 9e15) - (y ? +y : 9e15); }).slice(0, 3);
     if (ks.length) B.cocinar = '<div class="nm" style="margin:6px 2px 8px">Para cocinar</div>' + ks.map(function (k) { var g = ent[k]; return '<button class="card cks" data-entpop="' + esc(k) + '"><div style="min-width:0;flex:1"><div class="nm" style="font-size:1rem">' + esc(entLab(g.lab)) + '</div><div class="meta">' + (g.q ? "Tenés " + g.q + " cookies para preparar" + (g.hh ? " · " + g.hh + " de " + g.n + " hechos" : "") : "Todo hecho, esperando entrega") + "</div></div>" + dchip(g) + "</button>"; }).join("");
     var hoy = 0, hoyT = 0, td = new Date(); st.pedidos.forEach(function (p) { var d = pf(p.fecha); if (d && d.toDateString() === td.toDateString() && !(p.cc || p.cl)) { hoy++; hoyT += Number(p.total) || 0; } });
-    B.hoy = '<div class="card" style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center"><div><div class="meta" style="margin:0">Hoy</div><b>' + hoy + (hoy === 1 ? " pedido nuevo" : " pedidos nuevos") + '</b></div><b style="color:#0F59C4">' + money(hoyT) + "</b></div>";
+    B.hoy = gestBlock();
     if (st.stock && st.recetas && st.recetas.length) { var IL2 = insList(pendNeed()); st.insl = IL2.rows; if (IL2.rows.length) B.insumos = '<div class="card insc"><div class="phd" style="margin-bottom:4px"><div class="nm" style="flex:1">Insumos para pedidos</div><button class="sm" data-insall2="1">Faltan ' + IL2.rows.length + " ›</button></div>" + IL2.rows.slice(0, 4).map(insRowH).join("") + (IL2.rows.length > 4 ? '<div class="meta" style="margin:4px 0 0;text-align:center">y ' + (IL2.rows.length - 4) + " más</div>" : "") + "</div>"; }
     B.cur = curH; B.atajos = renderAtajos();
     return inixOrd().filter(function (k) { return !inixCfg().hid[k] && B[k]; }).map(function (k) { return B[k]; }).join("");
@@ -1533,7 +1636,7 @@ body.selmode .nav{visibility:hidden}
   function renderMas() {
     var mi = function (x) { return '<button class="mi" data-go="' + x[0] + '"><i>' + x[1] + "</i><div><b>" + x[2] + "</b><span>" + x[3] + "</span></div></button>"; };
     var neg = [["tandas", "📅", "Tandas", "Cierre de pedidos y fecha de entrega"], ["cola", "⏳", "Lista de espera", "Clientes que dejaron su pedido con la tienda cerrada"], ["textos", "✏️", "Textos de la página", "Cambiá los textos de la tienda"], ["proveedores", "🧾", "Proveedores e insumos", "Precios de lo que comprás"], ["stock", "📦", "Stock", "Cuánto te queda y qué reponer"], ["puntos", "🎯", "Puntos de pedido", "Cuándo avisarte para reponer cada insumo"], ["recetas", "🧁", "Recetas", "Costo de cada masa y cookie"], ["packs", "🎁", "Packs y combos", "Activá, pausá y cambiá precios"], ["cupones", "🏷️", "Cupones", "Descuentos para tus clientes"]].filter(function (x) { return allowed(x[0]); });
-    var app = [["resenas", "⭐", "Reseñas", "Lo que dicen tus clientes"]].filter(function (x) { return allowed(x[0]); });
+    var app = [["reportes", "📊", "Reportes", "Gráficos y reportes de lo que quieras"], ["resenas", "⭐", "Reseñas", "Lo que dicen tus clientes"]].filter(function (x) { return allowed(x[0]); });
     if (st.me && st.me.rol === "Dueño") { app.push(["voz", "🎙️", "Asistente de voz", "Dictá lo que querés hacer"]); app.push(["accesos", "🔑", "Accesos", "Quién puede entrar a esta app"]); }
     if (st.alertas === undefined && !st.stkf && allowed("proveedores")) { st.stkf = 1; api("stock").then(function (j) { if (j && j.ok) { st.stock = j.stock; st.alertas = !!j.alertas; if (st.v === "mas") render(true); } }).catch(function () {}); }
     var alsw = allowed("proveedores") ? '<button class="mi" data-act="stkalert"><i>🔔</i><div><b>Alertas de stock</b><span>' + (st.alertas === undefined ? "Cargando…" : st.alertas ? "Activadas: te aviso cuando falten insumos" : "Desactivadas (activalas cuando cargues el stock)") + '</span></div><span class="badge ' + (st.alertas ? "g" : "o") + '">' + (st.alertas ? "ON" : "OFF") + "</span></button>" : "";
@@ -2313,7 +2416,7 @@ body.selmode .nav{visibility:hidden}
   }
   function render(keepScroll) {
     saveFlt();
-    var y = window.scrollY, V = { inicio: renderInicio, pedidos: renderPedidos, productos: renderProductos, mas: renderMas, packs: renderPacks, recetas: renderRecetas, finanzas: renderFinanzas, textos: renderTextos, tandas: renderTandas, cola: renderCola, proveedores: renderProv, stock: renderStock, puntos: renderPuntos, cupones: renderCupones, accesos: function () { return BACK + renderAccesos(); }, voz: renderVozCfg, resenas: renderResenas };
+    var y = window.scrollY, V = { reportes: renderReportes, inicio: renderInicio, pedidos: renderPedidos, productos: renderProductos, mas: renderMas, packs: renderPacks, recetas: renderRecetas, finanzas: renderFinanzas, textos: renderTextos, tandas: renderTandas, cola: renderCola, proveedores: renderProv, stock: renderStock, puntos: renderPuntos, cupones: renderCupones, accesos: function () { return BACK + renderAccesos(); }, voz: renderVozCfg, resenas: renderResenas };
     st.popHtml = ""; var h = V[st.v]();
     if (SUB.indexOf(st.v) >= 0 && h.indexOf(BACK) === 0 && NAMES[st.v]) h = '<div class="bk">' + BACK + '<button class="crumb" data-secnav="1" style="border:0;font:inherit;cursor:pointer">' + NAMES[st.v] + " ▾</button></div>" + h.slice(BACK.length);
     var act = document.activeElement, id = act && act.id, pos = act && act.selectionStart;
@@ -3025,6 +3128,7 @@ body.selmode .nav{visibility:hidden}
       var P = a.getAttribute("data-swa").split(":"), kind = P[0], act = P[1], key = P.slice(2).join(":");
       if (kind === "ntf" || kind === "ntr") { closeSw(); if (act === "rm") ntfDel(key); else ntfSet(key, kind === "ntf" ? 1 : 0); return; }
       if (kind === "ped") { var pp = st.pedidos.filter(function (x) { return String(x.r) === key; })[0], nx = pp && advNext(pp); closeSw(); if (nx) patchPedido(pp.r, nx[0], true); return; }
+      if (kind === "gest") { var gp = st.pedidos.filter(function (x) { return String(x.r) === key; })[0], gn = gp && advNext(gp); closeSw(); if (!gp) return; if (act === "add") { if (gn) patchPedido(gp.r, gn[0], true); } else pedSheet(gp); return; }
       if (kind === "inx") { closeSw(); inixSwipe(act, key); return; }
       if (kind === "cmp") { closeSw(); cmpSwipe(act, key); return; }
       if (kind === "colb") { closeSw(); if (act === "hide") { st.colhide = true; render(true); } else goto("cola"); return; }
@@ -3145,6 +3249,9 @@ body.selmode .nav{visibility:hidden}
   }
   $("bell").addEventListener("click", function (e) { e.stopPropagation(); ntfToggle(); });
   document.addEventListener("click", function (e) {
+    var pzb = e.target.closest && e.target.closest("[data-pzo][data-pzv]"); if (pzb) { e.stopPropagation(); var po = pzb.getAttribute("data-pzo"); st[po].p = pzb.getAttribute("data-pzv"); if (st[po].p !== "rng") { st[po].a = ""; st[po].b = ""; } render(true); return; }
+    var rk = e.target.closest && e.target.closest("[data-rpk]"); if (rk) { e.stopPropagation(); var RP = rk.getAttribute("data-rpk").split("|"), rc = st.rpc; rc[RP[0]] = RP[1]; if (RP[0] === "src") { if (!RDIM[rc.src].some(function (x) { return x[0] === rc.dim; })) rc.dim = RDIM[rc.src][0][0]; if (!RMED[rc.src].some(function (x) { return x[0] === rc.med; })) rc.med = RMED[rc.src][0][0]; } render(true); return; }
+    var rt = e.target.closest && e.target.closest("[data-rptpl]"); if (rt) { e.stopPropagation(); var TT = RTPL[Number(rt.getAttribute("data-rptpl"))][1], ch0 = st.rpc.ch; st.rpc = { src: TT.src, dim: TT.dim, med: TT.med, ch: ch0, p: TT.p, a: "", b: "" }; render(true); return; }
     var p = $("ntp"), mtp0 = $("mtp");
     if (mtp0 && !mtp0.contains(e.target) && !(e.target.closest && e.target.closest("[data-masas]"))) { mtp0.remove(); }
     var cb = e.target.closest && e.target.closest("[data-ckadd]"); if (cb) { e.stopPropagation(); var P = cb.getAttribute("data-ckadd").split("|"), c = ckStock(); c[P[0]] = (Number(c[P[0]]) || 0) + Number(P[1]); ckSet(c); toast("Sumado al stock ✓"); var mm = cb.closest(".modal"); if (mm) mm.remove(); masasPop(); return; }

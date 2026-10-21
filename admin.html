@@ -268,6 +268,9 @@ body.selmode .nav{visibility:hidden}
   var DEMO = /[?&]demo=1/.test(location.search);
   var $ = function (id) { return document.getElementById(id); };
   var st = { token: "", me: null, v: "inicio", fil: "pend", q: "", pedidos: [], productos: [], accesos: [], packs: [], recetas: [], fin: null, cfg: [], insumos: [], ppro: [], rd: null, pd: null, prov: null, pvt: "a", edit: 0, newp: false, cq: "", loaded: {}, rvs: [], rv: null, pdx: 0, pvq: "", pvx: 0, pvnew: false, npm: ["pedidos", "productos", "packs", "recetas", "proveedores", "textos", "finanzas", "resenas"] };
+  var FLTK = ["fil", "skf", "fm", "pvt", "pdp", "pdd", "pdh", "fp", "fd", "fh", "rpm", "rpg", "prarch"];
+  try { var FL0 = JSON.parse(localStorage.getItem("uovo_adm_flt") || "{}"); FLTK.forEach(function (k) { if (FL0[k] !== undefined) st[k] = FL0[k]; }); } catch (e) {}
+  function saveFlt() { try { var o = {}; FLTK.forEach(function (k) { if (st[k] !== undefined) o[k] = st[k]; }); localStorage.setItem("uovo_adm_flt", JSON.stringify(o)); } catch (e) {} }
   function store(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
   function load(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
@@ -2301,6 +2304,7 @@ body.selmode .nav{visibility:hidden}
     });
   }
   function render(keepScroll) {
+    saveFlt();
     var y = window.scrollY, V = { inicio: renderInicio, pedidos: renderPedidos, productos: renderProductos, mas: renderMas, packs: renderPacks, recetas: renderRecetas, finanzas: renderFinanzas, textos: renderTextos, tandas: renderTandas, cola: renderCola, proveedores: renderProv, stock: renderStock, puntos: renderPuntos, cupones: renderCupones, accesos: function () { return BACK + renderAccesos(); }, voz: renderVozCfg, resenas: renderResenas };
     st.popHtml = ""; var h = V[st.v]();
     if (SUB.indexOf(st.v) >= 0 && h.indexOf(BACK) === 0 && NAMES[st.v]) h = '<div class="bk">' + BACK + '<button class="crumb" data-secnav="1" style="border:0;font:inherit;cursor:pointer">' + NAMES[st.v] + " ▾</button></div>" + h.slice(BACK.length);

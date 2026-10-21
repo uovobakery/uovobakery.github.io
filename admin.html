@@ -38,6 +38,7 @@ button { cursor:pointer; }
 .chip { flex:none; border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:7px 13px; font-weight:700; font-size:.85rem; color:var(--soft); }
 .chip b { font-weight:800; margin-left:4px; }
 .chip.on { background:var(--blue); border-color:var(--blue); color:#fff; }
+.sm.on { background:var(--blue); border-color:var(--blue); color:#fff; }
 .search { width:100%; border:1.5px solid var(--line); border-radius:12px; padding:11px 14px; background:#fff; margin-bottom:10px; }
 .search:focus,.inp:focus { outline:2px solid #6FA4F2; border-color:var(--blue); }
 .card { background:#fff; border:1px solid var(--line); border-radius:16px; padding:14px; margin-bottom:12px; box-shadow:0 1px 3px rgba(12,34,71,.05); }
@@ -311,6 +312,7 @@ body.selmode .nav{visibility:hidden}
       if (op === "addPedido") { var nid = "U-" + Math.random().toString(36).slice(2, 6).toUpperCase(), tot = 0, cks = 0, ptx = []; (extra.items || []).forEach(function (it) { var pz = d.productos.filter(function (z) { return z.nombre === it.nombre; })[0]; tot += (pz ? pz.precio : 0) * it.cantidad; cks += it.cantidad; ptx.push(it.cantidad + " x " + it.nombre); }); demo.pedidos.unshift({ r: 90 + demo.pedidos.length, id: nid, fecha: "13/10/2026 01:40", nombre: extra.nombre, tel: extra.telefono || "", mail: extra.email || "", mail: "", pedido: ptx.join(", "), cant: cks, total: extra.total || tot, entrega: extra.entrega, pago: extra.pago || "", ap: !!extra.aprobado, he: false, en: false, notas: "Cargado a mano", cc: false, cl: false, cupon: "", estado: "" }); return res({ ok: true, id: nid }); }
       if (op === "costosPed") return res({ ok: true, costos: d.cpd || [] });
       if (op === "addStockLote") { d.mov = d.mov || {}; d.ml = d.ml || []; var nl = 0; JSON.parse(extra.items).forEach(function (x) { if (d.ml.some(function (z) { return z[1] === x.ins && z[5] === extra.nota; })) return; d.ml.push(["20/10/2026 22:00", x.ins, "consumo", -x.cant, 0, extra.nota]); d.mov[x.ins] = (d.mov[x.ins] || 0) - x.cant; nl++; }); return res({ ok: true, n: nl, skip: 0 }); }
+      if (op === "ckMovs" || op === "addCkMov") { d.ckm = d.ckm || []; if (op === "addCkMov") JSON.parse(extra.datos).forEach(function (x) { d.ckm.push({ f: "20/10/2026 12:00", c: x.c, t: x.t, q: x.q, m: x.m, e: x.e, n: x.n }); }); return res({ ok: true, movs: d.ckm }); }
       if (op === "ckStock" || op === "setCkStock") { if (op === "setCkStock") { var ckd = JSON.parse(extra.datos); d.ck = ckd.stock; d.ckt = ckd.tandas; } return res({ ok: true, stock: d.ck || {}, tandas: d.ckt || [] }); }
       if (op === "setCostosPed") { d.cpd = d.cpd || []; JSON.parse(extra.datos || "[]").forEach(function (it) { if (!d.cpd.some(function (z) { return z.id === it.id; })) d.cpd.push(it); }); return res({ ok: true }); }
       if (op === "editPedido") { var ep = d.pedidos.filter(function (z) { return z.id === extra.id; })[0]; if (!ep) return res({ ok: false, msg: "No encontré el pedido." }); if (extra.nombre != null) ep.nombre = extra.nombre; if (extra.telefono != null) ep.tel = extra.telefono; if (extra.email != null) ep.mail = extra.email; if (extra.entrega != null) ep.entrega = extra.entrega; if (extra.pago != null) ep.pago = extra.pago; if (extra.items && extra.items.length) { var tt = 0, cc = 0, tx = []; extra.items.forEach(function (it) { var pz = d.productos.filter(function (z) { return z.nombre === it.nombre; })[0]; tt += (pz ? pz.precio : 0) * it.cantidad; cc += it.cantidad; tx.push(it.cantidad + " x " + it.nombre); }); ep.pedido = tx.join(", "); ep.cant = cc; ep.total = tt; } if (extra.total > 0) ep.total = extra.total; return res({ ok: true, id: ep.id }); }
@@ -757,18 +759,53 @@ body.selmode .nav{visibility:hidden}
     document.body.appendChild(m); m.addEventListener("click", function (e) { if (e.target === m || e.target.closest("[data-px]")) m.remove(); });
   }
   function ckLoadNow(cb) { if (st.ck) { cb && cb(); return; } (DEMO ? Promise.resolve({ ok: true, stock: (window.__dd.ck || {}), tandas: (window.__dd.ckt || []) }) : api("ckStock")).then(function (j) { if (j && j.ok) st.ck = { stock: j.stock || {}, tandas: j.tandas || [] }; cb && cb(); }).catch(function () { cb && cb(); }); }
-  function ckNames() { var c = ckStock(), N = Object.keys(c); (st.productos || []).forEach(function (p) { if (p.nombre && !/pack|combo/i.test(p.cat || "") && !N.some(function (n) { return nrm(n) === nrm(p.nombre); })) N.push(p.nombre); }); return N; }
+  function ckNames() { var c = ckStock(), N = Object.keys(c); (st.productos || []).forEach(function (p) { if (p.nombre && !/pack|combo/i.test(p.cat || "") && !N.some(function (n) { return nrm(n) === nrm(p.nombre); })) N.push(p.nombre); }); (st.recetas || []).forEach(function (r) { if (r.nombre && !N.some(function (n) { return nrm(n) === nrm(r.nombre); })) N.push(r.nombre); }); return N; }
   function ckListH(q) {
     if (!st.ck) { if (!st.ckl) { st.ckl = 1; ckLoadNow(function () { st.ckl = 0; render(true); }); } return '<div class="empty">Cargando…</div>'; }
     if (!st.productos && !st.ckpf) { st.ckpf = 1; api("catalogo").then(function (j) { if (j && j.ok) { st.productos = j.catalogo; render(true); } }).catch(function () {}); }
     var c = ckStock(), N = ckNames().filter(function (n) { return !q || nrm(n).indexOf(q) >= 0; }).sort(function (a, b) { return (Number(c[b]) || 0) - (Number(c[a]) || 0) || a.localeCompare(b); }), tot = 0; Object.keys(c).forEach(function (k) { tot += Number(c[k]) || 0; });
-    return '<div class="meta" style="margin:0 4px 10px">Cookies ya hechas (sobrantes de las masas): <b>' + tot + '</b>. Se suman solas al terminar cada tanda. Tocá una para sumar, restar o contar.</div>' + (N.length ? N.map(function (n) { var v = Number(c[n]) || 0; return '<article class="card pc ckc' + (v ? "" : " dim") + '" data-cke="' + esc(n) + '"><div class="row" style="align-items:center;gap:10px"><div style="min-width:0;flex:1"><div class="nm">' + esc(n) + '</div><div class="meta">' + (v ? "listas para vender" : "sin stock") + '</div></div><button class="ckb" data-ckq="' + esc(n) + '|-1">−</button><div class="ska skb" style="min-width:58px"><b>' + v + '</b><span>cookies</span></div><button class="ckb" data-ckq="' + esc(n) + '|1">＋</button></div></article>'; }).join("") : '<div class="empty">Sin cookies.</div>');
+    return '<div class="meta" style="margin:0 4px 10px">Cookies ya hechas (sobrantes de las masas): <b>' + tot + '</b>. Se suman solas al terminar cada tanda. Tocá una para sumar, restar o contar (queda el historial). <a href="#" data-ckrep="1">📉 Pérdidas</a></div>' + (N.length ? N.map(function (n) { var v = Number(c[n]) || 0; return '<article class="card pc ckc' + (v ? "" : " dim") + '" data-cke="' + esc(n) + '"><div class="row" style="align-items:center;gap:10px"><div style="min-width:0;flex:1"><div class="nm">' + esc(n) + '</div><div class="meta">' + (v ? "listas para vender" : "sin stock") + '</div></div><button class="ckb" data-ckq="' + esc(n) + '|-1">−</button><div class="ska skb" style="min-width:58px"><b>' + v + '</b><span>cookies</span></div><button class="ckb" data-ckq="' + esc(n) + '|1">＋</button></div></article>'; }).join("") : '<div class="empty">Sin cookies.</div>');
   }
-  function ckEdit(n) {
-    var m = document.createElement("div"); m.className = "modal"; m.style.zIndex = 96; var v = Number(ckStock()[n]) || 0;
-    m.innerHTML = '<div class="box" style="width:100%;max-width:360px"><div class="phd"><h3 style="flex:1">' + esc(n) + '</h3><button class="sm" data-px="1">✕</button></div><div class="meta" style="margin:0 0 8px">Tenés <b>' + v + '</b> cookies hechas.</div><input class="inp" id="ck-q" inputmode="numeric" placeholder="Cantidad" style="margin:0 0 8px"><div style="display:flex;gap:8px"><button class="sm" data-cka="1" style="flex:1">＋ Sumar</button><button class="sm" data-cka="-1" style="flex:1">− Restar</button><button class="sm" data-cka="0" style="flex:1">= Contado</button></div></div>';
-    document.body.appendChild(m); setTimeout(function () { var i = m.querySelector("#ck-q"); i && i.focus(); }, 30);
-    m.addEventListener("click", function (e) { if (e.target === m || e.target.closest("[data-px]")) { m.remove(); return; } var b = e.target.closest("[data-cka]"); if (!b) return; var q = Math.round(parseAR(m.querySelector("#ck-q").value)); if (!(q >= 0) || isNaN(q)) { toast("Poné una cantidad"); return; } var a = Number(b.getAttribute("data-cka")), c = ckStock(); c[n] = Math.max(0, a === 0 ? q : (Number(c[n]) || 0) + a * q); ckSet(c); m.remove(); toast("Stock de cookies actualizado ✓"); render(true); });
+  function ckLoadM(cb) { if (st.ckm) { cb && cb(); return; } (DEMO ? Promise.resolve({ ok: true, movs: (window.__dd.ckm || []) }) : api("ckMovs")).then(function (j) { st.ckm = (j && j.ok && j.movs) || []; cb && cb(); }).catch(function () { st.ckm = []; cb && cb(); }); }
+  function ckLog(L) { L = L.filter(function (x) { return x && x.q; }); if (!L.length) return; st.ckm = st.ckm || []; var d = new Date(), f = ("0" + d.getDate()).slice(-2) + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" + d.getFullYear() + " " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2); L.forEach(function (x) { st.ckm.push({ f: f, c: x.c, t: x.t, q: x.q, m: x.m || "", e: x.e || "", n: x.n || "" }); }); api("addCkMov", { datos: JSON.stringify(L) }).catch(function () {}); }
+  function ckDt(f) { var m = /^(\d+)\/(\d+)\/(\d+)(?: (\d+):(\d+))?/.exec(f || ""); if (m) return new Date(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0)); var d = new Date(f); return isNaN(d) ? null : d; }
+  var CKM_R = ["Se estropeó", "Consumo propio", "Regalo", "Venta", "Otro"], CKM_S = ["Corrección", "Otro"], CKM_E = ["Masa", "Formado", "Horno", "Enfriado", "Relleno/Decorado", "Empaque", "Entrega", "Otro"];
+  function ckEdit(n, act) {
+    var m = document.createElement("div"); m.className = "modal"; m.style.zIndex = 96; var S = { a: act || 1, m: "", e: "", q: "", n: "" };
+    function chips(L, k) { return '<div style="display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px">' + L.map(function (x) { return '<button class="chip' + (S[k] === x ? " on" : "") + '" data-ckc="' + k + '|' + esc(x) + '">' + esc(x) + '</button>'; }).join("") + '</div>'; }
+    function draw() {
+      var v = Number(ckStock()[n]) || 0, hs = (st.ckm || []).filter(function (x) { return nrm(x.c) === nrm(n); }).slice(-6).reverse();
+      m.innerHTML = '<div class="box" style="width:100%;max-width:380px;max-height:88vh;overflow:auto"><div class="phd"><h3 style="flex:1">' + esc(n) + '</h3><button class="sm" data-px="1">✕</button></div><div class="meta" style="margin:0 0 8px">Tenés <b>' + v + '</b> cookies hechas.</div>' +
+        '<div style="display:flex;gap:8px;margin:0 0 8px"><button class="sm' + (S.a === 1 ? " on" : "") + '" data-cka="1" style="flex:1">＋ Sumar</button><button class="sm' + (S.a === -1 ? " on" : "") + '" data-cka="-1" style="flex:1">− Restar</button><button class="sm' + (S.a === 0 ? " on" : "") + '" data-cka="0" style="flex:1">= Contado</button></div>' +
+        '<input class="inp" id="ck-q" inputmode="numeric" placeholder="Cantidad" value="' + esc(S.q) + '" style="margin:0 0 8px">' +
+        (S.a === -1 ? '<div class="meta" style="margin:0 0 4px">Motivo</div>' + chips(CKM_R, "m") : S.a === 1 ? '<div class="meta" style="margin:0 0 4px">Motivo</div>' + chips(CKM_S, "m") : "") +
+        (S.a === -1 && S.m === "Se estropeó" ? '<div class="meta" style="margin:0 0 4px">¿En qué parte del proceso?</div>' + chips(CKM_E, "e") : "") +
+        '<input class="inp" id="ck-n" placeholder="Detalle (opcional)" value="' + esc(S.n) + '" style="margin:0 0 8px"><button class="btn" data-ckok="1" style="width:100%">Guardar</button>' +
+        (hs.length ? '<div class="meta" style="margin:12px 0 4px"><b>Historial</b></div>' + hs.map(function (x) { return '<div class="meta" style="display:flex;gap:6px"><span style="flex:1">' + esc((x.f || "").slice(0, 10)) + ' · ' + esc(x.m || x.t) + (x.e ? ' · ' + esc(x.e) : "") + (x.n ? ' · ' + esc(x.n) : "") + '</span><b style="color:' + (x.q < 0 ? "#B3261E" : "#1B7A3A") + '">' + (x.q > 0 ? "+" : "") + x.q + '</b></div>'; }).join("") : "") + '</div>';
+    }
+    function keep() { var a = m.querySelector("#ck-q"), b = m.querySelector("#ck-n"); if (a) S.q = a.value; if (b) S.n = b.value; }
+    draw(); document.body.appendChild(m); ckLoadM(function () { keep(); draw(); }); setTimeout(function () { var i = m.querySelector("#ck-q"); i && i.focus(); }, 30);
+    m.addEventListener("click", function (e) {
+      if (e.target === m || e.target.closest("[data-px]")) { m.remove(); return; }
+      var b = e.target.closest("[data-cka]"); if (b) { keep(); S.a = Number(b.getAttribute("data-cka")); S.m = ""; S.e = ""; draw(); return; }
+      var c = e.target.closest("[data-ckc]"); if (c) { keep(); var P = c.getAttribute("data-ckc").split("|"); S[P[0]] = S[P[0]] === P[1] ? "" : P[1]; if (P[0] === "m") S.e = ""; draw(); return; }
+      if (!e.target.closest("[data-ckok]")) return; keep();
+      var q = Math.round(parseAR(S.q)); if (!(q >= 0) || isNaN(q) || (S.a !== 0 && q === 0)) { toast("Poné una cantidad"); return; }
+      var cs = ckStock(), v0 = Number(cs[n]) || 0, nv = Math.max(0, S.a === 0 ? q : v0 + S.a * q), dq = nv - v0; cs[n] = nv; ckSet(cs);
+      ckLog([{ c: n, t: S.a === 0 ? "conteo" : S.a > 0 ? "suma" : "resta", q: dq, m: S.m || (S.a === 0 ? "Conteo" : ""), e: S.e, n: S.n }]);
+      m.remove(); toast("Stock actualizado ✓"); render(true);
+    });
+  }
+  function ckRep() {
+    var m = document.createElement("div"); m.className = "modal"; m.style.zIndex = 96; var P = 30;
+    function draw() {
+      var lim = P ? new Date(Date.now() - P * 864e5) : null, L = (st.ckm || []).filter(function (x) { if (x.q >= 0) return false; if (/venta/i.test(x.m)) return false; var d = ckDt(x.f); return !lim || !d || d >= lim; });
+      var tot = 0, E = {}, C = {}, M = {}; L.forEach(function (x) { var q = -x.q; tot += q; M[x.m || "Sin motivo"] = (M[x.m || "Sin motivo"] || 0) + q; if (/estrop/i.test(x.m)) { var e = x.e || "Sin etapa"; E[e] = (E[e] || 0) + q; C[x.c] = (C[x.c] || 0) + q; } });
+      function bars(O) { var k = Object.keys(O).sort(function (a, b) { return O[b] - O[a]; }), mx = k.length ? O[k[0]] : 1; return k.length ? k.map(function (a) { return '<div style="margin:0 0 6px"><div class="meta" style="display:flex"><span style="flex:1">' + esc(a) + '</span><b>' + O[a] + '</b></div><div style="height:6px;border-radius:3px;background:#eee"><div style="height:6px;border-radius:3px;background:#B3261E;width:' + Math.round(O[a] / mx * 100) + '%"></div></div></div>'; }).join("") : '<div class="meta">Sin datos.</div>'; }
+      m.innerHTML = '<div class="box" style="width:100%;max-width:400px;max-height:88vh;overflow:auto"><div class="phd"><h3 style="flex:1">📉 Pérdidas de cookies</h3><button class="sm" data-px="1">✕</button></div><div style="display:flex;gap:6px;margin:0 0 10px">' + [[7, "7 días"], [30, "30 días"], [0, "Todo"]].map(function (z) { return '<button class="chip' + (P === z[0] ? " on" : "") + '" data-ckpp="' + z[0] + '">' + z[1] + '</button>'; }).join("") + '</div><div class="meta">Salidas (sin ventas): <b>' + tot + '</b> cookies</div><div class="meta" style="margin:10px 0 4px"><b>Por motivo</b></div>' + bars(M) + '<div class="meta" style="margin:10px 0 4px"><b>Estropeadas por etapa</b></div>' + bars(E) + '<div class="meta" style="margin:10px 0 4px"><b>Estropeadas por cookie</b></div>' + bars(C) + '</div>';
+    }
+    draw(); document.body.appendChild(m); ckLoadM(draw);
+    m.addEventListener("click", function (e) { if (e.target === m || e.target.closest("[data-px]")) { m.remove(); return; } var b = e.target.closest("[data-ckpp]"); if (b) { P = Number(b.getAttribute("data-ckpp")); draw(); } });
   }
   function ckSecH() { var c = ckStock(), ks = Object.keys(c).filter(function (k) { return c[k] > 0; }), t = 0; ks.forEach(function (k) { t += c[k]; }); return '<div class="pmsec" style="margin:4px 0 4px">🍪 En stock (sobrantes)</div>' + (ks.length ? ks.map(function (k) { return '<div class="ing"><div style="flex:1"><div class="in">' + esc(k) + '</div></div><b style="color:#1B7A3A">' + c[k] + "</b></div>"; }).join("") + '<div class="meta" style="margin:4px 0 0">' + t + ' cookies listas · <a href="#" data-ckopen="1">Editar</a></div>' : '<div class="meta">No hay cookies sobrantes. <a href="#" data-ckopen="1">Cargar</a></div>'); }
   function masasPop() {
@@ -2306,7 +2343,7 @@ body.selmode .nav{visibility:hidden}
     resenas: [["#rvnew", "Nueva reseña", "Cargá el nombre, la puntuación, el comentario y, si querés, una foto."],
       ["[data-rvvi]", "Visible u oculta", "Mostrá u ocultá la reseña en la tienda sin borrarla."],
       ["[data-rvedit]", "Editar", "Cambiá puntuación, comentario o foto. También podés eliminarla."]],
-    stock: [["#sk-s", "Buscador", "Buscá un insumo. Deslizá una tarjeta: → sumar, ← restar."], [".chips", "Categorías", "Insumos, Packaging y 🍪 Cookies: ahí ves las cookies sobrantes de cada tanda (se suman solas) y las podés sumar, restar o contar a mano."]],
+    stock: [["#sk-s", "Buscador", "Buscá un insumo. Deslizá una tarjeta: → sumar, ← restar."], [".chips", "Categorías", "Insumos, Packaging y 🍪 Cookies: ahí ves las cookies sobrantes de cada tanda (se suman solas) y las podés sumar, restar o contar a mano con motivo y etapa (ej. se estropeó en el horno). 📉 Pérdidas muestra el reporte."]],
     mas: [[".menu", "Más funciones", "Entrá a cada una. Arriba a la izquierda, ‹ Más te devuelve acá."]],
     finanzas: [["#fin-rng", "Calendario", "Elegí de qué día a qué día querés ver. También hay atajos (Hoy, Esta semana, Este mes…)."],
       ["#fin-pre", "Atajos", "Un toque para ver hoy, esta semana, este mes, etc. Arriba cambiás entre Ventas, Resultados, Patrimonio y Reportes."],
@@ -3006,7 +3043,7 @@ body.selmode .nav{visibility:hidden}
   function ntfAdd(id, ic, tx, sub, act) { var o = ntfS(); if (o.items.some(function (z) { return z.id === id; })) return; o.items.unshift({ id: id, ic: ic, tx: tx, sub: sub || "", ts: Date.now(), rd: 0, sn: 0, a: act || "" }); o.items = o.items.slice(0, 120); lsW(NK, o); ntfBadge(); }
   function ntfBadge() { var o = ntfS(), n = o.items.filter(function (z) { return !z.rd && !z.sn; }).length, b = $("nbd"); if (!b) return; b.hidden = !n; b.textContent = n > 9 ? "9+" : n; }
   function ckStock() { return st.ck ? JSON.parse(JSON.stringify(st.ck.stock || {})) : lsR(CKS); }
-  function ckSet(c, tandas) { Object.keys(c).forEach(function (k) { if (!(c[k] > 0)) delete c[k]; }); st.ck = st.ck || { stock: {}, tandas: [] }; st.ck.stock = c; if (tandas) st.ck.tandas = tandas; lsW(CKS, c); return api("setCkStock", { datos: JSON.stringify({ stock: c, tandas: st.ck.tandas || [] }) }).then(function (j) { if (j && j.ok) st.ck = { stock: j.stock, tandas: j.tandas }; else toast(j && j.msg || "No se pudo guardar el stock"); }).catch(function () { toast("No se pudo guardar el stock"); }); }
+  function ckSet(c, tandas) { Object.keys(c).forEach(function (k) { if (!(c[k] > 0)) c[k] = 0; }); st.ck = st.ck || { stock: {}, tandas: [] }; st.ck.stock = c; if (tandas) st.ck.tandas = tandas; lsW(CKS, c); return api("setCkStock", { datos: JSON.stringify({ stock: c, tandas: st.ck.tandas || [] }) }).then(function (j) { if (j && j.ok) st.ck = { stock: j.stock, tandas: j.tandas }; else toast(j && j.msg || "No se pudo guardar el stock"); }).catch(function () { toast("No se pudo guardar el stock"); }); }
   function ckSync() {
     if (!st.pedidos || !st.pedidos.length || !allowed("pedidos") || st.ckBusy) return;
     if (!st.ck) { if (st.ckf) return; st.ckf = 1; ckLoadNow(function () { if (!st.ck) { st.ckf = 0; return; } ckSync(); }); return; }
@@ -3014,13 +3051,13 @@ body.selmode .nav{visibility:hidden}
     if (!st.stock) { if (!st.ckstf) { st.ckstf = 1; api("stock").then(function (j) { st.ckstf = 0; if (j && j.ok) { st.stock = j.stock; ckSync(); } }).catch(function () { st.ckstf = 0; }); } return; }
     var SK = st.stock.slice(), G = {}, done = (st.ck.tandas || []).slice();
     st.pedidos.forEach(function (p) { var e = estadoDe(p); if (e === "canc" || e === "test") return; var d = entD(p.entrega); if (!d || d < new Date(2026, 9, 1)) return; var k = nrm(p.entrega); (G[k] = G[k] || { lab: p.entrega, L: [] }).L.push(p); });
-    var add = {}, nk = [], tot = 0, cons = {}, consK = [];
+    var add = {}, nk = [], tot = 0, cons = {}, consK = [], lgs = [];
     Object.keys(G).forEach(function (k) {
       var A = done.indexOf(k) < 0, B = done.indexOf("cons:" + k) < 0; if (!A && !B) return; if (!G[k].L.every(function (p) { return p.he || p.en; })) return;
       var need = {}, ad = {}; G[k].L.forEach(function (p) { var it = pedItems(p).cookies; Object.keys(it).forEach(function (n) { need[n] = (need[n] || 0) + it[n]; }); });
       Object.keys(need).forEach(function (n) { var rec = st.recetas.filter(function (r) { return nrm(r.nombre) === nrm(n); })[0]; if (!rec || !rec.y) return; var mz = Math.max(1, Math.ceil(need[n] / rec.y - 1e-9)), so = mz * rec.y - need[n];
         if (B) (rec.items || []).forEach(function (x) { if (x.q > 0) cons[x.n] = (cons[x.n] || 0) + x.q * mz; });
-        if (A && so > 0) { ad[rec.nombre] = (ad[rec.nombre] || 0) + so; add[rec.nombre] = (add[rec.nombre] || 0) + so; tot += so; } });
+        if (A && so > 0) { lgs.push({ c: rec.nombre, t: "sobrante", q: so, m: "Sobró de tanda", e: "", n: "Tanda " + k }); ad[rec.nombre] = (ad[rec.nombre] || 0) + so; add[rec.nombre] = (add[rec.nombre] || 0) + so; tot += so; } });
       if (A) { nk.push(k); ntfAdd("ck:" + k, "🍪", "Sobrantes de la tanda " + entLab(G[k].lab), Object.keys(ad).length ? "Sumé al stock de cookies: " + Object.keys(ad).map(function (n) { return ad[n] + " " + n; }).join(", ") : "No sobró nada", "v:stock"); }
       if (B) consK.push("cons:" + k);
     });
@@ -3037,7 +3074,7 @@ body.selmode .nav{visibility:hidden}
       return api("addStockLote", { nota: "Tanda " + ck.slice(5), items: JSON.stringify(items) }).then(function (j) { if (!j || !j.ok) { bad++; return; } nOk += j.n; }).catch(function () { bad++; });
     }); }, Promise.resolve()).then(function () {
       var keep = done.concat(nk).concat(bad ? [] : consK);
-      return ckSet(c, keep);
+      ckLog(lgs); return ckSet(c, keep);
     }).then(function () {
       st.ckBusy = 0; st.stock = null; st.movs = null; st.movf = 0; st.stkf = 0;
       if (nOk && !bad) ntfAdd("cons:" + consK.join("+") + ":" + Date.now(), "📦", "Descontado del stock por la tanda", nOk + " insumos descontados" + (skipped.length ? ". Sin stock cargado (no se descontaron): " + skipped.filter(function (v, i, a) { return a.indexOf(v) === i; }).join(", ") : ""), "v:stock");
@@ -3090,7 +3127,7 @@ body.selmode .nav{visibility:hidden}
     draw(); document.body.appendChild(m);
     m.addEventListener("click", function (e) {
       if (e.target === m || e.target.closest("[data-px]")) { m.remove(); return; }
-      var a = e.target.closest("[data-ckm],[data-ckp]"); if (!a) return; var k = a.getAttribute("data-ckm") || a.getAttribute("data-ckp"), c = ckStock(); c[k] = Math.max(0, (Number(c[k]) || 0) + (a.hasAttribute("data-ckp") ? 1 : -1)); ckSet(c); draw();
+      var a = e.target.closest("[data-ckm],[data-ckp]"); if (!a) return; var k = a.getAttribute("data-ckm") || a.getAttribute("data-ckp"); m.remove(); ckEdit(k, a.hasAttribute("data-ckp") ? 1 : -1);
     });
   }
   $("bell").addEventListener("click", function (e) { e.stopPropagation(); ntfToggle(); });
@@ -3098,7 +3135,8 @@ body.selmode .nav{visibility:hidden}
     var p = $("ntp");
     var cb = e.target.closest && e.target.closest("[data-ckadd]"); if (cb) { e.stopPropagation(); var P = cb.getAttribute("data-ckadd").split("|"), c = ckStock(); c[P[0]] = (Number(c[P[0]]) || 0) + Number(P[1]); ckSet(c); toast("Sumado al stock ✓"); var mm = cb.closest(".modal"); if (mm) mm.remove(); masasPop(); return; }
     if (e.target.closest && e.target.closest("[data-ckopen]")) { e.preventDefault(); e.stopPropagation(); document.querySelectorAll(".modal").forEach(function (z) { z.remove(); }); st.skf = "ck"; goto("stock"); return; }
-    var ckq = e.target.closest && e.target.closest("[data-ckq]"); if (ckq) { e.stopPropagation(); var PQ = ckq.getAttribute("data-ckq").split("|"), cq = ckStock(); cq[PQ[0]] = Math.max(0, (Number(cq[PQ[0]]) || 0) + Number(PQ[1])); ckSet(cq); render(true); return; }
+    var ckr = e.target.closest && e.target.closest("[data-ckrep]"); if (ckr) { e.preventDefault(); e.stopPropagation(); ckRep(); return; }
+    var ckq = e.target.closest && e.target.closest("[data-ckq]"); if (ckq) { e.stopPropagation(); var PQ = ckq.getAttribute("data-ckq").split("|"); ckEdit(PQ[0], Number(PQ[1])); return; }
     var cke = e.target.closest && e.target.closest("[data-cke]"); if (cke && st.v === "stock") { e.stopPropagation(); ckEdit(cke.getAttribute("data-cke")); return; }
     if (p && !p.contains(e.target) && !e.target.closest("#bell") && !e.target.closest(".modal")) { p.remove(); return; }
     if (!p || !p.contains(e.target)) return;

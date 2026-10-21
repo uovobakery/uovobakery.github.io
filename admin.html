@@ -653,6 +653,7 @@ body.selmode .nav{visibility:hidden}
     api("config").then(function (j) { if (!j || !j.ok) { $("view").innerHTML = '<div class="empty">No se pudo cargar.</div>'; return; } st.cfg = j.config; st.loaded.textos = true; if (st.v === "textos") render(); }).catch(function () {});
   }
   function fetchView(v) {
+    if (v === "reportes") { st.loaded.reportes = true; render(); return; }
     if (v === "textos") { fetchTextos(); return; }
     if (v === "cola") { api("cola").then(function (j) { if (j && j.ok) { st.cola = j.cola; st.loaded.cola = true; if (st.v === "cola") render(); } else $("view").innerHTML = '<div class="empty">No se pudo cargar.</div>'; }).catch(function () { $("view").innerHTML = '<div class="empty">No se pudo cargar.</div>'; }); return; }
     if (v === "tandas") { Promise.all([api("tandas"), api("config"), st.loaded.pedidos ? Promise.resolve(null) : api("pedidos"), api("cola").catch(function () { return null; })]).then(function (R) { if (R[3] && R[3].ok) { st.cola = R[3].cola; st.loaded.cola = true; } if (R[1] && R[1].ok) st.cfg = R[1].config; if (R[2] && R[2].ok) { st.pedidos = R[2].pedidos; st.loaded.pedidos = true; } st.loaded.tandas = true; if (st.v === "tandas") render(); }).catch(function () { $("view").innerHTML = '<div class="empty">No se pudo cargar.</div>'; }); return; }
@@ -1282,7 +1283,7 @@ body.selmode .nav{visibility:hidden}
     return inixOrd().filter(function (k) { return !inixCfg().hid[k] && B[k]; }).map(function (k) { return B[k]; }).join("");
   }
   /* ---------- Personalizar inicio ---------- */
-  var IXK = "uovo_adm_inix", IXB = [["cur", "Pedidos en curso"], ["banner", "Aviso de lista de espera"], ["hero", "Ventas del mes y por venir"], ["kpis", "Pendientes, a cocinar, para entregar"], ["alertas", "Alertas"], ["cocinar", "Para cocinar"], ["atajos", "Atajos rápidos"], ["hoy", "Hoy"], ["insumos", "Insumos para pedidos"]], IXA = ["compras", "cupones", "packs", "recetas", "stock", "textos", "cola", "tandas", "proveedores", "nuevoped", "productos", "finanzas", "resenas", "reportes"], ATNAV = { proveedores: "proveedores", nuevoped: "pedidos", productos: "productos", finanzas: "finanzas", resenas: "resenas", reportes: "reportes" }, ATDH = { nuevoped: 1, productos: 1, finanzas: 1, resenas: 1 };
+  var IXK = "uovo_adm_inix", IXB = [["cur", "Pedidos en curso"], ["banner", "Aviso de lista de espera"], ["hero", "Ventas del mes y por venir"], ["kpis", "Pendientes, a cocinar, para entregar"], ["alertas", "Alertas"], ["cocinar", "Para cocinar"], ["atajos", "Atajos rápidos"], ["hoy", "Hoy"], ["insumos", "Insumos para pedidos"]], IXA = ["compras", "cupones", "packs", "recetas", "stock", "textos", "cola", "tandas", "proveedores", "nuevoped", "productos", "finanzas", "resenas", "reportes"], ATNAV = { proveedores: "proveedores", nuevoped: "pedidos", productos: "productos", finanzas: "finanzas", resenas: "resenas" }, ATDH = { nuevoped: 1, productos: 1, finanzas: 1, resenas: 1 };
   function atHid(k) { var c = inixCfg(); return !!c.ath[k] || (ATDH[k] && !(c.ats || {})[k]); }
   function atOk(k) { return allowed(k === "nuevoped" ? "pedidos" : k); }
   var KPS = { pend: "Pendientes", coc: "A cocinar", list: "Para entregar", ent: "Entregados", canc: "Cancelados", hoy: "Hoy", cur: "En curso" };
@@ -1602,7 +1603,29 @@ body.selmode .nav{visibility:hidden}
     draw(); document.body.appendChild(m);
     m.addEventListener("click", function (e) { if (e.target === m || e.target.closest("[data-px]")) { m.remove(); render(true); return; } var b = e.target.closest("[data-atg]"); if (!b) return; var k = b.getAttribute("data-atg"), c = inixCfg(), on = !atHid(k); c.ats = c.ats || {}; if (on) { c.ath[k] = true; delete c.ats[k]; } else { delete c.ath[k]; c.ats[k] = true; } lsW(IXK, c); draw(); });
   }
+  function repPop() {
+    var old = $("scm"); if (old) old.remove();
+    var m = document.createElement("div"); m.className = "modal"; m.id = "scm"; document.body.appendChild(m);
+    function draw(q) {
+      q = nrm(q || "");
+      var T = RTPL.map(function (t, i) { return [t[0], '<button class="mi" data-rptpl="' + i + '"><div><b>' + esc(t[0]) + '</b><span>Plantilla</span></div></button>']; }).filter(function (x) { return !q || nrm(x[0]).indexOf(q) >= 0; });
+      var S = RSRC.map(function (x) { return [x[1], '<button class="mi" data-rpsrc="' + x[0] + '"><div><b>' + esc(x[1]) + '</b><span>Armar a medida desde esta fuente</span></div></button>']; }).filter(function (x) { return !q || nrm(x[0]).indexOf(q) >= 0; });
+      var h = T.concat(S).map(function (x) { return x[1]; }).join("");
+      m.innerHTML = '<div class="box" style="width:100%;max-height:84vh;overflow:auto"><div class="phd"><h3 style="flex:1">📊 Reportes</h3><button class="sm" data-scx="1">✕</button></div><input class="search" id="sc-q" type="search" placeholder="Buscar reporte…" value="' + esc(q) + '" style="margin:0 0 8px"><div class="menu" id="sc-l">' + (h || '<div class="empty">Nada con eso.</div>') + '</div><button class="btn" data-rpopen="1" style="width:100%;margin-top:10px">Abrir Reportes completo</button></div>';
+    }
+    draw("");
+    m.addEventListener("click", function (e) {
+      e.stopPropagation(); var t = e.target;
+      if (t === m || t.closest("[data-scx]")) { m.remove(); return; }
+      if (t.closest("[data-rpopen]")) { m.remove(); goto("reportes"); return; }
+      var a = t.closest("[data-rptpl]"), b = t.closest("[data-rpsrc]");
+      if (a) { var TT = RTPL[Number(a.getAttribute("data-rptpl"))][1], ch0 = st.rpc.ch; st.rpc = { src: TT.src, dim: TT.dim, med: TT.med, ch: ch0, p: TT.p, a: "", b: "" }; m.remove(); goto("reportes"); return; }
+      if (b) { var sv = b.getAttribute("data-rpsrc"), rc = st.rpc; rc.src = sv; if (!RDIM[sv].some(function (x) { return x[0] === rc.dim; })) rc.dim = RDIM[sv][0][0]; if (!RMED[sv].some(function (x) { return x[0] === rc.med; })) rc.med = RMED[sv][0][0]; m.remove(); goto("reportes"); }
+    });
+    m.addEventListener("input", function (e) { if (e.target.id === "sc-q") { var v = e.target.value, c = $("sc-l"); draw(v); var ni = $("sc-q"); if (ni) { ni.focus(); ni.setSelectionRange(v.length, v.length); } } });
+  }
   function scOpen(k) {
+    if (k === "reportes") { if (!atOk(k)) return; repPop(); return; }
     if (ATNAV[k]) { if (!atOk(k)) return; if (k === "nuevoped") { st.pnew = true; st.pnf = st.pnf || {}; } goto(ATNAV[k]); return; }
     if (!SCT[k] || !allowed(k)) return; if (k === "compras") { cmpOpen(); return; } var old = $("scm"); if (old) old.remove();
     var m = document.createElement("div"); m.className = "modal"; m.id = "scm"; document.body.appendChild(m); st.sc = { k: k, q: "", add: false, loading: true }; scDraw();

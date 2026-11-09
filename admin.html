@@ -268,12 +268,19 @@ body.selmode .nav{visibility:hidden}
   var ENDPOINT = "https://script.google.com/macros/s/AKfycbwRgztSNbcqRVjj6Kji1BbUCoZxAdQlYLYPxf5-266YiG16hzG9J4II1L7qhxlENjmZNA/exec";
   var DEMO = /[?&]demo=1/.test(location.search);
   var $ = function (id) { return document.getElementById(id); };
-  var st = { token: "", me: null, v: "inicio", fil: "pend", q: "", pedidos: [], productos: [], accesos: [], packs: [], recetas: [], fin: null, cfg: [], insumos: [], ppro: [], rd: null, pd: null, prov: null, pvt: "a", edit: 0, newp: false, cq: "", loaded: {}, rvs: [], rv: null, pdx: 0, pvq: "", pvx: 0, pvnew: false, npm: ["pedidos", "productos", "packs", "recetas", "proveedores", "textos", "finanzas", "resenas"] };
+  var st = { token: "", me: null, v: "inicio", fil: "pend", q: "", pedidos: [], productos: [], accesos: [], packs: [], recetas: [], fin: null, cfg: [], insumos: [], ppro: [], rd: null, pd: null, prov: null, pvt: "a", pvs: [], edit: 0, newp: false, cq: "", loaded: {}, rvs: [], rv: null, pdx: 0, pvq: "", pvx: 0, pvnew: false, npm: ["pedidos", "productos", "packs", "recetas", "proveedores", "textos", "finanzas", "resenas"] };
   st.gv = { p: "hoy", a: "", b: "" }; st.rpc = { src: "ped", dim: "est", med: "cnt", ch: "bar", p: "mes", a: "", b: "" };
-  var FLTK = ["fil", "skf", "fm", "pvt", "pdp", "pdd", "pdh", "fp", "fd", "fh", "rpm", "rpg", "prarch", "gv", "rpc"];
+  var FLTK = ["fil", "skf", "fm", "pvt", "pvs", "pdp", "pdd", "pdh", "fp", "fd", "fh", "rpm", "rpg", "prarch", "gv", "rpc"];
   try { var FL0 = JSON.parse(localStorage.getItem("uovo_adm_flt") || "{}"); FLTK.forEach(function (k) { if (FL0[k] !== undefined) st[k] = FL0[k]; }); } catch (e) {}
   function saveFlt() { try { var o = {}; FLTK.forEach(function (k) { if (st[k] !== undefined) o[k] = st[k]; }); localStorage.setItem("uovo_adm_flt", JSON.stringify(o)); } catch (e) {} }
-  function store(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
+  var MIR = ["uovo_adm_tok", "uovo_adm_me", "uovo_adm_cid", "uovo_adm_v", "uovo_adm_drive", "uovo_adm_flt", "uovo_adm_nav"];
+  function idbOp(fn) { return new Promise(function (res) { try { var r = indexedDB.open("uovo_adm", 1); r.onupgradeneeded = function () { r.result.createObjectStore("kv"); }; r.onerror = function () { res(null); }; r.onsuccess = function () { try { fn(r.result.transaction("kv", "readwrite").objectStore("kv"), res); } catch (e) { res(null); } }; } catch (e) { res(null); } }); }
+  function store(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} if (MIR.indexOf(k) >= 0) idbOp(function (os, res) { if (v == null) os.delete(k); else os.put(String(v), k); res(1); }); }
+  function restoreStore() {
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+    if (load("uovo_adm_tok")) { MIR.forEach(function (k) { var v = load(k); if (v) idbOp(function (os, res) { os.put(v, k); res(1); }); }); return Promise.resolve(); }
+    return Promise.all(MIR.map(function (k) { return idbOp(function (os, res) { var g = os.get(k); g.onsuccess = function () { res(g.result); }; g.onerror = function () { res(null); }; }).then(function (v) { if (v && !load(k)) try { localStorage.setItem(k, v); } catch (e) {} }); })).then(function () { try { var o = JSON.parse(load("uovo_adm_flt") || "{}"); FLTK.forEach(function (k) { if (o[k] !== undefined) st[k] = o[k]; }); } catch (e) {} });
+  }
   function load(k) { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function money(n) { var v = Math.round(Number(n) || 0); return (v < 0 ? "-$" : "$") + Math.abs(v).toLocaleString("es-AR"); }
@@ -2207,6 +2214,8 @@ body.selmode .nav{visibility:hidden}
       if (DEMO) return res("demo");
       if (DRV.tok && Date.now() < DRV.exp - 60000 && !force) return res(DRV.tok);
       if (!window.google || !google.accounts || !google.accounts.oauth2) return rej(new Error("No cargó Google. Reintentá."));
+      if (!clientId) clientId = load("uovo_adm_cid");
+      if (!clientId) { fetch(ENDPOINT).then(function (r) { return r.json(); }).then(function (j) { clientId = String(j && j.config && j.config.google_client_id || "").trim(); if (!clientId) throw new Error("Falta el ID de cliente de Google en Config."); store("uovo_adm_cid", clientId); driveToken(force).then(res, rej); }).catch(function (e) { rej(new Error(e && e.message || "No se pudo conectar. Revisá tu conexión.")); }); return; }
       var tc = google.accounts.oauth2.initTokenClient({
         client_id: clientId, scope: "https://www.googleapis.com/auth/drive.file", hint: st.me && st.me.email,
         callback: function (r) { if (r.error) { rej(new Error(r.error)); return; } DRV.tok = r.access_token; DRV.exp = Date.now() + (Number(r.expires_in) || 3600) * 1000; store("uovo_adm_drive", "1"); res(DRV.tok); },
@@ -2372,8 +2381,8 @@ body.selmode .nav{visibility:hidden}
     if (st.us == null && !st.usf) { st.usf = 1; api("usos").then(function (j) { st.us = j && j.ok ? j.usos : []; if (st.v === "proveedores") render(true); }).catch(function () { st.us = []; }); }
     if (!st.prov) return BACK + '<div class="empty">Cargando…</div>';
     if (!st.stock && !st.stkf3) { st.stkf3 = 1; api("stock").then(function (j) { st.stock = j && j.ok ? j.stock : []; }).catch(function () {}); }
-    var q = nrm(st.pvq), L = hasFirst((st.prov[st.pvt] || []).filter(function (x) { return !q || nrm(x.ins).indexOf(q) >= 0 || nrm(x.prov).indexOf(q) >= 0; }), function (x) { return (st.stock || []).filter(function (z) { return z.ins === x.ins; })[0]; });
-    var h = BACK + skBar('Ej: compré 1 kg de manteca a 3000', 'Dictá o escribí tus compras, varias juntas: «1 kg de manteca a 3000, 2 kg de azúcar a 7000». Se cargan y suman al stock.') + '<div style="display:flex;gap:8px;margin-bottom:10px"><input class="search" id="pvq" type="search" placeholder="Buscar insumo o proveedor…" value="' + esc(st.pvq) + '" style="margin:0;flex:1"><button class="btn" id="pv-plus" aria-label="Agregar insumo" style="width:52px;padding:0;font-size:1.5rem">＋</button></div>';
+    var q = nrm(st.pvq), L0 = (st.prov[st.pvt] || []).filter(function (x) { return !q || nrm(x.ins).indexOf(q) >= 0 || nrm(x.prov).indexOf(q) >= 0; }), pvs = st.pvs || [], L = pvs.length ? pvSort(L0, pvs) : hasFirst(L0, function (x) { return (st.stock || []).filter(function (z) { return z.ins === x.ins; })[0]; });
+    var h = BACK + skBar('Ej: compré 1 kg de manteca a 3000', 'Dictá o escribí tus compras, varias juntas: «1 kg de manteca a 3000, 2 kg de azúcar a 7000». Se cargan y suman al stock.') + '<div style="display:flex;gap:8px;margin-bottom:10px"><input class="search" id="pvq" type="search" placeholder="Buscar insumo o proveedor…" value="' + esc(st.pvq) + '" style="margin:0;flex:1"><button class="btn" id="pv-sort" aria-label="Ordenar" style="width:52px;padding:0;font-size:1.2rem;' + ((st.pvs || []).length ? "" : "background:#fff;color:var(--blue,#0F59C4);border:1.5px solid #cfdcf3;") + '">⇅' + ((st.pvs || []).length ? '<sup style="font-size:.6rem">' + st.pvs.length + "</sup>" : "") + '</button><button class="btn" id="pv-plus" aria-label="Agregar insumo" style="width:52px;padding:0;font-size:1.5rem">＋</button></div>';
     h += '<div class="chips"><button class="chip' + (st.pvt === "a" ? " on" : "") + '" data-pvt="a">Insumos</button><button class="chip' + (st.pvt === "p" ? " on" : "") + '" data-pvt="p">Packaging</button></div>';
     if (st.pvnew) h += '<div class="card" id="pv-new"><div class="nm" style="margin-bottom:6px">Nuevo ' + (st.pvt === "a" ? "insumo" : "packaging") + '</div><div class="add"><input class="inp" id="ai-n" placeholder="Nombre" value="' + esc(st.pvq) + '"><input class="inp" id="ai-u" list="pv-units" placeholder="Unidad (g, kg, ml, l, unidad)" value="' + (st.pvt === "a" ? "g" : "unidad") + '"><datalist id="pv-units"><option value="g"><option value="kg"><option value="ml"><option value="l"><option value="unidad"></datalist><div style="display:flex;gap:8px"><button class="btn" id="ai-ok">Agregar</button><button class="sm" id="ai-x">Cancelar</button></div></div></div>';
     if (!L.length) h += '<div class="empty">' + (q ? "No hay resultados. Tocá ＋ para agregarlo." : "Sin elementos.") + "</div>";
@@ -2471,6 +2480,37 @@ body.selmode .nav{visibility:hidden}
     m.innerHTML = '<div class="box" style="width:100%;max-height:88vh;overflow:auto">' + st.popHtml + '<button class="btn" data-popx="1" style="margin-top:10px">Cerrar</button></div>';
     if (had) { var nb = m.firstChild; nb.style.animation = "none"; nb.scrollTop = sc; if (aid) { var ne = m.querySelector(aid); if (ne) { ne.value = av; ne.focus(); } } }
   }
+  var PVS = [["sp", "Sin precio primero", "p"], ["spv", "Sin proveedor primero", "v"], ["az", "Nombre A → Z", "n"], ["za", "Nombre Z → A", "n"], ["pm", "Precio menor → mayor", "c"], ["pM", "Precio mayor → menor", "c"]];
+  function pvSort(L, keys) {
+    var A = L.map(function (x, i) { return { x: x, i: i }; });
+    A.sort(function (a, b) {
+      for (var k = 0; k < keys.length; k++) {
+        var o = keys[k], p = a.x, q = b.x, d = 0;
+        if (o === "sp") d = (p.costo ? 1 : 0) - (q.costo ? 1 : 0);
+        else if (o === "spv") d = (p.prov ? 1 : 0) - (q.prov ? 1 : 0);
+        else if (o === "az") d = String(p.ins).localeCompare(String(q.ins), "es", { sensitivity: "base" });
+        else if (o === "za") d = String(q.ins).localeCompare(String(p.ins), "es", { sensitivity: "base" });
+        else if (o === "pm" || o === "pM") { var hp = p.costo ? 1 : 0, hq = q.costo ? 1 : 0; if (hp !== hq) d = hq - hp; else d = (o === "pm" ? 1 : -1) * ((p.costo || 0) - (q.costo || 0)); }
+        if (d) return d;
+      }
+      return a.i - b.i;
+    });
+    return A.map(function (a) { return a.x; });
+  }
+  function pvSortPop() {
+    var sel = (st.pvs || []).slice(), m = document.createElement("div"); m.className = "modal";
+    function draw() {
+      m.innerHTML = '<div class="box" style="width:100%"><h3>Ordenar</h3><p class="meta" style="margin:0 0 10px">Tocá varios: se combinan en el orden que los elegís.</p><div style="display:flex;flex-direction:column;gap:8px">' + PVS.map(function (o) { var i = sel.indexOf(o[0]); return '<button class="chip' + (i >= 0 ? " on" : "") + '" data-o="' + o[0] + '" style="text-align:left;width:100%">' + (i >= 0 ? (i + 1) + ". " : "") + o[1] + "</button>"; }).join("") + '</div><div style="display:flex;gap:8px;margin-top:14px"><button class="btn" style="flex:1" data-ap>Aplicar</button><button class="sm" data-lm>Limpiar</button></div></div>';
+    }
+    draw(); document.body.appendChild(m);
+    m.addEventListener("click", function (e) {
+      var b = e.target.closest("[data-o]");
+      if (b) { var k = b.getAttribute("data-o"), g = PVS.filter(function (o) { return o[0] === k; })[0][2], i = sel.indexOf(k); if (i >= 0) sel.splice(i, 1); else { sel = sel.filter(function (z) { return PVS.filter(function (o) { return o[0] === z; })[0][2] !== g; }); sel.push(k); } draw(); return; }
+      if (e.target.closest("[data-lm]")) { sel = []; draw(); return; }
+      if (e.target.closest("[data-ap]")) { st.pvs = sel; saveFlt(); m.remove(); render(true); return; }
+      if (e.target === m) m.remove();
+    });
+  }
   function hasFirst(L, getS) { var a = [], b = []; L.forEach(function (x) { var z = getS(x); (z && z.mov && z.stock > 0 ? a : b).push(x); }); a.sort(function (p, q) { var zp = getS(p), zq = getS(q); return 0; }); return a.concat(b); }
   function movRefresh() { api("stockMovs").then(function (j) { st.movs = j && j.ok ? j.movs : st.movs; st.movf = 1; if (st.v === "stock") render(true); }).catch(function () {}); }
   function stkDel(ins) {
@@ -2526,6 +2566,7 @@ body.selmode .nav{visibility:hidden}
     textos: [["#cq", "Buscador", "Escribí una palabra para encontrar el texto que querés cambiar."],
       [".card", "Editá y listo", "Cambiá el texto y salí del campo: se guarda y se ve en la tienda."]],
     proveedores: [["#pvq", "Buscador", "Escribí una palabra y te salta el insumo. Tocalo para cargar proveedor, cantidad y precio."],
+      ["#pv-sort", "Ordenar", "El botón ⇅ abre las opciones: sin precio primero, nombre A→Z, precio menor o mayor. Elegí varias y se combinan en ese orden; tocá Aplicar."],
       ["#pv-plus", "Agregar insumo", "El ＋ crea un insumo o packaging nuevo sin bajar por la lista."],
       [".chips", "Insumos y packaging", "Cambiá entre ingredientes y packaging."],
       [".card", "Tu última compra", "Tocá un insumo para abrirlo. Escribí «1 kg» o «500 g» y el precio total: el costo por unidad se calcula solo. También podés cambiar la unidad."],
@@ -3018,6 +3059,7 @@ body.selmode .nav{visibility:hidden}
     var px = t.closest("[data-pvx]"); if (px) { var pr1 = Number(px.getAttribute("data-pvx")); if (px.closest(".modal")) return; st.pop = { k: "prv", key: pr1, v: "proveedores" }; render(true); return; }
     if (t.closest("#pv-plus")) { st.pvnew = !st.pvnew; render(true); var an = $("ai-n"); if (an) an.focus(); return; }
     if (t.closest("#ai-x")) { st.pvnew = false; render(true); return; }
+    if (t.closest("#pv-sort")) { pvSortPop(); return; }
     var pt = t.closest("[data-pvt]"); if (pt) { st.pvt = pt.getAttribute("data-pvt"); render(true); return; }
     if (t.closest("[data-cnew]")) { st.cd = { r: 0, activo: true, nombre: "", pct: "", n: 1, min: "", texto: "" }; render(true); return; }
     var ccd = t.closest("[data-cr]");
@@ -3360,7 +3402,7 @@ body.selmode .nav{visibility:hidden}
     else if (it && it.a.indexOf("v:") === 0) { var pq = $("ntp"); pq && pq.remove(); goto(it.a.slice(2)); }
   });
   setTimeout(function () { try { ntfBadge(); } catch (x) {} }, 400);
-  boot();
+  restoreStore().then(boot, boot);
 })();
 </script>
 </body>

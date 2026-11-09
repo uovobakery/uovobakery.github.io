@@ -2528,7 +2528,8 @@ body.selmode .nav{visibility:hidden}
     proveedores: [["#pvq", "Buscador", "Escribí una palabra y te salta el insumo. Tocalo para cargar proveedor, cantidad y precio."],
       ["#pv-plus", "Agregar insumo", "El ＋ crea un insumo o packaging nuevo sin bajar por la lista."],
       [".chips", "Insumos y packaging", "Cambiá entre ingredientes y packaging."],
-      [".card", "Tu última compra", "Tocá un insumo para abrirlo. Escribí «1 kg» o «500 g» y el precio total: el costo por unidad se calcula solo. También podés cambiar la unidad."]],
+      [".card", "Tu última compra", "Tocá un insumo para abrirlo. Escribí «1 kg» o «500 g» y el precio total: el costo por unidad se calcula solo. También podés cambiar la unidad."],
+      [".card", "Precio sin comprar", "Abrí un insumo y usá «Precio actual»: ponés cantidad, unidad y precio total, y se actualiza el costo sin tocar el stock."]],
     voz: [["#vz-key", "Clave de IA", "Pegá acá tu clave de Anthropic (una sola vez). Queda guardada en tu Apps Script, no en este teléfono."],
       [".help", "Cómo se usa", "Tocá el micrófono azul, dictá lo que querés y confirmá antes de aplicar."]],
     resenas: [["#rvnew", "Nueva reseña", "Cargá el nombre, la puntuación, el comentario y, si querés, una foto."],
@@ -3068,7 +3069,7 @@ body.selmode .nav{visibility:hidden}
     }
     var bad = t.closest("[data-badd]"); if (bad) { var bc = $("bl-c").value.trim(), bm = parseAR($("bl-m").value), bt = $("bl-t").value; if (!bc || !(bm > 0)) { toast("Poné concepto y monto"); return; } var nb = (st.bal || []).concat([{ c: bc, t: bt, m: bm }]); (DEMO ? Promise.resolve({ ok: true, items: nb }) : api("saveBalance", { items: nb })).then(function (j) { if (j && j.ok) { st.bal = j.items; render(true); toast("Guardado ✓"); } else toast(j && j.msg || "No se pudo"); }); return; }
     var bdl = t.closest("[data-bdel]"); if (bdl) { var nb2 = (st.bal || []).filter(function (x, i) { return i !== Number(bdl.getAttribute("data-bdel")); }); (DEMO ? Promise.resolve({ ok: true, items: nb2 }) : api("saveBalance", { items: nb2 })).then(function (j) { if (j && j.ok) { st.bal = j.items; render(true); } else toast(j && j.msg || "No se pudo"); }); return; }
-    var fm = t.closest("[data-fm]"); if (fm) { st.fm = fm.getAttribute("data-fm"); render(true); return; }
+    var fmb = t.closest("[data-fm]"); if (fmb) { st.fm = fmb.getAttribute("data-fm"); render(true); return; }
     var fpre = t.closest("[data-fpre]"); if (fpre) { var pk = fpre.getAttribute("data-fpre"); if (pk === "hoy") { finPreset("7"); st.fd = st.fh; st.fp = "hoy"; } else finPreset(pk); render(true); return; }
     var fc = t.closest("[data-fc]"); if (fc) { st.fc = Number(fc.getAttribute("data-fc")); render(true); return; }
     var yr = t.closest("[data-yr]"); if (yr) { var ny = Number(st.fin.anio) + Number(yr.getAttribute("data-yr")); api("setAnio", { valor: ny }).then(function (j) { if (j && j.ok) { st.fin = j; render(true); } else toast(j && j.msg || "No se pudo"); }); return; }

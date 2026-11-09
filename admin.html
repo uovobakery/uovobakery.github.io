@@ -643,7 +643,7 @@ body.selmode .nav{visibility:hidden}
   function goto(v) {
     (function () { var vw = document.getElementById("view"); if (vw) { vw.classList.add("enter"); clearTimeout(window.__entT); window.__entT = setTimeout(function () { vw.classList.remove("enter"); }, 450); } })();
     if (!allowed(v)) v = firstView();
-    st.v = v; store("uovo_adm_v", v); var nk = SUB.indexOf(v) >= 0 ? "mas" : v;
+    st.v = v; store("uovo_adm_v", v); var nk = navList().indexOf(v) >= 0 ? v : "mas";
     Array.prototype.forEach.call($("nav").querySelectorAll("button"), function (b) { b.classList.toggle("on", b.getAttribute("data-v") === nk); });
     if (v === "mas") st.loaded.mas = true;
     if (!st.loaded[v]) { $("view").innerHTML = '<div class="empty">Cargando…</div>'; fetchView(v); } else render();
@@ -673,6 +673,57 @@ body.selmode .nav{visibility:hidden}
     if (hit && hit.ok && !st.loaded[v]) hnd(hit, true);
     api(op).then(function (j) { if (j && j.ok && !DEMO) store(ck, JSON.stringify(j)); hnd(j); }).catch(function () { if (st.v === v && !st.loaded[v]) $("view").innerHTML = '<div class="empty">No se pudo cargar.</div>'; });
   }
+
+  /* ---------- Barra inferior personalizable ---------- */
+  var NAVK = "uovo_adm_nav", NAVD = ["inicio", "pedidos", "productos", "proveedores", "stock"], NAVMAX = 5;
+  var NAVI = {
+    inicio: ["Inicio", '<path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10"/>'],
+    pedidos: ["Pedidos", '<path d="M6 3h12l2 4v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7z"/><path d="M4 7h16M9 11a3 3 0 0 0 6 0"/>'],
+    productos: ["Productos", '<circle cx="12" cy="12" r="9"/><path d="M8 9h.01M15 8h.01M10 14h.01M15 14h.01M12 11h.01"/>'],
+    proveedores: ["Proveedores", '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>'],
+    stock: ["Stock", '<path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>'],
+    finanzas: ["Finanzas", '<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>'],
+    reportes: ["Reportes", '<path d="M4 4h16v16H4z"/><path d="M8 16v-4M12 16V8M16 16v-6"/>'],
+    recetas: ["Recetas", '<path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M9 9h6M9 13h6"/>'],
+    packs: ["Packs", '<rect x="4" y="9" width="16" height="11" rx="1"/><path d="M12 9v11M4 13h16M12 9c-3-5-6-3-4 0M12 9c3-5 6-3 4 0"/>'],
+    tandas: ["Tandas", '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/>'],
+    cola: ["Espera", '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'],
+    textos: ["Textos", '<path d="M4 20l1-4L16 5l3 3L8 19z"/>'],
+    cupones: ["Cupones", '<path d="M3 9V6h18v3a2 2 0 0 0 0 4v3H3v-3a2 2 0 0 0 0-4z"/><path d="M9 6v10"/>'],
+    resenas: ["Reseñas", '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>'],
+    mas: ["Más", '<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>']
+  };
+  function navList() { var c = lsR(NAVK), L = Array.isArray(c.l) ? c.l : NAVD; return L.filter(function (k, i) { return NAVI[k] && k !== "mas" && L.indexOf(k) === i; }).slice(0, NAVMAX); }
+  function navBuild() {
+    var n = $("nav"); if (!n) return;
+    n.innerHTML = navList().concat(["mas"]).map(function (k) { return '<button data-v="' + k + '"><svg viewBox="0 0 24 24">' + NAVI[k][1] + "</svg>" + NAVI[k][0] + "</button>"; }).join("");
+    applyPerms();
+    var nk = navList().indexOf(st.v) >= 0 ? st.v : "mas";
+    Array.prototype.forEach.call(n.querySelectorAll("button"), function (b) { b.classList.toggle("on", b.getAttribute("data-v") === nk); });
+  }
+  function navPop() {
+    var old = $("navm"); if (old) old.remove();
+    var m = document.createElement("div"); m.className = "modal"; m.id = "navm"; document.body.appendChild(m);
+    function draw() {
+      var S = navList(), R = Object.keys(NAVI).filter(function (k) { return k !== "mas" && S.indexOf(k) < 0 && allowed(k); });
+      function row(k, on, i) {
+        return '<div class="atl"><b style="flex:1">' + esc(NAVI[k][0]) + "</b>" + (on ? '<button class="sm" data-nv="up:' + k + '"' + (i === 0 ? " disabled" : "") + ' aria-label="Subir">↑</button><button class="sm" data-nv="dn:' + k + '"' + (i === S.length - 1 ? " disabled" : "") + ' aria-label="Bajar">↓</button>' : "") + '<button class="sw' + (on ? " on" : "") + '" data-nv="tg:' + k + '" style="border:0;background:none;padding:0"><i></i></button></div>';
+      }
+      m.innerHTML = '<div class="box" style="width:100%;max-height:88vh;overflow:auto"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><h3 style="margin:0;flex:1">Barra inferior</h3><button class="sm" data-nv="x">Listo</button></div><div class="meta" style="margin:0 0 8px">Elegí hasta ' + NAVMAX + ' (Más siempre queda al final) y ordenalas con las flechas.</div>' + S.map(function (k, i) { return row(k, true, i); }).join("") + (R.length ? '<div class="nm" style="margin:10px 2px 6px">Disponibles</div>' + R.map(function (k) { return row(k, false, 0); }).join("") : "") + '<button class="sm red" data-nv="reset" style="margin-top:8px">Restablecer</button></div>';
+    }
+    draw();
+    m.addEventListener("click", function (e) {
+      var t = e.target, b = t.closest("[data-nv]");
+      if (t === m || (b && b.getAttribute("data-nv") === "x")) { m.remove(); return; }
+      if (!b) return;
+      var P = b.getAttribute("data-nv").split(":"), a = P[0], k = P[1], L = navList(), i = L.indexOf(k);
+      if (a === "reset") L = NAVD.slice();
+      else if (a === "up" || a === "dn") { var j = i + (a === "up" ? -1 : 1); if (i < 0 || j < 0 || j >= L.length) return; L.splice(j, 0, L.splice(i, 1)[0]); }
+      else if (a === "tg") { if (i >= 0) { if (L.length <= 1) { toast("Dejá al menos una"); return; } L.splice(i, 1); } else { if (L.length >= NAVMAX) { toast("Máximo " + NAVMAX + ": sacá una primero"); return; } L.push(k); } }
+      lsW(NAVK, { l: L }); draw(); navBuild();
+    });
+  }
+  navBuild();
   $("nav").addEventListener("click", function (e) { var b = e.target.closest("button[data-v]"); if (b) goto(b.getAttribute("data-v")); });
   $("refresh").addEventListener("click", function () { st.loaded = {}; goto(st.v); });
   $("logout").addEventListener("click", function () { signedOut(""); });
@@ -1659,7 +1710,7 @@ body.selmode .nav{visibility:hidden}
   /* ---------- Más ---------- */
   function renderMas() {
     var mi = function (x) { return '<button class="mi" data-go="' + x[0] + '"><i>' + x[1] + "</i><div><b>" + x[2] + "</b><span>" + x[3] + "</span></div></button>"; };
-    var neg = [["tandas", "📅", "Tandas", "Cierre de pedidos y fecha de entrega"], ["cola", "⏳", "Lista de espera", "Clientes que dejaron su pedido con la tienda cerrada"], ["textos", "✏️", "Textos de la página", "Cambiá los textos de la tienda"], ["proveedores", "🧾", "Proveedores e insumos", "Precios de lo que comprás"], ["stock", "📦", "Stock", "Cuánto te queda y qué reponer"], ["puntos", "🎯", "Puntos de pedido", "Cuándo avisarte para reponer cada insumo"], ["recetas", "🧁", "Recetas", "Costo de cada masa y cookie"], ["packs", "🎁", "Packs y combos", "Activá, pausá y cambiá precios"], ["cupones", "🏷️", "Cupones", "Descuentos para tus clientes"]].filter(function (x) { return allowed(x[0]); });
+    var neg = [["tandas", "📅", "Tandas", "Cierre de pedidos y fecha de entrega"], ["cola", "⏳", "Lista de espera", "Clientes que dejaron su pedido con la tienda cerrada"], ["textos", "✏️", "Textos de la página", "Cambiá los textos de la tienda"], ["proveedores", "🧾", "Proveedores e insumos", "Precios de lo que comprás"], ["stock", "📦", "Stock", "Cuánto te queda y qué reponer"], ["puntos", "🎯", "Puntos de pedido", "Cuándo avisarte para reponer cada insumo"], ["recetas", "🧁", "Recetas", "Costo de cada masa y cookie"], ["packs", "🎁", "Packs y combos", "Activá, pausá y cambiá precios"], ["cupones", "🏷️", "Cupones", "Descuentos para tus clientes"], ["finanzas", "💰", "Finanzas", "Ventas, resultados y costos"]].filter(function (x) { return allowed(x[0]); });
     var app = [["reportes", "📊", "Reportes", "Gráficos y reportes de lo que quieras"], ["resenas", "⭐", "Reseñas", "Lo que dicen tus clientes"]].filter(function (x) { return allowed(x[0]); });
     if (st.me && st.me.rol === "Dueño") { app.push(["voz", "🎙️", "Asistente de voz", "Dictá lo que querés hacer"]); app.push(["accesos", "🔑", "Accesos", "Quién puede entrar a esta app"]); }
     if (st.alertas === undefined && !st.stkf && allowed("proveedores")) { st.stkf = 1; api("stock").then(function (j) { if (j && j.ok) { st.stock = j.stock; st.alertas = !!j.alertas; if (st.v === "mas") render(true); } }).catch(function () {}); }
@@ -1667,7 +1718,7 @@ body.selmode .nav{visibility:hidden}
     var ac = alsw + '<button class="mi" data-act="inixcfg"><i>▤</i><div><b>Personalizar inicio</b><span>Orden y visibilidad de bloques y atajos</span></div></button><button class="mi" data-act="refresh"><i>↻</i><div><b>Actualizar datos</b><span>Traer lo más nuevo de la planilla</span></div></button><button class="mi" data-act="logout"><i>⎋</i><div><b>Cerrar sesión</b><span>' + esc(st.me && st.me.email || "") + "</span></div></button>";
     st.mo = st.mo || { neg: 1 };
     function grp(k, ttl, sub, body) { return '<button class="mi" data-mo="' + k + '" style="width:100%;background:var(--card,#fff);border-radius:14px;margin:10px 0 6px"><div><b>' + ttl + "</b><span>" + sub + '</span></div><span style="color:var(--soft)">' + (st.mo[k] ? "▴" : "▾") + "</span></button>" + (st.mo[k] ? '<div class="menu">' + body + "</div>" : ""); }
-    var pin = '<div class="menu" style="margin-bottom:6px"><button class="mi" data-act="inixcfg"><i>▤</i><div><b>Personalizar inicio</b><span>Orden y visibilidad de bloques y atajos</span></div></button></div>';
+    var pin = '<div class="menu" style="margin-bottom:6px"><button class="mi" data-act="inixcfg"><i>▤</i><div><b>Personalizar inicio</b><span>Orden y visibilidad de bloques y atajos</span></div></button><button class="mi" data-act="navcfg"><i>▭</i><div><b>Personalizar barra inferior</b><span>Elegí y ordená los botones de abajo</span></div></button></div>';
     return pin + (neg.length ? grp("neg", "🧁 Mi negocio y la página", "Textos, insumos, stock, recetas, packs, cupones", neg.map(mi).join("")) : "") + grp("app", "⚙️ Configuración de la aplicación", "Reseñas, voz, accesos y sesión", app.map(mi).join("") + ac);
   }
   var BACK = '<button class="back" data-go="mas">‹ Más</button>';
@@ -2330,7 +2381,7 @@ body.selmode .nav{visibility:hidden}
       var open = st.pop && st.pop.k === "prv" && st.pop.key === x.r, hd, c = x.costo ? "$" + (Math.round(x.costo * 100) / 100).toLocaleString("es-AR") + " / " + esc(x.uni) : "sin precio";
       var b = '<article class="card pc" data-r="' + x.r + '" data-ins="' + esc(x.ins) + '"><button class="row" data-pvx="' + x.r + '" style="width:100%;border:0;background:none;padding:0;text-align:left;align-items:center"><div style="min-width:0"><div class="nm">' + esc(x.ins) + '</div><div class="meta">' + (x.prov ? esc(x.prov) + " · " : "") + c + '</div></div><span style="color:var(--soft);font-size:1.1rem">' + (open ? "▴" : "▾") + "</span></button>";
       hd = b;
-      if (open) b += '<div class="add" style="margin-top:10px"><div class="meta" style="margin-bottom:-4px">Nombre</div><input class="inp" data-pv="nombre" placeholder="Nombre" value="' + esc(x.ins) + '"><div style="display:flex;gap:8px"><div style="flex:1"><div class="meta">Unidad</div><input class="inp" data-pv="uni" list="pv-units" value="' + esc(x.uni) + '" placeholder="g, ml, unidad"></div><div style="flex:2"><div class="meta">Proveedor</div><input class="inp" data-pv="prov" placeholder="Proveedor" value="' + esc(x.prov) + '"></div></div><div class="meta" style="margin-bottom:-4px">Nueva compra</div><div style="display:flex;gap:8px"><input class="inp" data-pc="cant" type="text" inputmode="decimal" placeholder="Cant." style="min-width:0;flex:1"><input class="inp" data-pcu list="u-all" value="' + esc(x.uni) + '" placeholder="unidad" style="width:90px;flex:none"><datalist id="u-all">' + UNL.map(function (u) { return '<option value="' + u + '">'; }).join("") + '</datalist><input class="inp" data-pc="precio" type="text" inputmode="decimal" placeholder="$ total" style="min-width:0;flex:1.3"></div><button class="btn" data-pbuy="1">Registrar compra</button>' + (x.cant ? '<div class="meta">Última: ' + fm(x.cant) + " " + esc(x.uni) + " a $" + fm(x.precio) + (x.fecha ? " · " + esc(x.fecha) : "") + "</div>" : "") + "</div>";
+      if (open) b += '<div class="add" style="margin-top:10px"><div class="meta" style="margin-bottom:-4px">Nombre</div><input class="inp" data-pv="nombre" placeholder="Nombre" value="' + esc(x.ins) + '"><div style="display:flex;gap:8px"><div style="flex:1"><div class="meta">Unidad</div><input class="inp" data-pv="uni" list="pv-units" value="' + esc(x.uni) + '" placeholder="g, ml, unidad"></div><div style="flex:2"><div class="meta">Proveedor</div><input class="inp" data-pv="prov" placeholder="Proveedor" value="' + esc(x.prov) + '"></div></div><div class="meta" style="margin-bottom:-4px">Nueva compra</div><div style="display:flex;gap:8px"><input class="inp" data-pc="cant" type="text" inputmode="decimal" placeholder="Cant." style="min-width:0;flex:1"><input class="inp" data-pcu list="u-all" value="' + esc(x.uni) + '" placeholder="unidad" style="width:90px;flex:none"><datalist id="u-all">' + UNL.map(function (u) { return '<option value="' + u + '">'; }).join("") + '</datalist><input class="inp" data-pc="precio" type="text" inputmode="decimal" placeholder="$ total" style="min-width:0;flex:1.3"></div><button class="btn" data-pbuy="1">Registrar compra</button><div class="meta" style="margin:6px 0 -4px">Precio actual (sin comprar, el stock no cambia)</div><div style="display:flex;gap:8px"><input class="inp" data-ps="cant" type="text" inputmode="decimal" placeholder="Cant." value="' + (x.cant ? fm(x.cant) : "1") + '" style="min-width:0;flex:1"><input class="inp" data-ps="uni" list="u-all" value="' + esc(x.uni) + '" placeholder="unidad" style="width:90px;flex:none"><input class="inp" data-ps="precio" type="text" inputmode="decimal" placeholder="$ total" value="' + (x.precio ? fm(x.precio) : "") + '" style="min-width:0;flex:1.3"></div><button class="sm" data-pset="1">Guardar precio</button>' + (x.cant ? '<div class="meta">Última: ' + fm(x.cant) + " " + esc(x.uni) + " a $" + fm(x.precio) + (x.fecha ? " · " + esc(x.fecha) : "") + "</div>" : "") + "</div>";
       if (open) { st.popHtml = b + "</article>"; b = hd; }
       return swrap("prv", x.r, b + "</article>", true, true, "Compra", "Borrar").replace('class="swb" data-swa="prv:rm', 'class="swb k3" data-swa="prv:rm');
     }).join("");
@@ -2457,7 +2508,7 @@ body.selmode .nav{visibility:hidden}
       ["#kp-ped", "Pedidos por atender", "Tocá una etapa y se abre un popup con esos pedidos. En «A cocinar» tocá una fecha para ver las cookies, las masas y qué insumos faltan. Mantené apretado para mover u ocultar."],
       [".insc", "Insumos para pedidos", "Suma las masas de todos tus pedidos pendientes y compara con tu stock. Tocá el carrito para agregar lo que falta a la lista de compras."],
       ["#atajos", "Atajos", "Abrí Compras, Stock, Proveedores y más con un toque. Mantené apretado para moverlos; el ＋ que aparece te deja elegir cuáles ver."],
-      ["#nav [data-v=mas]", "Más funciones", "Textos, Proveedores, Recetas, Packs y Accesos están en Más."],
+      ["#nav [data-v=mas]", "Más funciones", "Finanzas, Textos, Recetas, Packs y Accesos están en Más. Ahí mismo podés elegir qué botones van en la barra de abajo."],
       ["#vfab", "Asistente de voz 🎙️", "Tocá el micrófono y preguntale lo que no te acuerdes: «¿cómo cambio un precio?». Te explica paso a paso y te lleva ahí."],
       ["#bell", "Notificaciones 🔔", "Pedidos nuevos, insumos que faltan y cosas del carrito. Abrila y el número desaparece. Deslizá una para marcarla leída, «Limpiar» las saca todas, y abajo de todo están las Leídas para recuperarlas."],
       ["#wand", "La varita ✨", "Tocala cuando quieras para ver esta guía de nuevo en cualquier pantalla."]],
@@ -2634,6 +2685,7 @@ body.selmode .nav{visibility:hidden}
     var m = nrm(txt).match(/^([\d.,]+)\s*([a-z]*)$/); if (!m) return null;
     var n = parseAR(m[1]); if (!(n > 0)) return null;
     var b = UF[nrm(base)] || null, f = m[2] ? UF[m[2]] : null;
+    if (f && !b && !String(base || "").trim()) b = [f[0], 1];
     if (f && b && f[0] === b[0]) return { n: Math.round(n * f[1] / b[1] * 1e6) / 1e6, conv: m[2] && f[1] !== b[1] ? m[1] + " " + m[2] : "" };
     if (f && b) return null;
     return { n: n, conv: "" };
@@ -2882,7 +2934,7 @@ body.selmode .nav{visibility:hidden}
   var viewClick; $("view").addEventListener("click", viewClick = function (e) {
     var t = e.target;
     var act = t.closest("[data-act]"); if (act && act.getAttribute("data-act") === "stkalert") { if (st.alertas === undefined) return; var nv0 = !st.alertas; api("setStockAlertas", { valor: nv0 }).then(function (j) { if (j && j.ok) { st.alertas = !!j.alertas; if (st.alertas) { st.recf = 0; } render(true); toast(st.alertas ? "Alertas activadas" : "Alertas desactivadas"); } else toast(j && j.msg || "No se pudo"); }); return; }
-    if (act) { var av = act.getAttribute("data-act"); if (av === "inixcfg") { inixPop(); return; } if (av === "refresh") { $("refresh").click(); toast("Actualizando…"); } else if (av === "logout") $("logout").click(); return; }
+    if (act) { var av = act.getAttribute("data-act"); if (av === "inixcfg") { inixPop(); return; } if (av === "navcfg") { navPop(); return; } if (av === "refresh") { $("refresh").click(); toast("Actualizando…"); } else if (av === "logout") $("logout").click(); return; }
     var f = t.closest("[data-f]"); if (f) { st.fil = f.getAttribute("data-f"); render(); return; }
     var go = t.closest("[data-go]"); if (go) { var gf = go.getAttribute("data-fil"); if (gf) st.fil = gf; if (go.hasAttribute("data-newp")) st.newp = true; goto(go.getAttribute("data-go")); return; }
     if (t.closest("[data-newp]")) { st.newp = true; if (st.v !== "productos") goto("productos"); else { st.newp = !$("npform"); render(true); } return; }
@@ -2941,6 +2993,15 @@ body.selmode .nav{visibility:hidden}
         else { rdl.classList.add("arm"); rdl.textContent = "¿Seguro? Tocá de nuevo"; clearTimeout(armTimer); armTimer = setTimeout(function () { rdl.classList.remove("arm"); rdl.textContent = "Eliminar"; }, 3000); }
         return;
       }
+    }
+    var pst = t.closest("[data-pset]"); if (pst) {
+      var sc = pst.closest("[data-ins]"), sn = sc.getAttribute("data-ins"), sx = (st.prov[st.pvt] || []).filter(function (z) { return z.ins === sn; })[0]; if (!sx) return;
+      var sq = sc.querySelector("[data-ps=cant]").value.trim(), su = sc.querySelector("[data-ps=uni]").value.trim(), sp = parseAR(sc.querySelector("[data-ps=precio]").value);
+      if (!(sp > 0)) { toast("Poné el precio total"); return; }
+      var sqq = parseQty(sq + (su ? " " + su : ""), sx.uni); if (!sqq || !(sqq.n > 0)) { toast("Revisá cantidad y unidad"); return; }
+      pst.disabled = true;
+      (DEMO ? Promise.resolve({ ok: true }) : api("setProveedor", { t: st.pvt, r: sx.r, ins: sn, campo: "cant", valor: String(sqq.n) }).then(function (j) { return j && j.ok ? api("setProveedor", { t: st.pvt, r: sx.r, ins: sn, campo: "precio", valor: String(sp) }) : j; })).then(function (j) { pst.disabled = false; if (j && j.ok) { if (DEMO) { sx.cant = sqq.n; sx.precio = sp; sx.costo = sp / sqq.n; } else st.prov = j.proveedores; VC.prov = null; st.recf = 0; st.stock = null; render(true); toast("Precio actualizado ✓ (stock sin cambios)"); } else toast(j && j.msg || "No se pudo"); }).catch(function () { pst.disabled = false; toast("No se pudo guardar"); });
+      return;
     }
     var pbb = t.closest("[data-pbuy]"); if (pbb) {
       var pc = pbb.closest("[data-ins]"), pin = pc.getAttribute("data-ins"), px0 = (st.prov[st.pvt] || []).filter(function (z) { return z.ins === pin; })[0]; if (!px0) return;

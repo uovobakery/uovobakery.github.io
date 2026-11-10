@@ -1751,7 +1751,7 @@ body.selmode .nav{visibility:hidden}
       h += '<div class="meta">Cookies que valen para este pack (si no marcás ninguna, valen todas):</div><div class="chips" style="flex-wrap:wrap">' + st.ppro.map(function (n) { return '<button class="chip' + (d.vars.indexOf(n) >= 0 ? " on" : "") + '" data-kv="' + esc(n) + '">' + esc(n) + "</button>"; }).join("") + "</div>";
     }
     h += '<input class="inp" data-kf="precio" type="number" inputmode="numeric" placeholder="Precio" value="' + (d.precio || "") + '"><input class="inp" data-kf="lim" type="number" inputmode="numeric" placeholder="Límite por pedido (opcional)" value="' + (d.lim || "") + '"><div class="meta">Vence (opcional)</div><input class="inp" data-kf="vence" type="date" value="' + esc(d.vence) + '"><textarea class="inp" rows="2" data-kf="texto" placeholder="Texto o descripción (opcional)">' + esc(d.texto) + '</textarea>';
-    if (c) h += d.r ? '<button class="sm" data-kfoto="1">📎 Foto del combo</button>' : '<div class="meta">Guardá el combo y después podés agregarle una foto con 📎.</div>';
+    h += d.r ? '<button class="sm" data-kfoto="1">📎 Foto del ' + (c ? "combo" : "pack") + "</button>" : '<div class="meta">Guardá el ' + (c ? "combo" : "pack") + " y después podés agregarle una foto con 📎.</div>";
     h += '<div style="display:flex;gap:8px"><button class="btn" data-ksave="1">Guardar</button><button class="sm" data-kcancel="1">Cancelar</button>' + (d.r ? '<button class="sm red" data-kdel="1">Eliminar</button>' : "") + "</div></div>";
     return h;
   }

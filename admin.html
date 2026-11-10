@@ -269,12 +269,12 @@ body.selmode .nav{visibility:hidden}
   var ENDPOINT = "https://script.google.com/macros/s/AKfycbwRgztSNbcqRVjj6Kji1BbUCoZxAdQlYLYPxf5-266YiG16hzG9J4II1L7qhxlENjmZNA/exec";
   var DEMO = /[?&]demo=1/.test(location.search);
   var $ = function (id) { return document.getElementById(id); };
-  var st = { token: "", me: null, v: "inicio", fil: "pend", q: "", pedidos: [], productos: [], accesos: [], packs: [], recetas: [], fin: null, cfg: [], insumos: [], ppro: [], rd: null, pd: null, prov: null, pvt: "a", pvs: [], edit: 0, newp: false, cq: "", loaded: {}, rvs: [], rv: null, pdx: 0, pvq: "", pvx: 0, pvnew: false, npm: ["pedidos", "productos", "packs", "recetas", "proveedores", "textos", "finanzas", "resenas"] };
+  var st = { token: "", me: null, v: "inicio", fil: "pend", q: "", pedidos: [], productos: [], accesos: [], packs: [], recetas: [], fin: null, cfg: [], insumos: [], ppro: [], rd: null, pd: null, prov: null, pvt: "a", pvs: [], fx: {}, edit: 0, newp: false, cq: "", loaded: {}, rvs: [], rv: null, pdx: 0, pvq: "", pvx: 0, pvnew: false, npm: ["pedidos", "productos", "packs", "recetas", "proveedores", "textos", "finanzas", "resenas"] };
   st.gv = { p: "hoy", a: "", b: "" }; st.rpc = { src: "ped", dim: "est", med: "cnt", ch: "bar", p: "mes", a: "", b: "" };
-  var FLTK = ["fil", "skf", "fm", "pvt", "pvs", "pdp", "pdd", "pdh", "fp", "fd", "fh", "rpm", "rpg", "prarch", "gv", "rpc"];
+  var FLTK = ["fil", "skf", "fm", "pvt", "pvs", "pdp", "pdd", "pdh", "fp", "fd", "fh", "rpm", "rpg", "prarch", "gv", "rpc", "fx"];
   try { var FL0 = JSON.parse(localStorage.getItem("uovo_adm_flt") || "{}"); FLTK.forEach(function (k) { if (FL0[k] !== undefined) st[k] = FL0[k]; }); } catch (e) {}
   function saveFlt() { try { var o = {}; FLTK.forEach(function (k) { if (st[k] !== undefined) o[k] = st[k]; }); localStorage.setItem("uovo_adm_flt", JSON.stringify(o)); } catch (e) {} }
-  var MIR = ["uovo_adm_tok", "uovo_adm_me", "uovo_adm_cid", "uovo_adm_v", "uovo_adm_drive", "uovo_adm_flt", "uovo_adm_nav"];
+  var MIR = ["uovo_adm_tok", "uovo_adm_me", "uovo_adm_cid", "uovo_adm_v", "uovo_adm_drive", "uovo_adm_flt", "uovo_adm_nav", "uovo_adm_ov"];
   function idbOp(fn) { return new Promise(function (res) { try { var r = indexedDB.open("uovo_adm", 1); r.onupgradeneeded = function () { r.result.createObjectStore("kv"); }; r.onerror = function () { res(null); }; r.onsuccess = function () { try { fn(r.result.transaction("kv", "readwrite").objectStore("kv"), res); } catch (e) { res(null); } }; } catch (e) { res(null); } }); }
   function store(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} if (MIR.indexOf(k) >= 0) idbOp(function (os, res) { if (v == null) os.delete(k); else os.put(String(v), k); res(1); }); }
   function restoreStore() {
@@ -429,10 +429,10 @@ body.selmode .nav{visibility:hidden}
   /* ---------- Lista de espera ---------- */
   function colaMsg(x) { return "¡Hola " + x.nombre + "! Ya abrimos los pedidos. Nos pediste: " + x.pedido + ". ¿Confirmás que lo preparemos?"; }
   function renderCola() {
-    var L = st.cola || [], w = L.filter(function (x) { return x.est !== "Avisado"; }), a = L.filter(function (x) { return x.est === "Avisado"; });
+    var L = fxList("cola", st.cola || []), w = L.filter(function (x) { return x.est !== "Avisado"; }), a = L.filter(function (x) { return x.est === "Avisado"; });
     var card = function (x) { return swrap("col", x.r, '<article class="card pc' + (x.est === "Avisado" ? " dim" : "") + '" data-col="' + x.r + '"><div class="row" style="align-items:center;gap:10px"><div style="min-width:0;flex:1"><div class="nm">' + esc(x.nombre) + '</div><div class="meta">' + esc(x.pedido) + '</div><div class="meta">' + esc(x.fecha) + " · " + esc(x.tel) + '</div></div><div class="tot">' + money(x.total) + '</div><span style="color:var(--soft);font-size:1.3rem">›</span></div></article>', true, true, x.est === "Avisado" ? "En espera" : "Avisado", "", [["Eliminar", "rm", "k3"]]); };
-    var h = BACK + '<div class="help">Clientes que armaron su pedido con la tienda cerrada. Tocá uno para escribirles por WhatsApp. Deslizá → marcar avisado, ← eliminar.</div>';
-    if (!L.length) return h + '<div class="empty">No hay nadie en la cola.</div>';
+    var h = BACK + '<div class="help">Clientes que armaron su pedido con la tienda cerrada. Tocá uno para escribirles por WhatsApp. Deslizá → marcar avisado, ← eliminar.</div>' + ((st.cola || []).length ? fxRow("cola") : "");
+    if (!L.length) return h + '<div class="empty">' + ((st.cola || []).length ? "Sin resultados." : "No hay nadie en la cola.") + "</div>";
     if (w.length) h += '<div class="nm" style="margin:10px 2px 8px">Esperando (' + w.length + ")</div>" + w.map(card).join("");
     if (a.length) h += '<div class="nm" style="margin:14px 2px 8px">Avisados</div>' + a.map(card).join("");
     return h;
@@ -508,7 +508,7 @@ body.selmode .nav{visibility:hidden}
   }
   function signedOut(msg) { st.token = ""; st.me = null; store("uovo_adm_tok", null); store("uovo_adm_me", null); try { Object.keys(localStorage).forEach(function (k) { if (k.indexOf("uovo_c_") === 0) localStorage.removeItem(k); }); } catch (e) {} showLogin(msg); setTimeout(function () { if (!clientId) clientId = load("uovo_adm_cid"); if (clientId) initGoogle(); }, 0); try { if (window.google && google.accounts) google.accounts.id.disableAutoSelect(); } catch (e) {} }
   function enter(me) {
-    st.me = me; if (!DEMO) { store("uovo_adm_me", JSON.stringify(me)); var sv0 = load("uovo_adm_v"); if (sv0 && st.v === "inicio" && !st.entered) st.v = sv0; } st.entered = 1; $("login").hidden = true; $("app").hidden = false; $("who").textContent = (function () { var n = String(me.nombre || "").trim().split(/\s+/)[0] || String(me.email || "").split("@")[0].replace(/[\d._-]+/g, " ").trim().split(" ")[0]; return n ? n.charAt(0).toUpperCase() + n.slice(1) : ""; })();
+    st.me = me; if (!DEMO) { store("uovo_adm_me", JSON.stringify(me)); var sv0 = load("uovo_adm_v"); if (sv0 && st.v === "inicio" && !st.entered) st.v = sv0; } if (!st.entered) { try { var ov0 = JSON.parse(load("uovo_adm_ov") || "null"); if (ov0 && ov0.v === st.v) { if (ov0.pd) st.pd = ov0.pd; if (ov0.fo) st.ovfo = ov0.fo; } } catch (e) {} } st.entered = 1; $("login").hidden = true; $("app").hidden = false; $("who").textContent = (function () { var n = String(me.nombre || "").trim().split(/\s+/)[0] || String(me.email || "").split("@")[0].replace(/[\d._-]+/g, " ").trim().split(" ")[0]; return n ? n.charAt(0).toUpperCase() + n.slice(1) : ""; })();
     $("demobar").hidden = !DEMO; $("vfab").hidden = false; st.vz = false; if (me.rol === "Dueño") api("vozEstado").then(function (j) { st.vz = !!(j && j.clave); }).catch(function () {}); setTimeout(driveWelcome, 1500);
     applyPerms(); goto(allowed(st.v) ? st.v : firstView());
   }
@@ -752,18 +752,18 @@ body.selmode .nav{visibility:hidden}
   function renderPedidos() {
     var base = st.pedidos.filter(dateOk), cnt = {}; base.forEach(function (p) { var e = estadoDe(p); cnt[e] = (cnt[e] || 0) + 1; });
     var q = st.q.trim().toLowerCase();
-    var list = base.filter(function (p) {
+    var list = fxList("pedidos", base.filter(function (p) {
       if (!filOk(p)) return false;
       return !q || (p.nombre + " " + p.id + " " + p.pedido + " " + p.tel).toLowerCase().indexOf(q) >= 0;
-    });
+    }));
     if (!st.loaded.productos && !st.pprf) { st.pprf = 1; api("catalogo").then(function (j) { if (j && j.ok) { st.productos = j.catalogo; st.loaded.productos = true; if (st.v === "pedidos") render(true); } }).catch(function () {}); }
-    var PP = [["todo", "Todo"], ["hoy", "Hoy"], ["sem", "Esta semana"], ["mes", "Este mes"], ["anio", "Este año"]];
+    var PP = [["todo", "Todo"], ["hoy", "Hoy"], ["sem", "Esta semana"], ["mes", "Este mes"], ["anio", "Este año"], ["rng", "Personalizado"]];
     var h = colBanner() + '<div class="mbtn"><button class="btn" data-pnew="1">' + (st.pnew ? "✕ Cerrar" : "＋ Nuevo pedido") + '</button><button class="btn sec" data-masas="1">🥣 Masas</button></div>' + (st.pnew ? pedForm() : "") +
-      '<input class="search" id="pq" type="search" placeholder="Buscar por nombre, código o pedido…" value="' + esc(st.q) + '">' +
-      '<div class="meta" style="margin:2px 4px 4px">Fecha en que se hizo el pedido</div><div class="chips">' + PP.map(function (x) { return '<button class="chip' + ((st.pdp || "todo") === x[0] ? " on" : "") + '" data-pdp="' + x[0] + '">' + x[1] + "</button>"; }).join("") + '</div><div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-bottom:8px"><label class="meta">Desde<input class="inp" type="date" id="pd-d" value="' + esc(st.pdd || "") + '"></label><label class="meta">Hasta<input class="inp" type="date" id="pd-h" value="' + esc(st.pdh || "") + '"></label></div>' +
+      '<div style="display:flex;gap:8px;margin-bottom:10px"><input class="search" id="pq" type="search" placeholder="Buscar por nombre, código o pedido…" value="' + esc(st.q) + '" style="margin:0;flex:1">' + fxBtn("pedidos") + "</div>" +
+      '<div class="meta" style="margin:2px 4px 4px">Fecha en que se hizo el pedido</div><div class="chips">' + PP.map(function (x) { return '<button class="chip' + ((st.pdp || "todo") === x[0] ? " on" : "") + '" data-pdp="' + x[0] + '">' + x[1] + "</button>"; }).join("") + '</div>' + (st.pdp === "rng" ? '<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-bottom:8px"><label class="meta">Desde<input class="inp" type="date" id="pd-d" value="' + esc(st.pdd || "") + '"></label><label class="meta">Hasta<input class="inp" type="date" id="pd-h" value="' + esc(st.pdh || "") + '"></label></div>' : "") +
       '<div class="chips">' + FILS.map(function (f) { var n = f[0] === "todos" ? base.length : f[0] === "apr" ? base.filter(function (p) { return p.ap && !p.cc && !p.cl; }).length : (cnt[f[0]] || 0); return '<button class="chip' + (st.fil === f[0] ? " on" : "") + '" data-f="' + f[0] + '">' + f[1] + "<b>" + n + "</b></button>"; }).join("") + "</div>";
     if (!list.length) h += '<div class="empty">No hay pedidos en esta vista.</div>';
-    else h += '<div class="meta" style="margin:0 4px 8px">' + list.length + " pedidos · " + money(list.reduce(function (a, p) { return a + (Number(p.total) || 0); }, 0)) + " · hechos entre " + esc(String(list[list.length - 1].fecha).slice(0, 10)) + " y " + esc(String(list[0].fecha).slice(0, 10)) + "</div>";
+    else h += '<div class="meta" style="margin:0 4px 8px">' + list.length + " pedidos · " + money(list.reduce(function (a, p) { return a + (Number(p.total) || 0); }, 0)) + (fxSorted("pedidos") ? "" : " · hechos entre " + esc(String(list[list.length - 1].fecha).slice(0, 10)) + " y " + esc(String(list[0].fecha).slice(0, 10))) + "</div>";
     if (list.length) h += '<div style="text-align:right;margin:-2px 2px 8px"><button class="sm red" data-dlote="1" style="font-size:.76rem">Eliminar estos ' + list.length + "</button></div>";
     h += list.map(function (p) {
       var c = p.cc || p.cl, wa = waLink(p.tel), e = estadoDe(p), sb = ESTL[e], open = st.pdx === p.r;
@@ -1119,10 +1119,10 @@ body.selmode .nav{visibility:hidden}
     normArch();
     if (!st.ck && !st.ckpr) { st.ckpr = 1; ckLoadNow(function () { render(true); }); }
     var q = nrm(st.prq || ""), nA = st.productos.filter(function (p) { return p.arch; }).length;
-    var h = '<button class="btn" data-newp="1" style="margin-bottom:12px">＋ Nuevo producto</button><input class="search" id="prq" type="search" placeholder="Buscar producto…" value="' + esc(st.prq || "") + '">';
+    var h = '<button class="btn" data-newp="1" style="margin-bottom:12px">＋ Nuevo producto</button><div style="display:flex;gap:8px;margin-bottom:10px"><input class="search" id="prq" type="search" placeholder="Buscar producto…" value="' + esc(st.prq || "") + '" style="margin:0;flex:1">' + fxBtn("productos") + "</div>";
     if (nA || st.prarch) h += '<div class="chips"><button class="chip' + (!st.prarch ? " on" : "") + '" data-parch="0">Activos</button><button class="chip' + (st.prarch ? " on" : "") + '" data-parch="1">Archivados<b>' + nA + "</b></button></div>";
     if (!st.productos.length) return h + '<div class="empty">No hay productos.</div>';
-    var L = st.productos.filter(function (p) { return !!p.arch === !!st.prarch && (!q || nrm(p.nombre).indexOf(q) >= 0 || nrm(p.cat || "").indexOf(q) >= 0); });
+    var L = fxList("productos", st.productos.filter(function (p) { return !!p.arch === !!st.prarch && (!q || nrm(p.nombre).indexOf(q) >= 0 || nrm(p.cat || "").indexOf(q) >= 0); }));
     if (!L.length) return h + '<div class="empty">' + (st.prarch ? "No hay archivados." : "Sin resultados.") + "</div>";
     return h + '<div class="help">Tocá para editar todo. Deslizá → edición simple, ← acciones. Mantené apretado para elegir varios.</div>' + L.map(function (p) {
       var mg = p.costo != null && p.precio > 0 ? Math.round((p.precio - p.costo) / p.precio * 100) : null;
@@ -1737,7 +1737,8 @@ body.selmode .nav{visibility:hidden}
     var h = BACK + '<div style="display:flex;gap:8px;margin-bottom:12px"><button class="btn" data-knew="Pack">＋ Pack</button><button class="btn" data-knew="Combo">＋ Combo</button></div>';
     if (st.pd) { st.pop = { k: "pk", key: 0, v: "packs" }; st.popHtml = editorP(); } else if (st.pop && st.pop.k === "pk") st.pop = null;
     if (!st.packs.length) return h + '<div class="empty">No hay packs ni combos todavía.</div>';
-    return h + '<div class="help">Tocá una oferta para editarla. Deslizá → editar, ← eliminar. Mantené apretado para elegir varias.</div>' + st.packs.map(function (p) {
+    h += fxRow("packs"); var PL = fxList("packs", st.packs); if (!PL.length) return h + '<div class="empty">Sin resultados.</div>';
+    return h + '<div class="help">Tocá una oferta para editarla. Deslizá → editar, ← eliminar. Mantené apretado para elegir varias.</div>' + PL.map(function (p) {
       return swrap("pak", p.r, '<article class="card pc' + (p.ac ? "" : " dim") + '" data-r="' + p.r + '"><div class="row" style="align-items:center;gap:10px"><div data-kedit="1" style="min-width:0;flex:1"><div class="nm">' + esc(p.nombre || "Pack x" + p.q) + ' <span class="badge b">' + esc(p.tipo) + '</span></div><div class="meta">' + (p.tipo === "Pack" ? p.q + " cookies" : p.items.map(function (i) { return i.c + " " + esc(i.n); }).join(" + ")) + (p.ahorro ? " · ahorro " + money(p.ahorro) : "") + (p.lim ? " · límite " + p.lim : "") + (p.vence ? " · vence " + fdate(p.vence) : "") + '</div><div class="tot" style="margin-top:4px">' + money(p.precio) + '</div></div><button class="sw' + (p.ac ? " on" : "") + '" data-pksw="1" style="border:0;background:none;padding:0"><i></i>' + (p.ac ? "Activo" : "Pausado") + "</button></div></article>", true, true, "✏️<br>Editar", "🗑<br>Eliminar");
     }).join("");
   }
@@ -1767,7 +1768,8 @@ body.selmode .nav{visibility:hidden}
   function renderRecetas() {
     var h = BACK + '<button class="btn" data-rnew="1" style="margin-bottom:12px">＋ Nueva receta</button>';
     if (!st.recetas.length) return h + '<div class="empty">Todavía no hay recetas.</div>';
-    return h + '<div class="help">Tocá una receta para editarla. Deslizá → editar, ← eliminar. Mantené apretado para elegir varias.</div>' + st.recetas.map(function (x) {
+    h += fxRow("recetas"); var RL = fxList("recetas", st.recetas); if (!RL.length) return h + '<div class="empty">Sin resultados.</div>';
+    return h + '<div class="help">Tocá una receta para editarla. Deslizá → editar, ← eliminar. Mantené apretado para elegir varias.</div>' + RL.map(function (x) {
       return swrap("rec", x.nombre, '<article class="card pc" data-rcp="' + esc(x.nombre) + '"><div class="row" style="align-items:center;gap:10px"><div style="min-width:0;flex:1"><div class="nm">' + esc(x.nombre) + '</div><div class="meta">Una masa rinde ' + x.y + " cookies · " + (x.items ? x.items.length : 0) + ' insumos</div></div><span style="color:var(--soft);font-size:1.3rem">›</span></div></article>', true, true, "✏️<br>Editar", "🗑<br>Eliminar");
     }).join("");
   }
@@ -1999,9 +2001,9 @@ body.selmode .nav{visibility:hidden}
   function renderCupones() {
     if (!st.cupones) return BACK + '<div class="empty">Cargando…</div>';
     var h = BACK + '<div style="margin-bottom:10px"><button class="btn" data-cnew="1">＋ Nuevo cupón</button></div><div class="help">Cada cliente gana un cupón cada N pedidos entregados. Activalos o pausalos, y editá el descuento.</div>';
-    var L = st.cupones.slice();
+    var L = fxList("cupones", st.cupones.slice()); h += fxRow("cupones");
     if (st.cd) { var d = st.cd; st.pop = { k: "cp", key: 0, v: "cupones" }; st.popHtml = '<div data-cr="' + (d.r || 0) + '"><div class="nm" style="margin-bottom:8px">' + (d.r ? "Editar cupón" : "Nuevo cupón") + '</div><div class="add"><input class="inp" data-cf="nombre" placeholder="Nombre / código (ej. BIENVENIDA)" value="' + esc(d.nombre) + '"><div style="display:flex;gap:8px"><input class="inp" data-cf="pct" inputmode="decimal" placeholder="% descuento" value="' + (d.pct || "") + '"><input class="inp" data-cf="n" inputmode="numeric" placeholder="Cada N pedidos" value="' + (d.n || "") + '"></div><input class="inp" data-cf="min" inputmode="numeric" placeholder="Compra mínima $ (opcional)" value="' + (d.min || "") + '"><input class="inp" data-cf="texto" placeholder="Texto para el cliente (opcional)" value="' + esc(d.texto) + '"><div style="display:flex;gap:8px"><button class="btn" data-csave="1">Guardar</button><button class="sm" data-ccancel="1">Cancelar</button>' + (d.r ? '<button class="sm red" data-cdel="1">Eliminar</button>' : "") + "</div></div></div>"; } else if (st.pop && st.pop.k === "cp") st.pop = null;
-    if (!L.length) h += '<div class="empty">Todavía no hay cupones.</div>';
+    if (!L.length) h += '<div class="empty">' + (st.cupones.length ? "Sin resultados." : "Todavía no hay cupones.") + "</div>";
     h += L.map(function (c) {
       return swrap("cup", c.r, '<article class="card pc' + (c.activo ? "" : " dim") + '" data-cr="' + c.r + '"><div class="row" style="align-items:center;gap:10px"><div data-cedit="1" style="min-width:0;flex:1"><div class="nm">' + esc(c.nombre || "Cupón") + '</div><div class="meta">' + (c.pct || 0) + "% off · cada " + (c.n || 1) + " entregados" + (c.min ? " · compra mín " + money(c.min) : "") + '</div></div><button class="sw' + (c.activo ? " on" : "") + '" data-csw="1" style="border:0;background:none;padding:0"><i></i>' + (c.activo ? "Activo" : "Pausado") + "</button></div></article>", true, true, "✏️<br>Editar", "🗑<br>Eliminar");
     }).join("");
@@ -2170,10 +2172,10 @@ body.selmode .nav{visibility:hidden}
     if (st.alertas && !st.recf) { st.recf = 1; api("recetas2").then(function (j) { if (j && j.ok) { st.recetas = j.recetas; st.insumos = j.insumos; } if (st.v === "stock") render(true); }).catch(function () {}); }
     if (st.alertas && !st.loaded.pedidos && !st.pfetch) { st.pfetch = 1; api("pedidos").then(function (j) { if (j && j.ok) { st.pedidos = j.pedidos; st.loaded.pedidos = true; if (st.v === "stock") render(true); } }).catch(function () {}); }
     var on = !!st.alertas, q = nrm(st.sks);
-    var L = st.stock.filter(function (x) { return (!q || nrm(x.ins).indexOf(q) >= 0) && (st.skf !== "alert" || x.nivel !== "ok") && (st.skf !== "p" || x.t === "p") && (st.skf !== "a" || x.t === "a"); }); L = hasFirst(L, function (x) { return x; });
+    var L = st.stock.filter(function (x) { return (!q || nrm(x.ins).indexOf(q) >= 0) && (st.skf !== "alert" || x.nivel !== "ok") && (st.skf !== "p" || x.t === "p") && (st.skf !== "a" || x.t === "a"); }); L = fxList("stock", fxSorted("stock") ? L : hasFirst(L, function (x) { return x; }));
     var h = BACK + skBar('Ej: gasté 500 g de harina', '«cargame 100 g de jamón» suma · «gasté 500 g de harina» resta · «tengo 2 kilos de manteca» = contado. Si no existe, se crea solo. Deslizá una tarjeta: → sumar, ← restar.');
     if (on) { var d = stkDemand(); if (d.length && st.skf === "alert") h += '<div class="card skr"><div class="nm">Faltan para los pedidos en curso</div>' + d.map(function (x) { return '<div class="frow"><span>' + esc(x.ins) + '</span><span class="rd">necesitás ' + fm(x.need) + " " + esc(x.uni) + " · tenés " + fm(x.have) + "</span></div>"; }).join("") + "</div>"; }
-    h += '<input class="search" id="sk-s" type="search" placeholder="Buscar insumo…" value="' + esc(st.sks || "") + '"><div class="chips">' + [["all", "Todos"]].concat(on ? [["alert", "Alertas"]] : []).concat([["a", "Insumos"], ["p", "Packaging"], ["ck", "🍪 Productos"]]).map(function (c) { return '<button class="chip' + ((st.skf || "all") === c[0] ? " on" : "") + '" data-skf="' + c[0] + '">' + c[1] + "</button>"; }).join("") + "</div>";
+    h += '<div style="display:flex;gap:8px;margin-bottom:10px"><input class="search" id="sk-s" type="search" placeholder="Buscar insumo…" value="' + esc(st.sks || "") + '" style="margin:0;flex:1">' + (st.skf === "ck" ? "" : fxBtn("stock")) + '</div><div class="chips">' + [["all", "Todos"]].concat(on ? [["alert", "Alertas"]] : []).concat([["a", "Insumos"], ["p", "Packaging"], ["ck", "🍪 Productos"]]).map(function (c) { return '<button class="chip' + ((st.skf || "all") === c[0] ? " on" : "") + '" data-skf="' + c[0] + '">' + c[1] + "</button>"; }).join("") + "</div>";
     if (st.skf === "ck") return h + ckListH(q);
     if (!L.length) h += '<div class="empty">' + (st.skf === "alert" ? "Sin alertas 🎉" : "Sin resultados.") + "</div>";
     h += L.map(function (x) {
@@ -2275,10 +2277,10 @@ body.selmode .nav{visibility:hidden}
     var list = String(ref.fotos || "").split(/\r?\n/).map(parseM).filter(Boolean);
     FO = { kind: kind, ref: ref, list: list, single: kind !== "prod", msg: "", busy: false, el: document.createElement("div") };
     FO.el.className = "fotos"; document.body.appendChild(FO.el);
-    paintF();
+    paintF(); try { ovSave(); } catch (x) {}
     driveToken().catch(function (e) { FO.msg = "Tocá “Permitir Drive” para poder subir archivos."; FO.need = true; paintF(); });
   }
-  function closeFotos() { if (FO) { FO.el.remove(); FO = null; } if (st.v === "productos" || st.v === "packs" || st.v === "resenas") render(true); }
+  function closeFotos() { if (FO) { FO.el.remove(); FO = null; } try { ovSave(); } catch (x) {} if (st.v === "productos" || st.v === "packs" || st.v === "resenas") render(true); }
   function paintF() {
     if (!FO) return;
     var f = FO, n = f.list.length;
@@ -2483,6 +2485,135 @@ body.selmode .nav{visibility:hidden}
     m.innerHTML = '<div class="box" style="width:100%;max-height:88vh;overflow:auto">' + st.popHtml + '<button class="btn" data-popx="1" style="margin-top:10px">Cerrar</button></div>';
     if (had) { var nb = m.firstChild; nb.style.animation = "none"; nb.scrollTop = sc; if (aid) { var ne = m.querySelector(aid); if (ne) { ne.value = av; ne.focus(); } } }
   }
+  /* ---------- Filtros y orden (todas las listas) ---------- */
+  function cmpS(a, b) { return String(a || "").localeCompare(String(b || ""), "es", { sensitivity: "base" }); }
+  function cmpV(get, desc) { return function (a, b) { var x = get(a), y = get(b), hx = x != null && !isNaN(x), hy = y != null && !isNaN(y); if (hx !== hy) return hx ? -1 : 1; return desc ? y - x : x - y; }; }
+  function pname(p) { return p.nombre || "Pack x" + p.q; }
+  function pfd(x) { var d = pf(x); return d ? d.getTime() : null; }
+  function uniq(L, get) { var o = {}; L.forEach(function (x) { var v = String(get(x) || "").trim(); if (v) o[v] = 1; }); return Object.keys(o).sort(cmpS); }
+  function dynG(id, l, L, get) { var v = uniq(L, get); return v.length > 1 ? [{ id: id, l: l, o: v.map(function (k) { return ["v_" + k, k, function (x) { return String(get(x) || "").trim() === k; }]; }) }] : []; }
+  function mgn(p) { return p.costo != null && p.precio > 0 ? (p.precio - p.costo) / p.precio : null; }
+  function yn(id, l, a, b, fa, fb) { return { id: id, l: l, o: [[id + "1", a, fa], [id + "0", b, fb]] }; }
+  var FXD = {
+    productos: { g: function () { return [
+        { id: "est", l: "Estado", o: [["vi", "Visibles", function (p) { return !!p.vi; }], ["oc", "Ocultos", function (p) { return !p.vi; }], ["ag", "Agotados", function (p) { return !!p.ag; }], ["di", "Disponibles", function (p) { return !p.ag; }]] },
+        yn("rec", "Receta", "Con receta", "Sin receta", function (p) { return p.costo != null; }, function (p) { return p.costo == null; }),
+        yn("fo", "Fotos", "Con fotos", "Sin fotos", function (p) { return !!String(p.fotos || "").trim(); }, function (p) { return !String(p.fotos || "").trim(); }),
+        yn("sk", "Stock de cookies", "Con stock", "Sin stock", function (p) { return (ckNum(p.nombre) || 0) > 0; }, function (p) { return !(ckNum(p.nombre) > 0); })
+      ].concat(dynG("cat", "Categoría", st.productos || [], function (p) { return p.cat; })); },
+      s: [["az", "Nombre A → Z", "n", function (a, b) { return cmpS(a.nombre, b.nombre); }], ["za", "Nombre Z → A", "n", function (a, b) { return cmpS(b.nombre, a.nombre); }],
+        ["pm", "Precio menor → mayor", "p", cmpV(function (p) { return p.precio; })], ["pM", "Precio mayor → menor", "p", cmpV(function (p) { return p.precio; }, 1)],
+        ["mM", "Margen mayor → menor", "m", cmpV(mgn, 1)], ["mm", "Margen menor → mayor", "m", cmpV(mgn)],
+        ["tM", "Más stock primero", "t", cmpV(function (p) { return ckNum(p.nombre); }, 1)], ["tm", "Menos stock primero", "t", cmpV(function (p) { return ckNum(p.nombre); })],
+        ["ca", "Categoría", "c", function (a, b) { return cmpS(a.cat, b.cat); }]] },
+    stock: { g: function () { return [
+        { id: "niv", l: "Nivel", o: [["r", "Rojo (sin stock)", function (x) { return x.mov && x.nivel === "rojo"; }], ["y", "Cerca del mínimo", function (x) { return x.mov && x.nivel === "amarillo"; }], ["g", "Bien", function (x) { return x.mov && x.nivel === "ok"; }], ["n", "Sin cargar", function (x) { return !x.mov; }]] },
+        yn("t", "Tipo", "Insumos", "Packaging", function (x) { return x.t === "a"; }, function (x) { return x.t === "p"; }),
+        yn("mn", "Punto de pedido", "Con punto de pedido", "Sin punto de pedido", function (x) { return x.min !== "" && x.min != null; }, function (x) { return x.min === "" || x.min == null; }),
+        yn("pr", "Precio", "Con precio", "Sin precio", function (x) { return !!x.costo; }, function (x) { return !x.costo; })]; },
+      s: [["az", "Nombre A → Z", "n", function (a, b) { return cmpS(a.ins, b.ins); }], ["za", "Nombre Z → A", "n", function (a, b) { return cmpS(b.ins, a.ins); }],
+        ["sM", "Más stock primero", "s", cmpV(function (x) { return x.mov ? x.stock : null; }, 1)], ["sm", "Menos stock primero", "s", cmpV(function (x) { return x.mov ? x.stock : null; })],
+        ["cM", "Costo mayor → menor", "c", cmpV(function (x) { return x.costo || null; }, 1)], ["cm", "Costo menor → mayor", "c", cmpV(function (x) { return x.costo || null; })],
+        ["rm", "Más cerca del mínimo", "r", cmpV(function (x) { return x.mov && x.min !== "" && Number(x.min) > 0 ? x.stock / Number(x.min) : null; })]] },
+    packs: { g: function () { return [
+        yn("tp", "Tipo", "Packs", "Combos", function (p) { return p.tipo === "Pack"; }, function (p) { return p.tipo === "Combo"; }),
+        yn("ac", "Estado", "Activos", "Pausados", function (p) { return !!p.ac; }, function (p) { return !p.ac; }),
+        yn("lm", "Límite por pedido", "Con límite", "Sin límite", function (p) { return !!p.lim; }, function (p) { return !p.lim; }),
+        yn("vn", "Vencimiento", "Con vencimiento", "Sin vencimiento", function (p) { return !!p.vence; }, function (p) { return !p.vence; }),
+        yn("ft", "Foto", "Con foto", "Sin foto", function (p) { return !!String(p.foto || "").trim(); }, function (p) { return !String(p.foto || "").trim(); })]; },
+      s: [["az", "Nombre A → Z", "n", function (a, b) { return cmpS(pname(a), pname(b)); }], ["za", "Nombre Z → A", "n", function (a, b) { return cmpS(pname(b), pname(a)); }],
+        ["pm", "Precio menor → mayor", "p", cmpV(function (p) { return p.precio; })], ["pM", "Precio mayor → menor", "p", cmpV(function (p) { return p.precio; }, 1)],
+        ["qM", "Más cookies primero", "q", cmpV(function (p) { return p.q; }, 1)], ["qm", "Menos cookies primero", "q", cmpV(function (p) { return p.q; })],
+        ["aM", "Mayor ahorro primero", "a", cmpV(function (p) { return p.ahorro; }, 1)], ["gM", "Mayor ganancia primero", "g", cmpV(function (p) { return p.ganancia; }, 1)]] },
+    recetas: { g: function () { return [
+        { id: "ry", l: "Rinde", o: [["a", "Hasta 10 cookies", function (x) { return (x.y || x.q || 0) <= 10; }], ["b", "11 a 15", function (x) { var y = x.y || x.q || 0; return y > 10 && y <= 15; }], ["c", "Más de 15", function (x) { return (x.y || x.q || 0) > 15; }]] },
+        { id: "ins", l: "Cantidad de insumos", o: [["a", "Hasta 5", function (x) { return (x.items || []).length <= 5; }], ["b", "Más de 5", function (x) { return (x.items || []).length > 5; }]] }]; },
+      s: [["az", "Nombre A → Z", "n", function (a, b) { return cmpS(a.nombre, b.nombre); }], ["za", "Nombre Z → A", "n", function (a, b) { return cmpS(b.nombre, a.nombre); }],
+        ["yM", "Rinde más primero", "y", cmpV(function (x) { return x.y || x.q; }, 1)], ["ym", "Rinde menos primero", "y", cmpV(function (x) { return x.y || x.q; })],
+        ["iM", "Más insumos primero", "i", cmpV(function (x) { return (x.items || []).length; }, 1)], ["im", "Menos insumos primero", "i", cmpV(function (x) { return (x.items || []).length; })]] },
+    cupones: { g: function () { return [
+        yn("ac", "Estado", "Activos", "Pausados", function (c) { return !!c.activo; }, function (c) { return !c.activo; }),
+        yn("mn", "Compra mínima", "Con mínima", "Sin mínima", function (c) { return !!c.min; }, function (c) { return !c.min; })]; },
+      s: [["az", "Nombre A → Z", "n", function (a, b) { return cmpS(a.nombre, b.nombre); }], ["za", "Nombre Z → A", "n", function (a, b) { return cmpS(b.nombre, a.nombre); }],
+        ["pM", "Mayor descuento primero", "p", cmpV(function (c) { return c.pct; }, 1)], ["pm", "Menor descuento primero", "p", cmpV(function (c) { return c.pct; })],
+        ["nm", "Menos pedidos necesarios", "q", cmpV(function (c) { return c.n; })]] },
+    resenas: { g: function () { return [
+        yn("vi", "Visibilidad", "Visibles", "Ocultas", function (x) { return !!x.vi; }, function (x) { return !x.vi; }),
+        { id: "es", l: "Estrellas", o: [["5", "5 estrellas", function (x) { return x.est === 5; }], ["4", "4 estrellas", function (x) { return x.est === 4; }], ["3", "3 o menos", function (x) { return x.est <= 3; }]] },
+        yn("fo", "Foto", "Con foto", "Sin foto", function (x) { return !!String(x.foto || "").trim(); }, function (x) { return !String(x.foto || "").trim(); }),
+        yn("cm", "Comentario", "Con comentario", "Sin comentario", function (x) { return !!String(x.com || "").trim(); }, function (x) { return !String(x.com || "").trim(); })]; },
+      s: [["az", "Nombre A → Z", "n", function (a, b) { return cmpS(a.nombre, b.nombre); }], ["za", "Nombre Z → A", "n", function (a, b) { return cmpS(b.nombre, a.nombre); }],
+        ["eM", "Más estrellas primero", "e", cmpV(function (x) { return x.est; }, 1)], ["em", "Menos estrellas primero", "e", cmpV(function (x) { return x.est; })]] },
+    cola: { g: function () { return dynG("es", "Estado", st.cola || [], function (x) { return x.est; }); },
+      s: [["fn", "Más nuevos primero", "f", cmpV(function (x) { return pfd(x.fecha); }, 1)], ["fv", "Más viejos primero", "f", cmpV(function (x) { return pfd(x.fecha); })],
+        ["tM", "Total mayor → menor", "t", cmpV(function (x) { return x.total; }, 1)], ["tm", "Total menor → mayor", "t", cmpV(function (x) { return x.total; })],
+        ["az", "Nombre A → Z", "n", function (a, b) { return cmpS(a.nombre, b.nombre); }]] },
+    pedidos: { g: function () { var P = st.pedidos || []; return dynG("pg", "Medio de pago", P, function (p) { return p.pago; }).concat(dynG("en", "Entrega", P, function (p) { return p.entrega; })).concat([
+        yn("cu", "Cupón", "Con cupón", "Sin cupón", function (p) { return !!p.cupon; }, function (p) { return !p.cupon; }),
+        yn("nt", "Nota", "Con nota", "Sin nota", function (p) { return !!String(p.notas || "").trim(); }, function (p) { return !String(p.notas || "").trim(); }),
+        { id: "ck", l: "Cantidad de cookies", o: [["a", "1 a 2", function (p) { return (Number(p.cant) || 0) <= 2; }], ["b", "3 a 5", function (p) { var c = Number(p.cant) || 0; return c >= 3 && c <= 5; }], ["c", "6 o más", function (p) { return (Number(p.cant) || 0) >= 6; }]] }]); },
+      s: [["fn", "Más nuevos primero", "f", cmpV(function (p) { return pfd(p.fecha); }, 1)], ["fv", "Más viejos primero", "f", cmpV(function (p) { return pfd(p.fecha); })],
+        ["tM", "Total mayor → menor", "t", cmpV(function (p) { return Number(p.total); }, 1)], ["tm", "Total menor → mayor", "t", cmpV(function (p) { return Number(p.total); })],
+        ["cM", "Más cookies primero", "c", cmpV(function (p) { return Number(p.cant); }, 1)], ["cm", "Menos cookies primero", "c", cmpV(function (p) { return Number(p.cant); })],
+        ["az", "Cliente A → Z", "n", function (a, b) { return cmpS(a.nombre, b.nombre); }], ["za", "Cliente Z → A", "n", function (a, b) { return cmpS(b.nombre, a.nombre); }]] }
+  };
+  function fxCfg(key) { return (st.fx || {})[key] || {}; }
+  function fxSorted(key) { return !!(fxCfg(key).s || []).length; }
+  function fxCount(key) { var c = fxCfg(key), n = (c.s || []).length; Object.keys(c.f || {}).forEach(function (k) { n += (c.f[k] || []).length; }); return n; }
+  function fxList(key, L) {
+    var d = FXD[key], c = fxCfg(key); if (!d || !fxCount(key)) return L;
+    var gs = d.g();
+    gs.forEach(function (g) { var sel = (c.f || {})[g.id]; if (sel && sel.length) L = L.filter(function (x) { return g.o.some(function (o) { return sel.indexOf(o[0]) >= 0 && o[2](x); }); }); });
+    if ((c.s || []).length) {
+      var A = L.map(function (x, i) { return { x: x, i: i }; });
+      A.sort(function (a, b) { for (var k = 0; k < c.s.length; k++) { var sd = d.s.filter(function (z) { return z[0] === c.s[k]; })[0]; if (!sd) continue; var v = sd[3](a.x, b.x); if (v) return v; } return a.i - b.i; });
+      L = A.map(function (a) { return a.x; });
+    }
+    return L;
+  }
+  var FXI = '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg>';
+  function fxBtn(key, wide) {
+    var n = fxCount(key);
+    return '<button class="btn" data-fxk="' + key + '" aria-label="Filtrar y ordenar" style="' + (wide ? "padding:0 14px;" : "width:52px;padding:0;") + "display:inline-flex;align-items:center;justify-content:center;gap:6px;" + (n ? "" : "background:#fff;color:var(--blue,#0F59C4);border:1.5px solid #cfdcf3;") + '">' + FXI + (wide ? "<span>Filtrar y ordenar</span>" : "") + (n ? '<sup style="font-size:.62rem">' + n + "</sup>" : "") + "</button>";
+  }
+  function fxRow(key) { return '<div style="display:flex;justify-content:flex-end;margin:0 0 10px">' + fxBtn(key, true) + "</div>"; }
+  function fxSearch(inp, key) { return '<div style="display:flex;gap:8px;margin-bottom:10px">' + inp + fxBtn(key) + "</div>"; }
+  function fxPop(key) {
+    var d = FXD[key]; if (!d) return;
+    var gs = d.g(), c = fxCfg(key), f = {}, sl = (c.s || []).slice(), m = document.createElement("div"); m.className = "modal";
+    Object.keys(c.f || {}).forEach(function (k) { f[k] = c.f[k].slice(); });
+    function draw() {
+      var old = m.firstChild, sc = old ? old.scrollTop : 0;
+      m.innerHTML = '<div class="box" style="width:100%;max-height:88vh;overflow:auto"><h3>Filtrar y ordenar</h3><p class="meta" style="margin:0 0 4px">Elegí varias opciones: se combinan.</p>' +
+        gs.map(function (g) { return '<div class="meta" style="margin:12px 0 6px">' + esc(g.l) + '</div><div class="chips" style="flex-wrap:wrap;overflow:visible">' + g.o.map(function (o) { return '<button class="chip' + ((f[g.id] || []).indexOf(o[0]) >= 0 ? " on" : "") + '" data-fo="' + esc(g.id + "|" + o[0]) + '">' + esc(o[1]) + "</button>"; }).join("") + "</div>"; }).join("") +
+        '<div class="meta" style="margin:16px 0 6px">Ordenar (se combinan en el orden que los elegís)</div><div style="display:flex;flex-direction:column;gap:8px">' + d.s.map(function (o) { var i = sl.indexOf(o[0]); return '<button class="chip' + (i >= 0 ? " on" : "") + '" data-so="' + o[0] + '" style="text-align:left;width:100%">' + (i >= 0 ? (i + 1) + ". " : "") + o[1] + "</button>"; }).join("") +
+        '</div><div style="display:flex;gap:8px;margin-top:14px"><button class="btn" style="flex:1" data-ap>Aplicar</button><button class="sm" data-lm>Limpiar</button></div></div>';
+      var nb = m.firstChild; if (old) nb.style.animation = "none"; nb.scrollTop = sc;
+    }
+    draw(); document.body.appendChild(m);
+    m.addEventListener("click", function (e) {
+      var b = e.target.closest("[data-fo]");
+      if (b) { var p = b.getAttribute("data-fo"), i0 = p.indexOf("|"), gid = p.slice(0, i0), oid = p.slice(i0 + 1), a = f[gid] = f[gid] || [], ix = a.indexOf(oid); if (ix >= 0) a.splice(ix, 1); else a.push(oid); draw(); return; }
+      var so = e.target.closest("[data-so]");
+      if (so) { var k = so.getAttribute("data-so"), grp = d.s.filter(function (z) { return z[0] === k; })[0][2], ix2 = sl.indexOf(k); if (ix2 >= 0) sl.splice(ix2, 1); else { sl = sl.filter(function (z) { return d.s.filter(function (y) { return y[0] === z; })[0][2] !== grp; }); sl.push(k); } draw(); return; }
+      if (e.target.closest("[data-lm]")) { f = {}; sl = []; draw(); return; }
+      if (e.target.closest("[data-ap]")) { var ff = {}; Object.keys(f).forEach(function (k2) { if (f[k2].length) ff[k2] = f[k2]; }); st.fx = st.fx || {}; if (Object.keys(ff).length || sl.length) st.fx[key] = { f: ff, s: sl }; else delete st.fx[key]; saveFlt(); m.remove(); render(true); return; }
+      if (e.target === m) m.remove();
+    });
+  }
+  /* Recordar el pop-up abierto al recargar */
+  function ovSave() {
+    var o = null;
+    if (st.v === "packs" && (st.pd || (FO && FO.kind === "pack"))) o = { v: "packs", pd: st.pd || null, fo: FO && FO.kind === "pack" ? { kind: "pack", r: FO.ref.r } : null };
+    else if (FO && FO.kind === "prod") o = { v: st.v, fo: { kind: "prod", r: FO.ref.r } };
+    store("uovo_adm_ov", o ? JSON.stringify(o) : null);
+  }
+  function ovOpen() {
+    var f = st.ovfo; if (!f || FO) return;
+    var L = f.kind === "pack" ? st.packs : st.productos; if (!L || !L.length) return;
+    var it = L.filter(function (x) { return x.r === f.r; })[0]; st.ovfo = null; if (!it) return;
+    openFotos(f.kind, f.kind === "pack" ? { r: it.r, nombre: it.nombre, fotos: it.foto || "" } : it);
+  }
   var PVS = [["sp", "Sin precio primero", "p"], ["spv", "Sin proveedor primero", "v"], ["az", "Nombre A → Z", "n"], ["za", "Nombre Z → A", "n"], ["pm", "Precio menor → mayor", "c"], ["pM", "Precio mayor → menor", "c"]];
   function pvSort(L, keys) {
     var A = L.map(function (x, i) { return { x: x, i: i }; });
@@ -2538,8 +2669,9 @@ body.selmode .nav{visibility:hidden}
     st.popHtml = ""; var h = V[st.v]();
     if (SUB.indexOf(st.v) >= 0 && h.indexOf(BACK) === 0 && NAMES[st.v]) h = '<div class="bk">' + BACK + '<button class="crumb" data-secnav="1" style="border:0;font:inherit;cursor:pointer">' + NAMES[st.v] + " ▾</button></div>" + h.slice(BACK.length);
     var act = document.activeElement, id = act && act.id, pos = act && act.selectionStart;
-    $("view").innerHTML = h; try { ntfScan(); } catch (x) {} try { ckSync(); } catch (x) {}
-    popSync(); selSync(); curPopSync();
+    var chs = st._cv === st.v ? Array.prototype.map.call(document.querySelectorAll("#view .chips"), function (c) { return c.scrollLeft; }) : []; st._cv = st.v;
+    $("view").innerHTML = h; Array.prototype.forEach.call(document.querySelectorAll("#view .chips"), function (c, i) { if (chs[i]) c.scrollLeft = chs[i]; }); try { ntfScan(); } catch (x) {} try { ckSync(); } catch (x) {}
+    popSync(); selSync(); curPopSync(); try { ovSave(); ovOpen(); } catch (x) {}
     if (id === "pq" || id === "cq" || id === "pvq" || id === "prq" || id === "sk-q" || id === "sk-s") { var e = $(id); e.focus(); try { e.setSelectionRange(pos, pos); } catch (x) {} }
     if (keepScroll) window.scrollTo(0, y);
     if (!keepScroll) maybeTour();
@@ -2880,11 +3012,12 @@ body.selmode .nav{visibility:hidden}
   function rvTh(raw) { var m = raw ? parseM(raw) : null; return m ? m.th : ""; }
   function renderResenas() {
     var h = BACK + '<button class="btn" data-rvnew="1" id="rvnew" style="margin-bottom:12px">＋ Nueva reseña</button>';
+    h += fxRow("resenas");
     if (st.rv && !st.rv.r) h += '<div class="card" id="rv-ed">' + editorRv() + "</div>";
     var L = st.rvs, vis = L.filter(function (x) { return x.vi; }), rated = vis.filter(function (x) { return x.est > 0; });
     if (rated.length) { var avg = rated.reduce(function (a, x) { return a + x.est; }, 0) / rated.length; h += '<div class="card" style="text-align:center"><div class="tot" style="font-size:1.6rem">' + avg.toFixed(1).replace(".", ",") + ' <span style="color:#E8A400">★</span></div><div class="meta">' + vis.length + " visibles en la tienda · " + L.length + " cargadas</div></div>"; }
     if (!L.length && !st.rv) h += '<div class="empty">Todavía no cargaste reseñas.</div>';
-    h += L.map(function (x) {
+    h += fxList("resenas", L).map(function (x) {
       var ed = st.rv && st.rv.r === x.r, th = rvTh(x.foto);
       return swrap("rv", x.r, '<article class="card pc' + (x.vi ? "" : " dim") + '" data-r="' + x.r + '" data-rn="' + esc(x.nombre) + '"><div class="row"><div style="display:flex;gap:10px;min-width:0">' + (th ? '<img src="' + esc(th) + '" alt="" style="width:52px;height:52px;border-radius:10px;object-fit:cover;flex:none" referrerpolicy="no-referrer">' : "") + '<div style="min-width:0"><div class="nm">' + esc(x.nombre || "Sin nombre") + '</div><div style="color:#E8A400;letter-spacing:1px">' + stars(x.est) + '</div></div></div></div>' +
         (x.com ? '<div class="items" style="margin-top:6px">' + esc(x.com.length > 160 ? x.com.slice(0, 160) + "…" : x.com) + "</div>" : "") +
@@ -3062,6 +3195,7 @@ body.selmode .nav{visibility:hidden}
     var px = t.closest("[data-pvx]"); if (px) { var pr1 = Number(px.getAttribute("data-pvx")); if (px.closest(".modal")) return; st.pop = { k: "prv", key: pr1, v: "proveedores" }; render(true); return; }
     if (t.closest("#pv-plus")) { st.pvnew = !st.pvnew; render(true); var an = $("ai-n"); if (an) an.focus(); return; }
     if (t.closest("#ai-x")) { st.pvnew = false; render(true); return; }
+    var fxk = t.closest("[data-fxk]"); if (fxk) { fxPop(fxk.getAttribute("data-fxk")); return; }
     if (t.closest("#pv-sort")) { pvSortPop(); return; }
     var pt = t.closest("[data-pvt]"); if (pt) { st.pvt = pt.getAttribute("data-pvt"); render(true); return; }
     if (t.closest("[data-cnew]")) { st.cd = { r: 0, activo: true, nombre: "", pct: "", n: 1, min: "", texto: "" }; render(true); return; }

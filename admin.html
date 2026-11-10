@@ -179,7 +179,7 @@ body{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
 .modal .box>.btn{width:100%}.modal .box .sw .card{box-shadow:0 0 0 1px #E1EAF8}
 @keyframes pop{from{transform:scale(.92);opacity:0}to{transform:none;opacity:1}}
 .sw[data-kind]{border-radius:20px}.sw[data-kind] .card{box-shadow:var(--shadow)}
-.sw.selon .pc{outline:3px solid #0F59C4;outline-offset:-3px;background:#EAF2FD}.sw.selon{position:relative}.sw.selon::after{content:"✓";position:absolute;top:8px;right:10px;width:24px;height:24px;border-radius:50%;background:#0F59C4;color:#fff;display:grid;place-items:center;font-weight:800;font-size:.85rem;z-index:3}
+.sw.selon .pc{background:#EAF2FD;box-shadow:0 8px 22px rgba(15,89,196,.20);animation:wig .45s ease-in-out infinite}@keyframes wig{0%,100%{transform:rotate(-.45deg) translateX(-.6px)}50%{transform:rotate(.45deg) translateX(.6px)}}@media (prefers-reduced-motion:reduce){.sw.selon .pc{animation:none}}.sw.selon{position:relative}.sw.selon::after{content:"✓";position:absolute;top:8px;right:10px;width:24px;height:24px;border-radius:50%;background:#0F59C4;color:#fff;display:grid;place-items:center;font-weight:800;font-size:.85rem;z-index:3}
 #selbar{position:fixed;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:80;background:linear-gradient(160deg,#12306a,#0C2247);color:#fff;border-radius:24px;padding:12px;display:flex;flex-direction:column;gap:10px;box-shadow:0 14px 40px rgba(0,0,0,.4);animation:pop .18s ease backwards}
 #selbar .sbh{display:flex;align-items:center;gap:8px}#selbar .sbh b{flex:1;font-size:1rem}#selbar .sbh button{border:0;border-radius:12px;padding:8px 12px;font-weight:800;background:rgba(255,255,255,.14);color:#fff}
 #selbar .sba{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none}#selbar .sba button{flex:1 0 auto;min-width:72px;border:0;border-radius:16px;padding:9px 8px;background:rgba(255,255,255,.12);color:#fff;font-weight:700;font-size:.74rem;display:flex;flex-direction:column;align-items:center;gap:3px}#selbar .sba button i{font-style:normal;font-size:1.25rem}#selbar .sba button.d{background:#d93a2f}
@@ -1635,8 +1635,8 @@ body.selmode .nav{visibility:hidden}
   }
   function scRows() {
     var k = st.sc.k, q = nrm(st.sc.q || ""), m = function (t) { return !q || nrm(t).indexOf(q) >= 0; }, h = "";
-    if (k === "cupones") h = (st.cupones || []).filter(function (x) { return m(x.nombre); }).map(function (x) { return '<div class="scr"><div class="t"><b>' + esc(x.nombre) + "</b><small>" + esc(x.pct) + "% · cada " + esc(x.n) + (Number(x.n) === 1 ? " pedido" : " pedidos") + '</small></div><button class="sm' + (x.activo ? "" : " red") + '" data-sctog="' + x.r + '">' + (x.activo ? "Activo" : "Pausado") + "</button></div>"; }).join("");
-    else if (k === "packs") h = (st.packs || []).filter(function (x) { return m(x.nombre); }).map(function (x) { return '<div class="scr"><div class="t"><b>' + esc(x.nombre) + "</b><small>" + money(x.precio) + '</small></div><button class="sm' + (x.ac ? "" : " red") + '" data-sctog="' + x.r + '">' + (x.ac ? "Activo" : "Pausado") + "</button></div>"; }).join("");
+    if (k === "cupones") h = (st.cupones || []).filter(function (x) { return m(x.nombre); }).map(function (x) { return '<div class="scr"><div class="t" data-sccp="' + x.r + '" style="cursor:pointer"><b>' + esc(x.nombre) + "</b><small>" + esc(x.pct) + "% · cada " + esc(x.n) + (Number(x.n) === 1 ? " pedido" : " pedidos") + '</small></div><button class="sm' + (x.activo ? "" : " red") + '" data-sctog="' + x.r + '">' + (x.activo ? "Activo" : "Pausado") + "</button></div>"; }).join("");
+    else if (k === "packs") h = (st.packs || []).filter(function (x) { return m(x.nombre); }).map(function (x) { return '<div class="scr"><div class="t" data-scpk="' + x.r + '" style="cursor:pointer"><b>' + esc(x.nombre || "Pack x" + x.q) + "</b><small>" + money(x.precio) + '</small></div><button class="sm' + (x.ac ? "" : " red") + '" data-sctog="' + x.r + '">' + (x.ac ? "Activo" : "Pausado") + "</button></div>"; }).join("");
     else if (k === "recetas") h = (st.productos || []).filter(function (p) { return p.nombre && m(p.nombre); }).map(function (p) { return '<div class="scr" data-screc="' + p.r + '" style="cursor:pointer"><div class="t"><b>' + esc(p.nombre) + "</b><small>" + (p.costo != null ? "costo " + money(p.costo) : "sin receta") + '</small></div><span style="color:var(--soft)">›</span></div>'; }).join("");
     else if (k === "stock") h = (st.stock || []).filter(function (x) { return m(x.ins); }).sort(function (a, b) { var r = function (x) { return x.nivel === "rojo" ? 0 : x.nivel === "amarillo" ? 1 : 2; }; return r(a) - r(b); }).map(function (x) { return '<div class="scr" data-scstk="' + esc(x.ins) + '" style="cursor:pointer"><div class="t"><b>' + esc(x.ins) + "</b><small>" + (x.nivel === "rojo" ? "Reponer ya" : x.nivel === "amarillo" ? "Queda poco" : x.t === "p" ? "Packaging" : "Insumo") + '</small></div><b>' + (x.mov ? fm(x.stock) + " " + esc(x.uni) : "—") + "</b></div>"; }).join("");
     else if (k === "textos") h = (st.cfg || []).filter(function (x) { return x.k && m(x.k + " " + x.v); }).slice(0, 25).map(function (x) { return '<div class="scr" style="display:block"><b>' + esc(human(x.k)) + '</b><textarea class="inp" rows="2" data-sctx="' + x.r + '" data-k="' + esc(x.k) + '" style="margin-top:4px">' + esc(x.v) + "</textarea></div>"; }).join("");
@@ -1697,11 +1697,41 @@ body.selmode .nav{visibility:hidden}
     scNeed(k).then(function () { if (st.sc && st.sc.k === k) { st.sc.loading = false; scDraw(); } }).catch(function () { st.sc.loading = false; scDraw(); });
   }
   function scClose() { var m = $("scm"); if (m) m.remove(); st.sc = null; }
+  function scQuick(kind, x) {
+    var isP = kind === "pack", m = document.createElement("div"); m.className = "modal"; m.style.zIndex = 80;
+    var I = function (id, ph, v, t, extra) { return '<div class="meta" style="margin:8px 0 4px">' + ph + '</div><input class="inp" id="' + id + '" ' + (t ? 'type="' + t + '" ' : "") + (extra || "") + 'value="' + esc(v == null ? "" : v) + '">'; };
+    m.innerHTML = '<div class="box" style="width:100%;max-height:88vh;overflow:auto"><div class="phd"><h3 style="flex:1">' + (isP ? "Editar " + (x.tipo === "Combo" ? "combo" : "pack") : "Editar cupón") + '</h3><button class="sm" data-qx="1">✕</button></div>' +
+      (isP ? (x.tipo === "Combo" ? I("q-n", "Nombre", x.nombre) : I("q-q", "Cantidad de cookies", x.q, "number", 'inputmode="numeric" ')) + I("q-p", "Precio", x.precio, "number", 'inputmode="numeric" ') + I("q-l", "Límite por pedido (opcional)", x.lim || "", "number", 'inputmode="numeric" ') + I("q-v", "Vence (opcional)", x.vence, "date") + '<div class="meta" style="margin:8px 0 4px">Texto (opcional)</div><textarea class="inp" id="q-t" rows="2">' + esc(x.texto || "") + "</textarea>"
+        : I("q-n", "Nombre", x.nombre) + I("q-p", "% descuento", x.pct, "number", 'inputmode="numeric" ') + I("q-e", "Cada N pedidos", x.n, "number", 'inputmode="numeric" ') + I("q-m", "Compra mínima (opcional)", x.min || "", "number", 'inputmode="numeric" ') + '<div class="meta" style="margin:8px 0 4px">Texto (opcional)</div><textarea class="inp" id="q-t" rows="2">' + esc(x.texto || "") + "</textarea>") +
+      '<div style="display:flex;gap:8px;margin-top:12px"><button class="btn" data-qs="1" style="flex:1">Guardar</button>' + (isP ? '<button class="sm" data-qf="1">📎 Foto</button>' : "") + "</div></div>";
+    document.body.appendChild(m);
+    var g = function (id) { var e = m.querySelector("#" + id); return e ? e.value : ""; };
+    m.addEventListener("click", function (e) {
+      e.stopPropagation();
+      if (e.target === m || e.target.closest("[data-qx]")) { m.remove(); return; }
+      if (e.target.closest("[data-qf]")) { openFotos("pack", { r: x.r, nombre: x.nombre, fotos: x.foto || "" }); return; }
+      if (!e.target.closest("[data-qs]")) return;
+      var btn = e.target.closest("[data-qs]"), done = function (j) { if (j && j.ok) { m.remove(); toast("Guardado ✓"); render(true); } else { btn.disabled = false; toast(j && j.msg || "No se pudo guardar"); } };
+      btn.disabled = true;
+      if (isP) {
+        var d = { r: x.r, orig: x.nombre, tipo: x.tipo, nombre: x.tipo === "Combo" ? g("q-n").trim() : x.nombre, q: x.tipo === "Combo" ? x.q : Number(g("q-q")) || 0, precio: Number(g("q-p")) || 0, lim: Number(g("q-l")) || 0, vence: g("q-v"), texto: g("q-t"), items: x.items.map(function (i) { return { n: i.n, c: i.c }; }), vars: (x.vars || []).slice() };
+        if (DEMO) { Object.keys(d).forEach(function (k) { if (k !== "orig") x[k] = d[k]; }); done({ ok: true }); return; }
+        api("savePack", d).then(function (j) { if (j && j.ok) st.packs = j.packs; done(j); }).catch(function () { btn.disabled = false; toast("No se pudo guardar"); });
+      } else {
+        var c = { r: x.r, activo: !!x.activo, nombre: g("q-n").trim(), pct: Number(g("q-p")) || 0, n: Number(g("q-e")) || 1, min: Number(g("q-m")) || 0, texto: g("q-t") };
+        if (!c.nombre || !(c.pct > 0 && c.pct <= 100)) { btn.disabled = false; toast("Poné nombre y un % entre 1 y 100"); return; }
+        if (DEMO) { Object.keys(c).forEach(function (k) { x[k] = c[k]; }); done({ ok: true }); return; }
+        api("saveCupon", c).then(function (j) { if (j && j.ok && j.cupones) st.cupones = j.cupones; done(j); }).catch(function () { btn.disabled = false; toast("No se pudo guardar"); });
+      }
+    });
+  }
   function scClick(e, m) {
     e.stopPropagation(); var t = e.target, k = st.sc && st.sc.k; if (!k) return;
     if (t === m || t.closest("[data-scx]")) { scClose(); return; }
     if (t.closest("[data-scfull]")) { scClose(); goto(k); return; }
     if (t.closest("[data-scplus]")) { if (k === "tandas") tnPop(-1); else { st.sc.add = !st.sc.add; scDraw(); } return; }
+    var qp = t.closest("[data-scpk]"); if (qp) { var xp = (st.packs || []).filter(function (z) { return String(z.r) === qp.getAttribute("data-scpk"); })[0]; if (xp) scQuick("pack", xp); return; }
+    var qc = t.closest("[data-sccp]"); if (qc) { var xc = (st.cupones || []).filter(function (z) { return String(z.r) === qc.getAttribute("data-sccp"); })[0]; if (xc) scQuick("cupon", xc); return; }
     var tg = t.closest("[data-sctog]");
     if (tg) { var r = Number(tg.getAttribute("data-sctog")), isP = k === "packs", x = (isP ? st.packs : st.cupones).filter(function (z) { return z.r === r; })[0]; if (!x) return; var nv = isP ? !x.ac : !x.activo;
       (DEMO ? Promise.resolve({ ok: true }) : isP ? api("setPack", { r: x.r, nombre: x.nombre, campo: "ac", valor: nv }) : api("saveCupon", { r: x.r, activo: nv, nombre: x.nombre, pct: Number(x.pct) || 0, n: Number(x.n) || 1, min: Number(x.min) || 0, texto: x.texto || "" })).then(function (j) { if (j && j.ok) { if (isP) x.ac = nv; else { x.activo = nv; if (!DEMO && j.cupones) st.cupones = j.cupones; } $("sc-l").innerHTML = scRows(); } else toast(j && j.msg || "No se pudo"); }).catch(function () { toast("No se pudo"); }); return; }
@@ -2302,6 +2332,8 @@ body.selmode .nav{visibility:hidden}
   function saveF() {
     var f = FO; if (!f) return Promise.resolve();
     var val = f.list.map(function (m) { return m.raw; }).join("\n"); f.ref.fotos = val;
+    if (f.kind === "pack") (st.packs || []).forEach(function (x) { if (x.r === f.ref.r) x.foto = val; });
+    else if (f.kind === "prod") (st.productos || []).forEach(function (x) { if (x.r === f.ref.r) x.fotos = val; });
     if (f.kind === "resena") { if (st.rv) st.rv.foto = val; return Promise.resolve(); }
     if (DEMO) return Promise.resolve();
     var p = f.kind === "prod" ? api("setFotos", { r: f.ref.r, nombre: f.ref.nombre, valor: val }) : api("setPackFoto", { r: f.ref.r, orig: f.ref.nombre, valor: val });
@@ -2415,11 +2447,38 @@ body.selmode .nav{visibility:hidden}
     if (!bar) { bar = document.createElement("div"); bar.id = "selbar"; document.body.appendChild(bar); bar.addEventListener("click", selAct); }
     document.body.classList.add("selmode");
     var tot = document.querySelectorAll((document.getElementById("curm") ? "#curm" : "#view") + " .sw[data-kind]").length, B = function (id, ic, lb, d) { return '<button data-sa="' + id + '"' + (d ? ' class="d"' : "") + ">" + lb + "</button>"; }, acts = v === "cola" ? B("av", "", "Avisado") + B("wt", "", "En espera") : (v === "pedidos" || v === "inicio") ? B("adv", "", "Avanzar") + B("ap", "", "Aprobado") + B("he", "", "Hecho") + B("en", "", "Entregado") + B("cc", "", "Cancelar") : v === "stock" ? B("zero", "", "Stock en 0") : (v === "packs" || v === "cupones") ? B("on", "", "Activar") + B("off", "", "Pausar") : v === "productos" ? (st.prarch ? B("unarch", "", "Restaurar") : B("vis", "", "Visible") + B("hid", "", "Ocultar") + B("ag", "", "Agotada") + B("av", "", "Disponible") + B("arch", "", "Archivar")) : "";
+    var mvb = (v === "packs" || v === "cupones" || v === "productos") ? B("up", "", "↑ Subir") + B("dn", "", "↓ Bajar") : ""; acts = mvb + acts;
     bar.innerHTML = '<div class="sbh"><button data-sa="x" aria-label="Salir">Salir</button><b>' + n + (n === 1 ? " elegido" : " elegidos") + '</b><button data-sa="all">' + (n >= tot ? "Quitar todos" : "Seleccionar todos") + '</button></div><div class="sba">' + acts + B("del", "", "Eliminar", 1) + "</div>";
+  }
+  function selMove(dir) {
+    var v = st.v, arr = v === "packs" ? st.packs : v === "cupones" ? st.cupones : v === "productos" ? st.productos : null; if (!arr || !st.sel) return;
+    if (fxCount(v)) { toast("Sacá los filtros para reordenar"); return; }
+    var order = Array.prototype.map.call(document.querySelectorAll("#view .sw[data-kind]"), function (w) { return String(w.getAttribute("data-sw")); }), sel = st.sel.keys, by = {}, steps = [], ord = order.slice(), i;
+    arr.forEach(function (x) { by[String(x.r)] = x; });
+    var moved = Object.keys(sel).map(function (k) { return by[k]; }).filter(Boolean);
+    if (dir < 0) { for (i = 1; i < ord.length; i++) if (sel[ord[i]] && !sel[ord[i - 1]]) { steps.push([ord[i], ord[i - 1]]); var t0 = ord[i]; ord[i] = ord[i - 1]; ord[i - 1] = t0; } }
+    else { for (i = ord.length - 2; i >= 0; i--) if (sel[ord[i]] && !sel[ord[i + 1]]) { steps.push([ord[i], ord[i + 1]]); var t1 = ord[i]; ord[i] = ord[i + 1]; ord[i + 1] = t1; } }
+    if (!steps.length) { toast(dir < 0 ? "Ya están arriba" : "Ya están abajo"); return; }
+    var it = {}; moved.forEach(function (x) { it[x.r] = x; }); var byR = {}; arr.forEach(function (x) { byR[x.r] = x; });
+    var ch = Promise.resolve(), fail = false;
+    steps.forEach(function (sp) {
+      ch = ch.then(function () {
+        if (fail) return;
+        var m = arr.filter(function (x) { return String(x.r) === sp[0]; })[0], nb = arr.filter(function (x) { return String(x.r) === sp[1]; })[0]; if (!m || !nb) return;
+        var rm = m.r, rn = nb.r;
+        return (DEMO ? Promise.resolve({ ok: true }) : api("setOrden", { hoja: v, r: rm, to: rn })).then(function (j) {
+          if (!(j && j.ok)) { fail = true; return; }
+          arr.forEach(function (x) { if (x === m) return; if (rn < rm ? (x.r >= rn && x.r < rm) : (x.r > rm && x.r <= rn)) x.r += rn < rm ? 1 : -1; }); m.r = rn;
+          st.sel.keys = {}; arr.forEach(function (x) { if (moved.indexOf(x) >= 0) st.sel.keys[String(x.r)] = true; });
+        });
+      });
+    });
+    ch.then(function () { arr.sort(function (a, b) { return a.r - b.r; }); if (st.sel) { st.sel.keys = {}; moved.forEach(function (x) { st.sel.keys[String(x.r)] = true; }); } render(true); if (fail) toast("No se pudo mover"); }).catch(function () { render(true); toast("No se pudo mover"); });
   }
   function selAct(e) {
     var b = e.target.closest("[data-sa]"); if (!b || !st.sel) return; var a = b.getAttribute("data-sa"), v = st.v, keys = Object.keys(st.sel.keys);
     if (a === "x") { selClear(); return; }
+    if (a === "up" || a === "dn") { selMove(a === "up" ? -1 : 1); return; }
     if (a === "all") { var ws = document.querySelectorAll((document.getElementById("curm") ? "#curm" : "#view") + " .sw[data-kind]"), n0 = Object.keys(st.sel.keys).length; if (n0 >= ws.length) st.sel.keys = {}; else Array.prototype.forEach.call(ws, function (w) { st.sel.keys[w.getAttribute("data-sw")] = true; }); if (!Object.keys(st.sel.keys).length) st.sel = null; selSync(); return; }
     if (v === "productos") {
       var PL = st.productos.filter(function (p) { return keys.indexOf(String(p.r)) >= 0; });
@@ -2572,9 +2631,12 @@ body.selmode .nav{visibility:hidden}
     return L;
   }
   var FXI = '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg>';
+  var FXB = '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 3.5l-7 7"/><path d="M11 9l4 4c-1 3-3.500 5.500-8 7.500-1.500.5-3 .300-3.500-1 0-4 2-7 5.500-9.500z"/><path d="M8 14l2 2"/></svg>';
   function fxBtn(key, wide) {
-    var n = fxCount(key);
-    return '<button class="btn" data-fxk="' + key + '" aria-label="Filtrar y ordenar" style="' + (wide ? "padding:0 14px;" : "width:40px;height:40px;min-height:0;padding:0;border-radius:50%;") + "display:inline-flex;align-items:center;justify-content:center;gap:6px;" + (n ? "" : "background:#fff;color:var(--blue,#0F59C4);border:1.5px solid #cfdcf3;") + '">' + FXI + (wide ? "<span>Filtrar y ordenar</span>" : "") + (n ? '<sup style="font-size:.62rem">' + n + "</sup>" : "") + "</button>";
+    var n = fxCount(key), base = "display:inline-flex;align-items:center;justify-content:center;gap:6px;";
+    var b1 = '<button class="btn" data-fxk="' + key + '" aria-label="Filtrar y ordenar" style="' + (wide ? "padding:0 14px;" : "width:40px;height:40px;min-height:0;padding:0;border-radius:50%;") + base + (n ? "" : "background:#fff;color:var(--blue,#0F59C4);border:1.5px solid #cfdcf3;") + '">' + FXI + (wide ? "<span>Filtrar y ordenar</span>" : "") + (n ? '<sup style="font-size:.62rem">' + n + "</sup>" : "") + "</button>";
+    var b2 = n ? '<button class="btn" data-fxc="' + key + '" aria-label="Limpiar filtros" style="width:40px;height:40px;min-height:0;padding:0;border-radius:50%;' + base + 'background:#fff;color:#d93a2f;border:1.5px solid #f1c6c2">' + FXB + "</button>" : "";
+    return '<span style="display:inline-flex;gap:6px;align-items:center;flex:none">' + b1 + b2 + "</span>";
   }
   function fxRow(key) { return "<!--FXR:" + key + "-->"; }
   function fxResolve(h, inBar) {
@@ -2587,12 +2649,14 @@ body.selmode .nav{visibility:hidden}
     var d = FXD[key]; if (!d) return;
     var gs = d.g(), c = fxCfg(key), f = {}, sl = (c.s || []).slice(), m = document.createElement("div"); m.className = "modal";
     Object.keys(c.f || {}).forEach(function (k) { f[k] = c.f[k].slice(); });
+    function clean() { var ff = {}; Object.keys(f).forEach(function (k2) { if (f[k2].length) ff[k2] = f[k2]; }); return ff; }
+    function dirty() { var a = JSON.stringify({ f: clean(), s: sl }), b = JSON.stringify({ f: c.f || {}, s: c.s || [] }); return a !== b; }
     function draw() {
       var old = m.firstChild, sc = old ? old.scrollTop : 0;
       m.innerHTML = '<div class="box" style="width:100%;max-height:88vh;overflow:auto"><h3>Filtrar y ordenar</h3><p class="meta" style="margin:0 0 4px">Elegí varias opciones: se combinan.</p>' +
         gs.map(function (g) { return '<div class="meta" style="margin:12px 0 6px">' + esc(g.l) + '</div><div class="chips" style="flex-wrap:wrap;overflow:visible">' + g.o.map(function (o) { return '<button class="chip' + ((f[g.id] || []).indexOf(o[0]) >= 0 ? " on" : "") + '" data-fo="' + esc(g.id + "|" + o[0]) + '">' + esc(o[1]) + "</button>"; }).join("") + "</div>"; }).join("") +
         '<div class="meta" style="margin:16px 0 6px">Ordenar (se combinan en el orden que los elegís)</div><div style="display:flex;flex-direction:column;gap:8px">' + d.s.map(function (o) { var i = sl.indexOf(o[0]); return '<button class="chip' + (i >= 0 ? " on" : "") + '" data-so="' + o[0] + '" style="text-align:left;width:100%">' + (i >= 0 ? (i + 1) + ". " : "") + o[1] + "</button>"; }).join("") +
-        '</div><div style="display:flex;gap:8px;margin-top:14px"><button class="btn" style="flex:1" data-ap>Aplicar</button><button class="sm" data-lm>Limpiar</button></div></div>';
+        '</div>' + (dirty() ? '<div style="position:sticky;bottom:-14px;margin:14px -14px -14px;padding:10px 14px 14px;background:linear-gradient(#fff0,#fff 30%)"><button class="btn" style="width:100%" data-ap>Aplicar</button></div>' : "") + "</div>";
       var nb = m.firstChild; if (old) nb.style.animation = "none"; nb.scrollTop = sc;
     }
     draw(); document.body.appendChild(m);
@@ -2601,7 +2665,6 @@ body.selmode .nav{visibility:hidden}
       if (b) { var p = b.getAttribute("data-fo"), i0 = p.indexOf("|"), gid = p.slice(0, i0), oid = p.slice(i0 + 1), a = f[gid] = f[gid] || [], ix = a.indexOf(oid); if (ix >= 0) a.splice(ix, 1); else a.push(oid); draw(); return; }
       var so = e.target.closest("[data-so]");
       if (so) { var k = so.getAttribute("data-so"), grp = d.s.filter(function (z) { return z[0] === k; })[0][2], ix2 = sl.indexOf(k); if (ix2 >= 0) sl.splice(ix2, 1); else { sl = sl.filter(function (z) { return d.s.filter(function (y) { return y[0] === z; })[0][2] !== grp; }); sl.push(k); } draw(); return; }
-      if (e.target.closest("[data-lm]")) { f = {}; sl = []; draw(); return; }
       if (e.target.closest("[data-ap]")) { var ff = {}; Object.keys(f).forEach(function (k2) { if (f[k2].length) ff[k2] = f[k2]; }); st.fx = st.fx || {}; if (Object.keys(ff).length || sl.length) st.fx[key] = { f: ff, s: sl }; else delete st.fx[key]; saveFlt(); m.remove(); render(true); return; }
       if (e.target === m) m.remove();
     });
@@ -2694,11 +2757,15 @@ body.selmode .nav{visibility:hidden}
       ["#bell", "Notificaciones 🔔", "Pedidos nuevos, insumos que faltan y cosas del carrito. Abrila y el número desaparece. Deslizá una para marcarla leída, «Limpiar» las saca todas, y abajo de todo están las Leídas para recuperarlas."],
       ["#wand", "La varita ✨", "Tocala cuando quieras para ver esta guía de nuevo en cualquier pantalla."]],
     pedidos: [["#pq", "Buscador", "Escribí un nombre, un código o un sabor para encontrar un pedido."],
+      ["[data-fxk]", "Filtrar y ordenar", "El embudo abre las opciones: medio de pago, entrega, cupón, nota, cantidad de cookies, más nuevos, total, etc. Elegí varias y se combinan. El botón Aplicar aparece solo apenas elegís algo."],
+      ["[data-pdp=rng]", "Fecha personalizada", "Tocá «Personalizado» para elegir Desde y Hasta. Esos campos solo aparecen cuando lo elegís."],
       [".chips", "Etapas", "Filtrá por Pendientes, A cocinar, Listos, Entregados o Cancelados. El número es la cantidad."],
       [".pc", "Tocá un pedido", "Se abre y ves el detalle, el WhatsApp del cliente, la nota, y los botones Aprobado, Hecho y Entregado."],
       ["[data-masas]", "Masas y sobrantes 🥣", "Cuántas masas tenés que hacer por sabor y cuántas sobran. Cuando todos los pedidos de una fecha quedan Hechos, se descuentan solos los insumos de esas masas y los sobrantes pasan al stock de cookies."],
       ["[data-dlote]", "Eliminar pedidos", "Borrá de una vez todos los pedidos de la lista (por ejemplo los de prueba o los cancelados). También podés borrar uno abierto con 🗑. Es definitivo."]],
     productos: [["#newp", "Nuevo producto", "Creá una cookie nueva: nombre, descripción, precio y categoría."],
+      ["[data-fxk]", "Filtrar y ordenar", "El embudo filtra por estado, receta, fotos, stock o categoría y ordena por nombre, precio, margen o stock. Se combinan. Si hay filtros puestos, aparece al lado la escoba roja para limpiarlos de un toque."],
+      [".sw", "Mover de lugar", "Mantené apretada una cookie para elegirla (se mueve suavecito). Abajo aparecen ↑ Subir y ↓ Bajar para cambiar el orden; se ve igual en la tienda. Se puede con varias a la vez."],
       [".help", "Tus productos", "Cambios acá se ven en la tienda al instante."],
       [".pr", "Precio", "Tocá el número, escribí el nuevo precio y listo."],
       ["[data-sw=ag]", "Agotada", "Márcala cuando no hay stock: el cliente la ve apagada."],
@@ -2714,20 +2781,23 @@ body.selmode .nav{visibility:hidden}
       [".card", "Precio sin comprar", "Abrí un insumo y usá «Precio actual»: ponés cantidad, unidad y precio total, y se actualiza el costo sin tocar el stock."]],
     voz: [["#vz-key", "Clave de IA", "Pegá acá tu clave de Anthropic (una sola vez). Queda guardada en tu Apps Script, no en este teléfono."],
       [".help", "Cómo se usa", "Tocá el micrófono azul, dictá lo que querés y confirmá antes de aplicar."]],
-    resenas: [["#rvnew", "Nueva reseña", "Cargá el nombre, la puntuación, el comentario y, si querés, una foto."],
+    resenas: [["[data-fxk]", "Filtrar y ordenar", "Filtrá por visibles, estrellas, foto o comentario, y ordená. La escoba roja limpia los filtros."], ["#rvnew", "Nueva reseña", "Cargá el nombre, la puntuación, el comentario y, si querés, una foto."],
       ["[data-rvvi]", "Visible u oculta", "Mostrá u ocultá la reseña en la tienda sin borrarla."],
       ["[data-rvedit]", "Editar", "Cambiá puntuación, comentario o foto. También podés eliminarla."]],
-    stock: [["#sk-s", "Buscador", "Buscá un insumo. Deslizá una tarjeta: → sumar, ← restar."], [".chips", "Categorías", "Insumos, Packaging y 🍪 Cookies: ahí ves las cookies sobrantes de cada tanda (se suman solas) y las podés sumar, restar o contar a mano con motivo y etapa (ej. se estropeó en el horno). 📉 Pérdidas muestra el reporte."]],
+    stock: [["#sk-s", "Buscador", "Buscá un insumo. Deslizá una tarjeta: → sumar, ← restar."], ["[data-fxk]", "Filtrar y ordenar", "El embudo filtra por nivel (rojo, cerca del mínimo, bien), tipo, punto de pedido o precio, y ordena por stock, costo o nombre. La escoba roja los limpia."], [".chips", "Categorías", "Insumos, Packaging y 🍪 Cookies: ahí ves las cookies sobrantes de cada tanda (se suman solas) y las podés sumar, restar o contar a mano con motivo y etapa (ej. se estropeó en el horno). 📉 Pérdidas muestra el reporte."]],
     mas: [[".menu", "Más funciones", "Entrá a cada una. Arriba a la izquierda, ‹ Más te devuelve acá."]],
     finanzas: [["#fin-rng", "Calendario", "Elegí de qué día a qué día querés ver. También hay atajos (Hoy, Esta semana, Este mes…)."],
       ["#fin-pre", "Atajos", "Un toque para ver hoy, esta semana, este mes, etc. Arriba cambiás entre Ventas, Resultados, Patrimonio y Reportes."],
       ["#fin-res", "Lo que te quedó", "Lo que ganaste después de todos los costos y gastos."],
       ["#fin-lines", "¿A dónde fue la plata?", "El detalle: descuentos, insumos, mano de obra y gastos."]],
     packs: [["[data-knew=Pack]", "Nuevo pack o combo", "Un pack es X cookies a un precio; un combo es una selección fija de cookies."],
+      ["[data-fxk]", "Filtrar y ordenar", "El embudo (arriba a la derecha) filtra por tipo, activos, límite, vencimiento o foto, y ordena por precio, cantidad o ahorro. La escoba roja limpia los filtros sin entrar."],
+      [".sw", "Mover de lugar", "Mantené apretado un pack o combo para elegirlo; con ↑ Subir y ↓ Bajar lo movés. Sirve con varios a la vez."],
       [".pr", "Precio", "Cambiá el precio del pack o combo."],
       ["[data-kedit]", "Editar", "Cantidad, cookies, límite, vencimiento y texto. También podés eliminarlo."],
       ["[data-pksw]", "Activo / Pausado", "Activá o pausá la oferta en la tienda."]],
-    recetas: [["#rnew", "Nueva receta", "Elegí el producto, cuántas cookies salen de una masa y los insumos con su cantidad."],
+    recetas: [["[data-fxk]", "Filtrar y ordenar", "El embudo filtra por lo que rinde y la cantidad de insumos, y ordena por nombre. La escoba roja limpia los filtros."],
+      ["#rnew", "Nueva receta", "Elegí el producto, cuántas cookies salen de una masa y los insumos con su cantidad."],
       ["[data-redit]", "Editar receta", "Cambiá insumos y cantidades de una masa. El costo por cookie se recalcula solo."]],
     reportes: [["[data-rptpl]", "Plantillas", "Tocá una y ves los números y el gráfico al instante."],
       ["[data-rpk]", "Armá el tuyo", "Elegí fuente, cómo agrupar, qué medir y el período. Abajo cambiás el tipo de gráfico."]],
@@ -2789,6 +2859,8 @@ body.selmode .nav{visibility:hidden}
 
   /* ---------- Bot de ayuda (sin IA, gratis) ---------- */
   var KB = [
+    { t: "Filtrar y ordenar listas", k: "filtrar filtro filtros ordenar orden embudo combinar aplicar limpiar escoba buscar", go: "productos", p: ["En Productos, Pedidos, Stock, Packs, Recetas, Cupones, Reseñas y Lista de espera tocá el embudo.", "Elegí varias opciones: se combinan. El botón Aplicar aparece solo apenas elegís algo.", "Con filtros puestos aparece al lado una escoba roja: tocala para limpiarlos sin entrar."] },
+    { t: "Cambiar el orden de packs, combos, cookies o cupones", k: "mover subir bajar orden ordenar arriba abajo packs combos productos cupones mantener apretado", go: "packs", p: ["Mantené apretado un elemento para elegirlo (se mueve un poquito).", "Podés elegir varios.", "Abajo tocá ↑ Subir o ↓ Bajar. Sin filtros puestos; en la tienda se ve en ese orden."] },
     { t: "Cambiar el precio de una cookie", k: "precio cambiar cambio modificar subir bajar aumentar cookie producto valor cuanto", go: "productos", p: ["Tocá Productos abajo.", "Buscá la cookie y tocá el número del precio.", "Escribí el precio nuevo y salí del campo: se guarda solo y se ve en la tienda."] },
     { t: "Marcar una cookie como agotada", k: "agotada agotado stock sin quedan terminada acabo apagar", go: "productos", p: ["Tocá Productos.", "En la cookie, tocá el interruptor Agotada.", "En la tienda se ve apagada y no se puede pedir. Volvé a tocarlo cuando haya stock."] },
     { t: "Ocultar o mostrar una cookie en la tienda", k: "ocultar esconder mostrar visible aparece tienda sacar", go: "productos", p: ["Tocá Productos.", "Usá el interruptor Visible de la cookie.", "Apagado = no aparece en la tienda."] },
@@ -3201,6 +3273,7 @@ body.selmode .nav{visibility:hidden}
     var px = t.closest("[data-pvx]"); if (px) { var pr1 = Number(px.getAttribute("data-pvx")); if (px.closest(".modal")) return; st.pop = { k: "prv", key: pr1, v: "proveedores" }; render(true); return; }
     if (t.closest("#pv-plus")) { st.pvnew = !st.pvnew; render(true); var an = $("ai-n"); if (an) an.focus(); return; }
     if (t.closest("#ai-x")) { st.pvnew = false; render(true); return; }
+    var fxc = t.closest("[data-fxc]"); if (fxc) { delete (st.fx || {})[fxc.getAttribute("data-fxc")]; saveFlt(); render(true); return; }
     var fxk = t.closest("[data-fxk]"); if (fxk) { fxPop(fxk.getAttribute("data-fxk")); return; }
     if (t.closest("#pv-sort")) { pvSortPop(); return; }
     var pt = t.closest("[data-pvt]"); if (pt) { st.pvt = pt.getAttribute("data-pvt"); render(true); return; }

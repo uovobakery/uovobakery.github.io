@@ -862,7 +862,7 @@ var DEFAULTS = {
     var c = data.config, now = new Date();
     cycle = null;
     for (var i = 0; i < data.tandas.length; i++) { if (parseDay(data.tandas[i].cierre) >= now) { cycle = data.tandas[i]; break; } }
-    var sched = !!(cycle && cycle.apertura && parseDay(cycle.apertura) > now);
+    var sched = !!(cycle && cycle.apertura && (function (d) { d.setHours(0, 0, 0, 0); return d; })(parseDay(cycle.apertura)) > now);
     var paused = !isYes(c.pedidos_activos) || sched;
     waitMode = !(cycle && !paused);
     if (cycle && !paused) {

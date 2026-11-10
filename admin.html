@@ -387,6 +387,10 @@ body.selmode .nav{visibility:hidden}
   function fmtSh(s) { return s ? isoParts(s).toLocaleDateString("es-AR", { day: "numeric", month: "short", year: "numeric" }) : ""; }
   function pedIso(p) { var m = String(p.fecha || "").match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m ? m[3] + "-" + p2(m[2]) + "-" + p2(m[1]) : ""; }
   function tandaOf(p) { var d = pedIso(p); if (!d) return null; return (st.tandas || []).filter(function (t) { return t.cierre >= d; })[0] || null; }
+  function pedAbierto() {
+    var ac = (st.cfg || []).filter(function (x) { return x.k === "pedidos_activos"; })[0], v = ac ? String(ac.v).trim().toUpperCase() : "SI", c = curTanda(), t = todayIso(), sch = !!(c && c.apertura && c.apertura > t), ok = !!(c && c.apertura && c.apertura <= t);
+    if (sch || v === "PAUSA") return false; return v !== "NO" || ok;
+  }
   function curTanda() { var t = todayIso(); return (st.tandas || []).filter(function (x) { return x.cierre >= t; })[0] || null; }
   function fillEnt(L) { (L || []).forEach(function (p) { if (p.entAuto || !p.entrega) { var t = tandaOf(p); if (t) { p.entrega = fmtIso(t.entrega); p.entAuto = true; } } }); }
   var api0 = api;
@@ -456,11 +460,12 @@ body.selmode .nav{visibility:hidden}
   function colLoad() { if (!st.cfg.length && !st.cfgf) { st.cfgf = 1; api("config").then(function (j) { if (j && j.ok) { st.cfg = j.config; render(true); } }).catch(function () {}); } if (st.cfetch || st.loaded.cola || DEMO && st.cola) return; st.cfetch = 1; api("cola").then(function (j) { if (j && j.ok) { st.cola = j.cola; st.loaded.cola = true; if (st.v === "pedidos" || st.v === "inicio") render(true); } }).catch(function () {}); }
   function colBanner() {
     colLoad(); var w = colWait(); if (!w.length || st.colhide) return "";
-    var act = (st.cfg || []).filter(function (x) { return x.k === "pedidos_activos"; })[0], open = (act ? String(act.v).toUpperCase() !== "NO" : true) && !(curTanda() && curTanda().apertura && curTanda().apertura > todayIso());
+    var act = (st.cfg || []).filter(function (x) { return x.k === "pedidos_activos"; })[0], open = pedAbierto();
     return swrap("colb", "x", '<article class="card pc" data-colb="1" style="border-left:4px solid #e08a00"><div class="row" style="align-items:center;gap:10px"><div style="flex:1"><div class="nm">' + w.length + (w.length === 1 ? " persona espera" : " personas esperan") + '</div><div class="meta">' + (open ? "Ya hay pedidos abiertos: avisales ahora." : "Dejaron su pedido con la tienda cerrada.") + '</div></div><span style="color:var(--soft);font-size:1.3rem">›</span></div></article>', true, true, "Avisar", "", [["Ocultar", "hide", "k1"]]);
   }
   function setAbierto(v) {
     var ac = st.cfg.filter(function (x) { return x.k === "pedidos_activos"; })[0]; if (!ac) { toast("Falta la fila pedidos_activos en Config"); return; }
+    var cT = curTanda(); if (v === "NO" && cT && cT.apertura && cT.apertura <= todayIso()) v = "PAUSA";
     (DEMO ? Promise.resolve({ ok: true }) : api("setConfig", { r: ac.r, k: "pedidos_activos", valor: v })).then(function (j) {
       if (j && j.ok) {
         ac.v = v; render(true); toast(v === "SI" ? "Pedidos abiertos ✓" : "Pedidos cerrados ✓");
@@ -471,7 +476,7 @@ body.selmode .nav{visibility:hidden}
   function tnC(t) { var o = { cierre: t.cierre, entrega: t.entrega }; if (t.apertura) o.apertura = t.apertura; return o; }
   function tnCount(t) { var L = (st.tandas || []), i = L.indexOf(t), prev = i > 0 ? L[i - 1].cierre : "0000-00-00"; var n = 0, tot = 0; (st.pedidos || []).forEach(function (p) { var d = pedIso(p); if (d && d > prev && d <= t.cierre && !(p.cc || p.cl)) { n++; tot += Number(p.total) || 0; } }); return { n: n, tot: tot }; }
   function renderTandas() {
-    var L = st.tandas || [], cur = curTanda(), today = todayIso(), act = st.cfg.filter(function (x) { return x.k === "pedidos_activos"; })[0], open = !act || String(act.v).toUpperCase() !== "NO", sch = cur && cur.apertura && cur.apertura > today;
+    var L = st.tandas || [], cur = curTanda(), today = todayIso(), act = st.cfg.filter(function (x) { return x.k === "pedidos_activos"; })[0], open = pedAbierto(), sch = cur && cur.apertura && cur.apertura > today;
     var row = function (t, i) { var c = tnCount(t); return swrap("tn", i, '<article class="card pc" data-tn="' + i + '"><div class="row" style="align-items:center;gap:10px"><div style="flex:1"><div class="nm">Cierra ' + esc(fmtSh(t.cierre)) + '</div><div class="meta">' + (t.apertura ? "Abre " + esc(fmtSh(t.apertura)) + " · " : "") + "Entrega " + esc(fmtIso(t.entrega)) + " · " + c.n + " pedidos" + (c.n ? " · " + money(c.tot) : "") + '</div></div><span style="color:var(--soft);font-size:1.3rem">›</span></div></article>', true, true, "Editar", "", [["Eliminar", "rm", "k3"]]); };
     var h = BACK + colBanner() + swrap("topen", "x", '<article class="card pc"><div class="row" style="align-items:center;gap:10px"><div style="flex:1"><div class="nm">Pedidos ' + (sch ? "programados" : open ? "abiertos" : "cerrados") + '</div><div class="meta">' + (sch ? "Se abren solos el " + esc(fmtIso(cur.apertura)) + "." : open ? "La tienda recibe pedidos." : "La tienda está en pausa: los clientes pueden dejar su pedido en la cola.") + '</div></div><button class="sm' + (open ? " red" : "") + '" data-topen="' + (open ? "NO" : "SI") + '">' + (open ? "Cerrar pedidos" : "Abrir pedidos") + "</button></div></article>", true, true, "Abrir", "", [["Cerrar", "cl", "k3"]]);
     h += '<button class="card" data-go="cola" style="width:100%;text-align:left;margin-bottom:12px"><div class="nm">Lista de espera</div><div class="meta">Clientes que dejaron su pedido con la tienda cerrada</div></button>';
@@ -1642,7 +1647,7 @@ body.selmode .nav{visibility:hidden}
     else if (k === "textos") h = (st.cfg || []).filter(function (x) { return x.k && m(x.k + " " + x.v); }).slice(0, 25).map(function (x) { return '<div class="scr" style="display:block"><b>' + esc(human(x.k)) + '</b><textarea class="inp" rows="2" data-sctx="' + x.r + '" data-k="' + esc(x.k) + '" style="margin-top:4px">' + esc(x.v) + "</textarea></div>"; }).join("");
     else if (k === "cola") h = (st.cola || []).filter(function (x) { return m(x.nombre + " " + x.pedido); }).sort(function (a, b) { return (a.est === "Avisado") - (b.est === "Avisado"); }).map(function (x) { return '<div class="scr" data-sccol="' + x.r + '" style="cursor:pointer;' + (x.est === "Avisado" ? "opacity:.55" : "") + '"><div class="t"><b>' + esc(x.nombre) + "</b><small>" + esc(x.pedido) + '</small></div><b>' + money(x.total) + "</b></div>"; }).join("");
     else if (k === "tandas") {
-      var act = (st.cfg || []).filter(function (x) { return x.k === "pedidos_activos"; })[0], open = !act || String(act.v).toUpperCase() !== "NO", L = st.tandas || [], td = todayIso();
+      var act = (st.cfg || []).filter(function (x) { return x.k === "pedidos_activos"; })[0], open = pedAbierto(), L = st.tandas || [], td = todayIso();
       h = '<div class="scr"><div class="t"><b>Pedidos ' + (open ? "abiertos" : "cerrados") + "</b><small>" + (open ? "La tienda recibe pedidos" : "Los clientes entran a la cola") + '</small></div><button class="sm' + (open ? " red" : "") + '" data-scopen="' + (open ? "NO" : "SI") + '">' + (open ? "Cerrar" : "Abrir") + "</button></div>" +
         L.map(function (t, i) { return { t: t, i: i }; }).filter(function (o) { return o.t.cierre >= td; }).map(function (o) { return '<div class="scr" data-sctn="' + o.i + '" style="cursor:pointer"><div class="t"><b>Cierra ' + esc(fmtSh(o.t.cierre)) + "</b><small>" + (o.t.apertura ? "Abre " + esc(fmtSh(o.t.apertura)) + " · " : "") + "Entrega " + esc(fmtIso(o.t.entrega)) + '</small></div><span style="color:var(--soft)">›</span></div>'; }).join("");
     }
@@ -2874,6 +2879,7 @@ body.selmode .nav{visibility:hidden}
 
   /* ---------- Bot de ayuda (sin IA, gratis) ---------- */
   var KB = [
+    { t: "La tanda se abre sola", k: "tanda abrir sola automatica apertura programada pedidos abiertos cerrados pausa interruptor", go: "tandas", p: ["Si una tanda tiene fecha de apertura, la tienda se abre sola ese día a las 00:00, aunque el interruptor diga cerrado.", "Si querés frenarla antes, tocá «Cerrar pedidos» en Tandas: queda en pausa hasta que vuelvas a abrir.", "Mientras está cerrada, la portada muestra un solo cartel (fecha de apertura o «Muy pronto») con un link a tu Instagram. El texto se edita en Textos (buscá «enterate»)."] },
     { t: "Cartel «Mañana abrimos pedidos»", k: "cartel manana abrimos abren pedidos tanda aviso apertura texto programada", go: "textos", p: ["Si programás la apertura de una tanda, el día anterior la tienda muestra un cartel amarillo.", "El cartel llama la atención y trae un botón para anotarse en la cola. Cuando alguien toca una cookie con los pedidos cerrados, sale un aviso diciendo que lo vas a avisar apenas abras.", "Los 3 textos (cartel, botón y aviso) se editan en Más → Textos de la página (buscá «mañana abrimos» o «aviso cola»). Vacío = no se muestra.", "La tanda abre a las 00:00 del día programado, pero solo si el interruptor de pedidos en Inicio está prendido."] },
     { t: "Elegir los botones de la barra de abajo", k: "barra inferior abajo botones menu personalizar ordenar proveedores stock finanzas reportes", go: "mas", p: ["Andá a Más → Personalizar barra inferior.", "Prendé hasta 5 botones y ordenalos con ↑ ↓. Restablecer vuelve a los de siempre.", "Se guarda en este dispositivo."] },
     { t: "Cambiar el precio de un insumo sin comprar", k: "precio costo insumo actualizar sin comprar investigar proveedor cantidad unidad", go: "proveedores", p: ["En Proveedores abrí el insumo y usá «Precio actual».", "Poné cantidad, unidad y precio total, y tocá Guardar precio: el stock no cambia.", "«Registrar compra» es solo para cuando de verdad compraste (suma stock)."] },

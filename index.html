@@ -1449,14 +1449,16 @@ var DEFAULTS = {
         m.addEventListener("mouseenter", function () { m._hover = true; if (trackIdx(tr) === 0) goSlide(tr, 1); });
         m.addEventListener("mouseleave", function () { m._hover = false; goSlide(tr, 0); });
       }
-      m.addEventListener("touchstart", function () { m._touch = Date.now(); m._hover = true; clearTimeout(m._tt); if (trackIdx(tr) === 0) goSlide(tr, 1); }, { passive: true });
-      var back = function () { m._touch = Date.now(); clearTimeout(m._tt); m._tt = setTimeout(function () { m._hover = false; goSlide(tr, 0); }, 900); };
+      var tx = 0, ty = 0;
+      m.addEventListener("touchstart", function (e) { tx = e.touches[0].clientX; ty = e.touches[0].clientY; clearTimeout(m._tt); m._tt = setTimeout(function () { if (trackIdx(tr) === 0) goSlide(tr, 1); }, 120); }, { passive: true });
+      m.addEventListener("touchmove", function (e) { if (Math.abs(e.touches[0].clientX - tx) > 8 || Math.abs(e.touches[0].clientY - ty) > 8) clearTimeout(m._tt); }, { passive: true });
+      var back = function () { clearTimeout(m._tt); m._tt = setTimeout(function () { goSlide(tr, 0); }, 900); };
       m.addEventListener("touchend", back, { passive: true });
       m.addEventListener("touchcancel", back, { passive: true });
     });
     var sec = Number(data.config.carrusel_segundos);
     var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!sec || sec < 1 || reduce) return;
+    if (true || !sec || sec < 1 || reduce) return; /* autoplay en pausa */
     carT = setInterval(function () {
       tracks.forEach(function (m) {
         var tr = m.querySelector(".track");

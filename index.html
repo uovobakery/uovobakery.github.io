@@ -382,6 +382,7 @@ button.scale:hover { background: #FFEBA3; }
 
 .tier { background: rgba(255, 255, 255, .92); border: 2px solid #C9D9F5; border-radius: 18px; padding: 18px 10px 14px; display: grid; gap: 2px; text-align: center; align-content: center; position: relative; }
 .tier:hover { border-color: var(--blue); }
+.tier .timg { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 12px; margin-bottom: 8px; background: var(--sky); display: block; }
 .tier .plus { position: absolute; top: 8px; right: 8px; width: 26px; height: 26px; border-radius: 50%; background: var(--blue); color: #fff; font: 700 1.1rem/26px var(--font-body, inherit); text-align: center; }
 .tier s { font-weight: 800; color: var(--ink); text-decoration-thickness: 2px; }
 .tier .pay { font: 600 1.15rem var(--font-display); color: var(--blue); }
@@ -838,7 +839,7 @@ var DEFAULTS = {
     var off = !cartel || /^(no|ninguno|ninguna|sin)$/i.test(cartel);
     prods.forEach(function (p) { p.top = !off && top.indexOf(p.nombre.toLowerCase()) >= 0; });
     var pr = (raw && raw.promos) || {};
-    var escala = (pr.escala || []).map(function (e) { return { q: Math.floor(Number(e.q) || 0), p: Number(e.p) || 0, vars: (e.vars || []).map(String), lim: Math.floor(Number(e.lim) || 0) }; }).filter(function (e) { return e.q >= 2 && e.p > 0; });
+    var escala = (pr.escala || []).map(function (e) { return { q: Math.floor(Number(e.q) || 0), p: Number(e.p) || 0, vars: (e.vars || []).map(String), lim: Math.floor(Number(e.lim) || 0), foto: String(e.foto || "") }; }).filter(function (e) { return e.q >= 2 && e.p > 0; });
     var combos = (pr.combos || []).filter(function (cb) { return cb && cb.nombre && cb.items && cb.items.length && Number(cb.precio) > 0; }).map(function (cb) {
       return { nombre: String(cb.nombre), precio: Number(cb.precio), items: cb.items.map(function (it) { return { n: String(it.n), c: Math.floor(Number(it.c) || 0) }; }).filter(function (it) { return it.n && it.c > 0; }), foto: String(cb.foto || ""), vence: String(cb.vence || ""), desc: String(cb.desc || ""), lim: Math.floor(Number(cb.lim) || 0) };
     });
@@ -1375,7 +1376,8 @@ var DEFAULTS = {
     var prices = data.productos.filter(function (p) { return !p.agotada; }).map(function (p) { return p.precio; }), base = prices.length ? Math.min.apply(null, prices) : 0;
     $("tgrid").innerHTML = sc.map(function (t) {
       var sv = base * t.q - t.p;
-      return '<button type="button" class="tier" data-tier="' + t.q + '"><span class="plus" aria-hidden="true">+</span><b>' + t.q + ' cookies</b>' + (sv > 0 ? "<s>" + money(base * t.q) + '</s><span class="pay">' + money(t.p) + "</span>" : '<span class="pay">' + money(t.p) + "</span>") + '<i class="lim"></i></button>';
+      var tm = t.foto ? parseMedia(t.foto) : null, timg = tm && tm.t === "img" ? '<img class="timg" src="' + esc(tm.src) + '" alt="" loading="lazy" referrerpolicy="no-referrer">' : "";
+      return '<button type="button" class="tier" data-tier="' + t.q + '">' + timg + '<span class="plus" aria-hidden="true">+</span><b>' + t.q + ' cookies</b>' + (sv > 0 ? "<s>" + money(base * t.q) + '</s><span class="pay">' + money(t.p) + "</span>" : '<span class="pay">' + money(t.p) + "</span>") + '<i class="lim"></i></button>';
     }).join("");
     $("pgrid").innerHTML = list.map(function (cb, j) {
       var imgs = [];

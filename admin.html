@@ -2418,8 +2418,8 @@ body.selmode .nav{visibility:hidden}
     if (st.us == null && !st.usf) { st.usf = 1; api("usos").then(function (j) { st.us = j && j.ok ? j.usos : []; if (st.v === "proveedores") render(true); }).catch(function () { st.us = []; }); }
     if (!st.prov) return BACK + '<div class="empty">Cargando…</div>';
     if (!st.stock && !st.stkf3) { st.stkf3 = 1; api("stock").then(function (j) { st.stock = j && j.ok ? j.stock : []; }).catch(function () {}); }
-    var q = nrm(st.pvq), L0 = (st.prov[st.pvt] || []).filter(function (x) { return !q || nrm(x.ins).indexOf(q) >= 0 || nrm(x.prov).indexOf(q) >= 0; }), pvs = st.pvs || [], L = pvs.length ? pvSort(L0, pvs) : hasFirst(L0, function (x) { return (st.stock || []).filter(function (z) { return z.ins === x.ins; })[0]; });
-    var h = BACK + skBar('Ej: compré 1 kg de manteca a 3000', 'Dictá o escribí tus compras, varias juntas: «1 kg de manteca a 3000, 2 kg de azúcar a 7000». Se cargan y suman al stock.') + '<div style="display:flex;gap:8px;margin-bottom:10px"><input class="search" id="pvq" type="search" placeholder="Buscar insumo o proveedor…" value="' + esc(st.pvq) + '" style="margin:0;flex:1"><button class="btn" id="pv-sort" aria-label="Ordenar" style="width:52px;padding:0;font-size:1.2rem;' + ((st.pvs || []).length ? "" : "background:#fff;color:var(--blue,#0F59C4);border:1.5px solid #cfdcf3;") + '">⇅' + ((st.pvs || []).length ? '<sup style="font-size:.6rem">' + st.pvs.length + "</sup>" : "") + '</button><button class="btn" id="pv-plus" aria-label="Agregar insumo" style="width:52px;padding:0;font-size:1.5rem">＋</button></div>';
+    var q = nrm(st.pvq), L0 = (st.prov[st.pvt] || []).filter(function (x) { return !q || nrm(x.ins).indexOf(q) >= 0 || nrm(x.prov).indexOf(q) >= 0; }), L1 = fxList("proveedores", L0), L = fxSorted("proveedores") ? L1 : hasFirst(L1, function (x) { return (st.stock || []).filter(function (z) { return z.ins === x.ins; })[0]; });
+    var h = BACK + skBar('Ej: compré 1 kg de manteca a 3000', 'Dictá o escribí tus compras, varias juntas: «1 kg de manteca a 3000, 2 kg de azúcar a 7000». Se cargan y suman al stock.') + '<div style="display:flex;gap:8px;margin-bottom:10px"><input class="search" id="pvq" type="search" placeholder="Buscar insumo o proveedor…" value="' + esc(st.pvq) + '" style="margin:0;flex:1">' + fxBtn("proveedores") + '<button class="btn" id="pv-plus" aria-label="Agregar insumo" style="width:52px;padding:0;font-size:1.5rem">＋</button></div>';
     h += '<div class="chips"><button class="chip' + (st.pvt === "a" ? " on" : "") + '" data-pvt="a">Insumos</button><button class="chip' + (st.pvt === "p" ? " on" : "") + '" data-pvt="p">Packaging</button></div>';
     if (st.pvnew) h += '<div class="card" id="pv-new"><div class="nm" style="margin-bottom:6px">Nuevo ' + (st.pvt === "a" ? "insumo" : "packaging") + '</div><div class="add"><input class="inp" id="ai-n" placeholder="Nombre" value="' + esc(st.pvq) + '"><input class="inp" id="ai-u" list="pv-units" placeholder="Unidad (g, kg, ml, l, unidad)" value="' + (st.pvt === "a" ? "g" : "unidad") + '"><datalist id="pv-units"><option value="g"><option value="kg"><option value="ml"><option value="l"><option value="unidad"></datalist><div style="display:flex;gap:8px"><button class="btn" id="ai-ok">Agregar</button><button class="sm" id="ai-x">Cancelar</button></div></div></div>';
     if (!L.length) h += '<div class="empty">' + (q ? "No hay resultados. Tocá ＋ para agregarlo." : "Sin elementos.") + "</div>";
@@ -2547,6 +2547,7 @@ body.selmode .nav{visibility:hidden}
   /* ---------- Filtros y orden (todas las listas) ---------- */
   function cmpS(a, b) { return String(a || "").localeCompare(String(b || ""), "es", { sensitivity: "base" }); }
   function cmpV(get, desc) { return function (a, b) { var x = get(a), y = get(b), hx = x != null && !isNaN(x), hy = y != null && !isNaN(y); if (hx !== hy) return hx ? -1 : 1; return desc ? y - x : x - y; }; }
+  function pdays(f) { var m = String(f || "").match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/), d = m ? new Date(+m[3], +m[2] - 1, +m[1]) : (/^\d{4}-\d{2}-\d{2}/.test(String(f || "")) ? new Date(String(f).slice(0, 10) + "T00:00:00") : null); return d && !isNaN(d) ? Math.round((Date.now() - d.getTime()) / 864e5) : null; }
   function pname(p) { return p.nombre || "Pack x" + p.q; }
   function pfd(x) { var d = pf(x); return d ? d.getTime() : null; }
   function uniq(L, get) { var o = {}; L.forEach(function (x) { var v = String(get(x) || "").trim(); if (v) o[v] = 1; }); return Object.keys(o).sort(cmpS); }
@@ -2603,6 +2604,19 @@ body.selmode .nav{visibility:hidden}
         yn("cm", "Comentario", "Con comentario", "Sin comentario", function (x) { return !!String(x.com || "").trim(); }, function (x) { return !String(x.com || "").trim(); })]; },
       s: [["az", "Nombre A → Z", "n", function (a, b) { return cmpS(a.nombre, b.nombre); }], ["za", "Nombre Z → A", "n", function (a, b) { return cmpS(b.nombre, a.nombre); }],
         ["eM", "Más estrellas primero", "e", cmpV(function (x) { return x.est; }, 1)], ["em", "Menos estrellas primero", "e", cmpV(function (x) { return x.est; })]] },
+    proveedores: { g: function () { var P = (st.prov && st.prov[st.pvt]) || [], stk = function (x) { return ((st.stock || []).filter(function (z) { return z.ins === x.ins; })[0]); }; return [
+        yn("pr", "Precio", "Con precio", "Sin precio", function (x) { return !!x.costo; }, function (x) { return !x.costo; }),
+        yn("pv", "Proveedor", "Con proveedor", "Sin proveedor", function (x) { return !!String(x.prov || "").trim(); }, function (x) { return !String(x.prov || "").trim(); }),
+        { id: "uc", l: "Última compra", o: [["a", "Últimos 30 días", function (x) { var d = pdays(x.fecha); return d != null && d <= 30; }], ["b", "Hace más de 30 días", function (x) { var d = pdays(x.fecha); return d != null && d > 30; }], ["c", "Nunca comprado", function (x) { return pdays(x.fecha) == null; }]] },
+        { id: "sk", l: "Stock", o: [["a", "Con stock", function (x) { var z = stk(x); return !!(z && z.mov && z.stock > 0); }], ["b", "Sin stock", function (x) { var z = stk(x); return !!(z && z.mov && z.stock <= 0); }], ["c", "Para reponer", function (x) { var z = stk(x); return !!(z && z.mov && (z.nivel === "rojo" || z.nivel === "amarillo")); }], ["d", "Sin cargar", function (x) { var z = stk(x); return !(z && z.mov); }]] },
+        yn("ca", "Cantidad de la compra", "Con cantidad", "Sin cantidad", function (x) { return Number(x.cant) > 0; }, function (x) { return !(Number(x.cant) > 0); })
+      ].concat(dynG("un", "Unidad", P, function (x) { return x.uni; })).concat(dynG("vd", "Proveedor (elegir)", P, function (x) { return x.prov; })); },
+      s: [["sp", "Sin precio primero", "p", cmpV(function (x) { return x.costo ? 1 : 0; })], ["spv", "Sin proveedor primero", "v", cmpV(function (x) { return String(x.prov || "").trim() ? 1 : 0; })],
+        ["az", "Nombre A → Z", "n", function (a, b) { return cmpS(a.ins, b.ins); }], ["za", "Nombre Z → A", "n", function (a, b) { return cmpS(b.ins, a.ins); }],
+        ["pm", "Precio menor → mayor", "c", cmpV(function (x) { return x.costo || null; })], ["pM", "Precio mayor → menor", "c", cmpV(function (x) { return x.costo || null; }, 1)],
+        ["fn", "Compra más reciente primero", "f", cmpV(function (x) { return pdays(x.fecha); })], ["fv", "Compra más vieja primero", "f", cmpV(function (x) { return pdays(x.fecha); }, 1)],
+        ["pa", "Proveedor A → Z", "r", function (a, b) { return cmpS(a.prov || "\uffff", b.prov || "\uffff"); }],
+        ["cM", "Mayor cantidad comprada", "q", cmpV(function (x) { return Number(x.cant) || null; }, 1)]] },
     cola: { g: function () { return dynG("es", "Estado", st.cola || [], function (x) { return x.est; }); },
       s: [["fn", "Más nuevos primero", "f", cmpV(function (x) { return pfd(x.fecha); }, 1)], ["fv", "Más viejos primero", "f", cmpV(function (x) { return pfd(x.fecha); })],
         ["tM", "Total mayor → menor", "t", cmpV(function (x) { return x.total; }, 1)], ["tm", "Total menor → mayor", "t", cmpV(function (x) { return x.total; })],
@@ -2774,7 +2788,7 @@ body.selmode .nav{visibility:hidden}
     textos: [["#cq", "Buscador", "Escribí una palabra para encontrar el texto que querés cambiar."],
       [".card", "Editá y listo", "Cambiá el texto y salí del campo: se guarda y se ve en la tienda."]],
     proveedores: [["#pvq", "Buscador", "Escribí una palabra y te salta el insumo. Tocalo para cargar proveedor, cantidad y precio."],
-      ["#pv-sort", "Ordenar", "El botón ⇅ abre las opciones: sin precio primero, nombre A→Z, precio menor o mayor. Elegí varias y se combinan en ese orden; tocá Aplicar."],
+      ["[data-fxk]", "Filtrar y ordenar", "El embudo filtra por precio, proveedor, última compra, stock, unidad o cantidad, y ordena por nombre, precio, fecha o proveedor. Se combinan; Aplicar aparece solo. La escoba roja de al lado limpia todo sin entrar."],
       ["#pv-plus", "Agregar insumo", "El ＋ crea un insumo o packaging nuevo sin bajar por la lista."],
       [".chips", "Insumos y packaging", "Cambiá entre ingredientes y packaging."],
       [".card", "Tu última compra", "Tocá un insumo para abrirlo. Escribí «1 kg» o «500 g» y el precio total: el costo por unidad se calcula solo. También podés cambiar la unidad."],

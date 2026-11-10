@@ -170,7 +170,7 @@ a { color: inherit; }
 
 /* Carrusel */
 .media { position: relative; background: var(--sky); }
-.track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.track { display: flex; overflow-x: hidden; scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 .track::-webkit-scrollbar { display: none; }
 .slide { flex: 0 0 100%; scroll-snap-align: center; aspect-ratio: 4 / 5; background: var(--sky); }
 .slide img, .slide video, .slide iframe { display: block; width: 100%; height: 100%; object-fit: cover; border: 0; }
@@ -1163,13 +1163,6 @@ var DEFAULTS = {
     g.classList.remove("has-nav");
     var per = function () { return window.innerWidth >= 980 ? 3 : window.innerWidth >= 640 ? 2 : 1; };
     if (cards.length <= per()) return;
-    g.classList.add("has-nav");
-    ["l", "r"].forEach(function (k) {
-      var b = document.createElement("button"); b.type = "button"; b.className = "rnav " + k; b.textContent = k === "l" ? "‹" : "›";
-      b.setAttribute("aria-label", k === "l" ? "Anterior" : "Siguiente");
-      b.addEventListener("click", function () { _rp = Date.now() + 9000; ringStep(k === "l" ? -1 : 1); });
-      g.appendChild(b);
-    });
     if (!g._bound) { g._bound = true;
     var sx = null;
     g.addEventListener("touchstart", function (e) { sx = e.touches[0].clientX; _rp = Date.now() + 9000; }, { passive: true });
@@ -1192,8 +1185,7 @@ var DEFAULTS = {
       var n = p.medios.length;
       var media = '<div class="media"><div class="track" tabindex="0" aria-label="Fotos de ' + esc(p.nombre) + '">' +
         p.medios.map(function (m, j) { return slideHtml(m, p.nombre, j === 0); }).join("") + '</div>' +
-        (n > 1 ? '<button class="nav prev" type="button" data-nav="-1" aria-label="Foto anterior">‹</button><button class="nav next" type="button" data-nav="1" aria-label="Foto siguiente">›</button>' +
-          '<div class="dots">' + p.medios.map(function (_, j) { return "<i" + (j === 0 ? ' class="on"' : "") + "></i>"; }).join("") + "</div>" : "") +
+        (n > 1 ? '<div class="dots">' + p.medios.map(function (_, j) { return "<i" + (j === 0 ? ' class="on"' : "") + "></i>"; }).join("") + "</div>" : "") +
         "</div>";
       var step = p.agotada
         ? '<div class="stepper"><span class="lbl">Por ahora no hay stock</span></div>'
@@ -1457,7 +1449,10 @@ var DEFAULTS = {
         m.addEventListener("mouseenter", function () { m._hover = true; if (trackIdx(tr) === 0) goSlide(tr, 1); });
         m.addEventListener("mouseleave", function () { m._hover = false; goSlide(tr, 0); });
       }
-      m.addEventListener("touchstart", function () { m._touch = Date.now(); }, { passive: true });
+      m.addEventListener("touchstart", function () { m._touch = Date.now(); m._hover = true; clearTimeout(m._tt); if (trackIdx(tr) === 0) goSlide(tr, 1); }, { passive: true });
+      var back = function () { m._touch = Date.now(); clearTimeout(m._tt); m._tt = setTimeout(function () { m._hover = false; goSlide(tr, 0); }, 900); };
+      m.addEventListener("touchend", back, { passive: true });
+      m.addEventListener("touchcancel", back, { passive: true });
     });
     var sec = Number(data.config.carrusel_segundos);
     var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;

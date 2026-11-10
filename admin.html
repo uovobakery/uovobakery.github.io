@@ -127,6 +127,7 @@ button { cursor:pointer; }
 .fi .tx{flex:1;min-width:0;font-size:.85rem}.fi .tx b{display:block}
 .fi button{border:0;background:#eef3fb;color:#0F59C4;width:34px;height:34px;border-radius:50%;font-size:1rem}
 .fi button.x{color:#b3261e}
+.fi .th{position:relative;flex:none;width:64px;height:64px}.fi .th a.dl{position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.92);color:#0B3F91;display:grid;place-items:center;box-shadow:0 1px 4px rgba(12,34,71,.28);text-decoration:none}.fi .th a.dl svg{width:12px;height:12px}
 .addf{display:block;text-align:center;background:#0F59C4;color:#fff;border-radius:14px;padding:14px;font-weight:700;margin-bottom:12px}
 .addf.dis{opacity:.5;pointer-events:none}
 .modal{position:fixed;inset:0;z-index:60;background:rgba(10,20,40,.6);display:grid;place-items:center;padding:20px}
@@ -2287,7 +2288,9 @@ body.selmode .nav{visibility:hidden}
     else h += '<label class="addf' + (f.busy ? " dis" : "") + '">＋ Agregar ' + (f.single ? "foto" : "fotos o videos") + '<input type="file" id="fo-in" accept="image/*' + (f.single ? "" : ",video/*") + '"' + (f.single ? "" : " multiple") + ' hidden></label>';
     if (f.msg) h += '<div class="meta" style="margin-bottom:10px">' + esc(f.msg) + "</div>";
     h += f.list.map(function (m, i) {
-      return '<div class="fi" data-i="' + i + '">' + (m.th ? '<img src="' + esc(m.th) + '" alt="" onerror="this.outerHTML=\'<div class=vt>' + (m.vid ? "🎬" : "🖼️") + '</div>\'">' : '<div class="vt">' + (m.vid ? "🎬" : "🖼️") + "</div>") +
+      var dm = m.raw.match(/drive\.google\.com\/file\/d\/([\w-]+)/), du = dm ? "https://drive.google.com/uc?export=download&id=" + dm[1] : (/^https?:/i.test(m.raw.replace(/^video:\s*/i, "")) && !/youtu/i.test(m.raw) ? m.raw.replace(/^video:\s*/i, "") : "");
+      var dl = du ? '<a class="dl" href="' + esc(du) + '" download target="_blank" rel="noopener" aria-label="Descargar original" title="Descargar original"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></svg></a>' : "";
+      return '<div class="fi" data-i="' + i + '"><div class="th">' + (m.th ? '<img src="' + esc(m.th) + '" alt="" onerror="this.outerHTML=\'<div class=vt>' + (m.vid ? "🎬" : "🖼️") + '</div>\'">' : '<div class="vt">' + (m.vid ? "🎬" : "🖼️") + "</div>") + dl + "</div>" +
         '<div class="tx"><b>' + (i === 0 ? "★ Principal" : i === 1 && !f.single ? "↺ Al pasar el mouse" : "Foto " + (i + 1)) + "</b>" + (m.vid ? "Video" : "Imagen") + "</div>" +
         (i > 0 ? '<button data-fx="up" aria-label="Subir">↑</button>' : "") + (i < n - 1 ? '<button data-fx="dn" aria-label="Bajar">↓</button>' : "") + '<button class="x" data-fx="rm" aria-label="Quitar">✕</button></div>';
     }).join("") || '<div class="empty">Todavía no hay archivos.</div>';

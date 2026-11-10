@@ -47,6 +47,8 @@ a { color: inherit; }
 .pt .sl { position: absolute; inset: 0; background: center 30% / cover no-repeat; will-change: transform; }
 .pt-tex { position: absolute; inset: 0; z-index: 0; pointer-events: none; background: linear-gradient(rgba(247, 250, 255, .62), rgba(247, 250, 255, .62)), repeating-linear-gradient(118deg, rgba(15, 89, 196, .2) 0 26px, rgba(255, 255, 255, 0) 26px 70px); }
 .hero .logo p { font-weight: 700; color: var(--ink-soft); }
+.soon { margin: 10px auto 0; max-width: 560px; padding: 10px 16px; border-radius: 14px; background: #fff8d6; color: #0b2f73; font-weight: 700; text-align: center; font-size: .95rem; box-shadow: 0 2px 10px rgba(0,0,0,.08); }
+.soon[hidden] { display: none; }
 .dbox { background: var(--paper); border: 2px solid var(--sky-line); border-radius: 18px; padding: 12px 10px; display: grid; gap: 1px; align-content: center; min-height: 118px; }
 #box-close { grid-area: cl; background: var(--blue); border-color: var(--blue); color: #fff; }
 #box-deliv { grid-area: dl; }
@@ -516,6 +518,7 @@ button.scale:hover { background: #FFEBA3; }
     <span class="cd" id="cd-deliv" hidden></span>
   </div>
 </header>
+<div class="soon" id="soon" hidden></div>
 </div>
 
 <div class="stripe"><button type="button" class="stripe-link" id="stripe-promos" hidden></button></div>
@@ -693,6 +696,7 @@ var DEFAULTS = {
     portada_segundos: 8,
     cookies_segundos: 5,
     franja: "",
+    texto_manana_abrimos: "¡Mañana abrimos pedidos! Podés ir eligiendo tus cookies y dejarlas anotadas en la cola.",
     instagram_url: "https://www.instagram.com/uovo.bahiablanca/",
     instagram_usuario: "@uovo.bahiablanca",
     frase: "",
@@ -825,7 +829,7 @@ var DEFAULTS = {
   }
 
   /* ---------- Datos ---------- */
-  var BLANK_OK = ["boton_franja", "texto_packs", "texto_promos", "whatsapp", "instagram_url", "instagram_usuario", "ayuda_mail", "ayuda_telefono", "facebook_url", "google_client_id", "texto_menu", "gracias_texto", "frase", "quienes_somos", "pie", "franja", "alias_transferencia", "whatsapp_pedidos"];
+  var BLANK_OK = ["boton_franja", "texto_packs", "texto_promos", "whatsapp", "instagram_url", "instagram_usuario", "ayuda_mail", "ayuda_telefono", "facebook_url", "google_client_id", "texto_menu", "gracias_texto", "frase", "quienes_somos", "pie", "franja", "texto_manana_abrimos", "alias_transferencia", "whatsapp_pedidos"];
   function normalize(raw) {
     var c = {}, k;
     for (k in DEFAULTS.config) c[k] = DEFAULTS.config[k];
@@ -894,6 +898,7 @@ var DEFAULTS = {
       $("d-deliv").textContent = "En nuestro Instagram";
       $("cd-close").hidden = true; $("cd-deliv").hidden = true;
     }
+    (function () { var el = $("soon"); if (!el) return; var show = false; if (sched && c.texto_manana_abrimos) { var a0 = parseDay(cycle.apertura); a0.setHours(0, 0, 0, 0); var t1 = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1); show = a0.getTime() === t1.getTime(); } el.hidden = !show; el.textContent = show ? c.texto_manana_abrimos : ""; })();
     setPortada(c);
     $("frase").textContent = c.frase;
     $("frase").hidden = !c.frase;

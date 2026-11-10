@@ -2786,7 +2786,8 @@ body.selmode .nav{visibility:hidden}
       ["[data-sw=vi]", "Visible", "Mostrá u ocultá la cookie en la tienda."],
       ["[data-edit]", "Editar", "Cambiá descripción, categoría, ingredientes y la receta. En la receta podés crear insumos nuevos desde el buscador, y los que están en rojo no tienen precio: tocalos para cargarlo."]],
     textos: [["#cq", "Buscador", "Escribí una palabra para encontrar el texto que querés cambiar."],
-      [".card", "Editá y listo", "Cambiá el texto y salí del campo: se guarda y se ve en la tienda."]],
+      [".card", "Editá y listo", "Cambiá el texto y salí del campo: se guarda y se ve en la tienda."],
+      [".card", "Cartel «Mañana abrimos»", "Buscá «mañana abrimos»: es el cartel que la tienda muestra el día antes de abrir una tanda programada. Vacío = no se muestra."]],
     proveedores: [["#pvq", "Buscador", "Escribí una palabra y te salta el insumo. Tocalo para cargar proveedor, cantidad y precio."],
       ["[data-fxk]", "Filtrar y ordenar", "El embudo filtra por precio, proveedor, última compra, stock, unidad o cantidad, y ordena por nombre, precio, fecha o proveedor. Se combinan; Aplicar aparece solo. La escoba roja de al lado limpia todo sin entrar."],
       ["#pv-plus", "Agregar insumo", "El ＋ crea un insumo o packaging nuevo sin bajar por la lista."],
@@ -2873,6 +2874,9 @@ body.selmode .nav{visibility:hidden}
 
   /* ---------- Bot de ayuda (sin IA, gratis) ---------- */
   var KB = [
+    { t: "Cartel «Mañana abrimos pedidos»", k: "cartel manana abrimos abren pedidos tanda aviso apertura texto programada", go: "textos", p: ["Si programás la apertura de una tanda, el día anterior la tienda muestra un cartel amarillo.", "El texto se edita en Más → Textos de la página (buscá «mañana abrimos»). Si lo dejás vacío, no se muestra.", "La tanda abre a las 00:00 del día programado, pero solo si el interruptor de pedidos en Inicio está prendido."] },
+    { t: "Elegir los botones de la barra de abajo", k: "barra inferior abajo botones menu personalizar ordenar proveedores stock finanzas reportes", go: "mas", p: ["Andá a Más → Personalizar barra inferior.", "Prendé hasta 5 botones y ordenalos con ↑ ↓. Restablecer vuelve a los de siempre.", "Se guarda en este dispositivo."] },
+    { t: "Cambiar el precio de un insumo sin comprar", k: "precio costo insumo actualizar sin comprar investigar proveedor cantidad unidad", go: "proveedores", p: ["En Proveedores abrí el insumo y usá «Precio actual».", "Poné cantidad, unidad y precio total, y tocá Guardar precio: el stock no cambia.", "«Registrar compra» es solo para cuando de verdad compraste (suma stock)."] },
     { t: "Filtrar y ordenar listas", k: "filtrar filtro filtros ordenar orden embudo combinar aplicar limpiar escoba buscar", go: "productos", p: ["En Productos, Pedidos, Stock, Packs, Recetas, Cupones, Reseñas y Lista de espera tocá el embudo.", "Elegí varias opciones: se combinan. El botón Aplicar aparece solo apenas elegís algo.", "Con filtros puestos aparece al lado una escoba roja: tocala para limpiarlos sin entrar."] },
     { t: "Cambiar el orden de packs, combos, cookies o cupones", k: "mover subir bajar orden ordenar arriba abajo packs combos productos cupones mantener apretado", go: "packs", p: ["Mantené apretado un elemento para elegirlo (se mueve un poquito).", "Podés elegir varios.", "Abajo tocá ↑ Subir o ↓ Bajar. Sin filtros puestos; en la tienda se ve en ese orden."] },
     { t: "Cambiar el precio de una cookie", k: "precio cambiar cambio modificar subir bajar aumentar cookie producto valor cuanto", go: "productos", p: ["Tocá Productos abajo.", "Buscá la cookie y tocá el número del precio.", "Escribí el precio nuevo y salí del campo: se guarda solo y se ve en la tienda."] },

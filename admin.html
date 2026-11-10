@@ -2574,9 +2574,14 @@ body.selmode .nav{visibility:hidden}
   var FXI = '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg>';
   function fxBtn(key, wide) {
     var n = fxCount(key);
-    return '<button class="btn" data-fxk="' + key + '" aria-label="Filtrar y ordenar" style="' + (wide ? "padding:0 14px;" : "width:52px;padding:0;") + "display:inline-flex;align-items:center;justify-content:center;gap:6px;" + (n ? "" : "background:#fff;color:var(--blue,#0F59C4);border:1.5px solid #cfdcf3;") + '">' + FXI + (wide ? "<span>Filtrar y ordenar</span>" : "") + (n ? '<sup style="font-size:.62rem">' + n + "</sup>" : "") + "</button>";
+    return '<button class="btn" data-fxk="' + key + '" aria-label="Filtrar y ordenar" style="' + (wide ? "padding:0 14px;" : "width:40px;height:40px;min-height:0;padding:0;border-radius:50%;") + "display:inline-flex;align-items:center;justify-content:center;gap:6px;" + (n ? "" : "background:#fff;color:var(--blue,#0F59C4);border:1.5px solid #cfdcf3;") + '">' + FXI + (wide ? "<span>Filtrar y ordenar</span>" : "") + (n ? '<sup style="font-size:.62rem">' + n + "</sup>" : "") + "</button>";
   }
-  function fxRow(key) { return '<div style="display:flex;justify-content:flex-end;margin:0 0 10px">' + fxBtn(key, true) + "</div>"; }
+  function fxRow(key) { return "<!--FXR:" + key + "-->"; }
+  function fxResolve(h, inBar) {
+    var m = /<!--FXR:(\w+)-->/.exec(h); if (!m) return [h, ""];
+    var ic = '<span style="position:absolute;right:0;top:50%;transform:translateY(-50%)">' + fxBtn(m[1]) + "</span>";
+    return [h.replace(m[0], inBar ? "" : '<div style="display:flex;justify-content:flex-end;margin:0 0 10px">' + fxBtn(m[1]) + "</div>"), inBar ? ic : ""];
+  }
   function fxSearch(inp, key) { return '<div style="display:flex;gap:8px;margin-bottom:10px">' + inp + fxBtn(key) + "</div>"; }
   function fxPop(key) {
     var d = FXD[key]; if (!d) return;
@@ -2667,7 +2672,8 @@ body.selmode .nav{visibility:hidden}
     saveFlt();
     var y = window.scrollY, V = { reportes: renderReportes, inicio: renderInicio, pedidos: renderPedidos, productos: renderProductos, mas: renderMas, packs: renderPacks, recetas: renderRecetas, finanzas: renderFinanzas, textos: renderTextos, tandas: renderTandas, cola: renderCola, proveedores: renderProv, stock: renderStock, puntos: renderPuntos, cupones: renderCupones, accesos: function () { return BACK + renderAccesos(); }, voz: renderVozCfg, resenas: renderResenas };
     st.popHtml = ""; var h = V[st.v]();
-    if (SUB.indexOf(st.v) >= 0 && h.indexOf(BACK) === 0 && NAMES[st.v]) h = '<div class="bk">' + BACK + '<button class="crumb" data-secnav="1" style="border:0;font:inherit;cursor:pointer">' + NAMES[st.v] + " ▾</button></div>" + h.slice(BACK.length);
+    var bar = SUB.indexOf(st.v) >= 0 && h.indexOf(BACK) === 0 && NAMES[st.v], fxr = fxResolve(h, !!bar); h = fxr[0];
+    if (bar) h = '<div class="bk">' + BACK + '<button class="crumb" data-secnav="1" style="border:0;font:inherit;cursor:pointer">' + NAMES[st.v] + " ▾</button>" + fxr[1] + "</div>" + h.slice(BACK.length);
     var act = document.activeElement, id = act && act.id, pos = act && act.selectionStart;
     var chs = st._cv === st.v ? Array.prototype.map.call(document.querySelectorAll("#view .chips"), function (c) { return c.scrollLeft; }) : []; st._cv = st.v;
     $("view").innerHTML = h; Array.prototype.forEach.call(document.querySelectorAll("#view .chips"), function (c, i) { if (chs[i]) c.scrollLeft = chs[i]; }); try { ntfScan(); } catch (x) {} try { ckSync(); } catch (x) {}

@@ -719,6 +719,9 @@ var DEFAULTS = {
     portada_segundos: 8,
     cookies_segundos: 5,
     franja: "",
+    texto_hoy_abrimos: "🔥 ¡HOY ABRIMOS PEDIDOS! Sé de los primeros: armá tu pedido ya.",
+    boton_hoy_abrimos: "Armá tu pedido ›",
+    texto_urgencia: "⏳ Se hornea una sola tanda y se agota: ¡pedí antes de que se terminen!",
     texto_manana_abrimos: "🔥 ¡MAÑANA ABRIMOS PEDIDOS! Las cookies vuelan: anotate en la cola y asegurá las tuyas.",
     boton_manana_abrimos: "Anotarme en la cola ›",
     texto_faltan_dias: "Faltan {n} días",
@@ -856,7 +859,7 @@ var DEFAULTS = {
   }
 
   /* ---------- Datos ---------- */
-  var BLANK_OK = ["boton_franja", "texto_packs", "texto_promos", "whatsapp", "instagram_url", "instagram_usuario", "ayuda_mail", "ayuda_telefono", "facebook_url", "google_client_id", "texto_menu", "gracias_texto", "frase", "quienes_somos", "pie", "franja", "pack_categorias", "texto_manana_abrimos", "texto_aviso_cola", "texto_enterate_instagram", "texto_faltan_dias", "alias_transferencia", "whatsapp_pedidos"];
+  var BLANK_OK = ["boton_franja", "texto_packs", "texto_promos", "whatsapp", "instagram_url", "instagram_usuario", "ayuda_mail", "ayuda_telefono", "facebook_url", "google_client_id", "texto_menu", "gracias_texto", "frase", "quienes_somos", "pie", "franja", "pack_categorias", "texto_manana_abrimos", "texto_aviso_cola", "texto_enterate_instagram", "texto_faltan_dias", "texto_hoy_abrimos", "boton_hoy_abrimos", "texto_urgencia", "alias_transferencia", "whatsapp_pedidos"];
   function normalize(raw) {
     var c = {}, k;
     for (k in DEFAULTS.config) c[k] = DEFAULTS.config[k];
@@ -893,6 +896,7 @@ var DEFAULTS = {
     var c = data.config, now = new Date();
     cycle = null;
     for (var i = 0; i < data.tandas.length; i++) { if (parseDay(data.tandas[i].cierre) >= now) { cycle = data.tandas[i]; break; } }
+    var hoyOn = false;
     var apD = cycle && cycle.apertura ? (function (d) { d.setHours(0, 0, 0, 0); return d; })(parseDay(cycle.apertura)) : null;
     var sched = !!(apD && apD > now), apOk = !!(apD && apD <= now);
     var pa = String(c.pedidos_activos == null ? "SI" : c.pedidos_activos).trim().toUpperCase();
@@ -915,12 +919,14 @@ var DEFAULTS = {
       closeEnd = dc;
       if (cl <= 0) { $("k-close").textContent = "🔥 Pedidos hasta hoy 🔥"; }
       var ttl = cl <= 0 ? "¡ÚLTIMO DÍA!" : (cl === 1 ? "¡MAÑANA CIERRA!" : "Cierran los pedidos en");
-      $("cd-close").innerHTML = '<b class="ttl">' + ttl + '</b><span class="clock" id="clock"></span>';
+      $("cd-close").innerHTML = '<b class="ttl">' + ttl + '</b><span class="clock" id="clock"></span>' + (c.texto_urgencia ? '<div class="cdig">' + esc(c.texto_urgencia) + "</div>" : "");
       tick();
+      hoyOn = !!(apD && apD.getTime() === t0.getTime() && c.texto_hoy_abrimos);
       $("cd-deliv").hidden = true;
       $("cd-close").hidden = false;
       $("cd-close").className = "cd"; $("cd-close").hidden = false;
-      document.querySelector(".hero").classList.remove("wait", "alertmode");
+      document.querySelector(".hero").classList.remove("wait");
+      document.querySelector(".hero").classList.toggle("alertmode", hoyOn);
     } else {
       closeTxt = ""; deliveryTxt = "";
       var hero = document.querySelector(".hero"); hero.classList.add("wait");
@@ -939,7 +945,7 @@ var DEFAULTS = {
       $("cd-close").className = "cd"; $("cd-close").innerHTML = cdh; $("cd-close").hidden = !cdh;
       $("cd-deliv").hidden = true;
     }
-    (function () { var el = $("soon"); if (!el) return; var show = !!document.querySelector(".hero.alertmode"); el.hidden = !show; $("soon-t").textContent = show ? c.texto_manana_abrimos : ""; $("soon-b").textContent = c.boton_manana_abrimos; $("soon-b").hidden = !c.boton_manana_abrimos; })();
+    (function () { var el = $("soon"); if (!el) return; var show = !!document.querySelector(".hero.alertmode"); el.hidden = !show; var tx = hoyOn ? c.texto_hoy_abrimos : c.texto_manana_abrimos, bt = hoyOn ? c.boton_hoy_abrimos : c.boton_manana_abrimos; $("soon-t").textContent = show ? tx : ""; $("soon-b").textContent = bt; $("soon-b").hidden = !bt; })();
     setPortada(c);
     $("frase").textContent = c.frase;
     $("frase").hidden = !c.frase;
@@ -1863,7 +1869,7 @@ var DEFAULTS = {
     $("qpop-t").textContent = c.texto_aviso_cola; $("qpop").hidden = false; return true;
   }
     $("qpop-go").addEventListener("click", function () { $("qpop").hidden = true; var m = $("t-menu"); if (m) m.scrollIntoView({ behavior: "smooth", block: "start" }); });
-  $("soon-b").addEventListener("click", function () { if (totals().n > 0) openWait(); else { qpopShow(true); } });
+  $("soon-b").addEventListener("click", function () { if (!waitMode) { var m = $("t-menu"); if (m) m.scrollIntoView({ behavior: "smooth", block: "start" }); } else if (totals().n > 0) openWait(); else { qpopShow(true); } });
   document.addEventListener("click", function (e) { var b = e.target.closest && e.target.closest("[data-d]"); if (b && Number(b.getAttribute("data-d")) > 0) setTimeout(function () { qpopShow(false); }, 60); }, true);
   function openWait() {
     var s = null; try { s = JSON.parse(localStorage.getItem("uovo-cliente") || "null"); } catch (err) {}

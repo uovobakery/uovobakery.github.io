@@ -541,7 +541,6 @@ body:has(.backdrop:not([hidden])), body:has(.qpop-b:not([hidden])), body:has(.dr
   </div>
   <div class="soon" id="soon" hidden><span id="soon-t"></span><button type="button" id="soon-b"></button></div>
 </header>
-<div class="qpop-b" id="qpop" hidden><div class="qpop" role="dialog" aria-modal="true"><h3>🔔 ¡Anotate en la cola!</h3><p id="qpop-t"></p><button class="btn" id="qpop-go" type="button">Ver mi pedido y anotarme</button><button class="btn ghost" id="qpop-ok" type="button">Seguir eligiendo</button></div></div>
 </div>
 
 <div class="stripe"><button type="button" class="stripe-link" id="stripe-promos" hidden></button></div>
@@ -689,6 +688,7 @@ body:has(.backdrop:not([hidden])), body:has(.qpop-b:not([hidden])), body:has(.dr
   </div>
 </div>
 
+<div class="qpop-b" id="qpop" hidden><div class="qpop" role="dialog" aria-modal="true"><h3>🔔 ¡Anotate en la cola!</h3><p id="qpop-t"></p><button class="btn" id="qpop-go" type="button">Armá tu pedido ›</button></div></div>
 <script>
 /* ============================================================
    CONEXIÓN CON LA PLANILLA
@@ -1862,8 +1862,7 @@ var DEFAULTS = {
     qpShown = true; try { sessionStorage.setItem("uovo-qp", "1"); } catch (err) {}
     $("qpop-t").textContent = c.texto_aviso_cola; $("qpop").hidden = false; return true;
   }
-  $("qpop-ok").addEventListener("click", function () { $("qpop").hidden = true; });
-  $("qpop-go").addEventListener("click", function () { $("qpop").hidden = true; if (totals().n > 0) openWait(); else { var m = $("t-menu"); if (m) m.scrollIntoView({ behavior: "smooth", block: "start" }); } });
+    $("qpop-go").addEventListener("click", function () { $("qpop").hidden = true; var m = $("t-menu"); if (m) m.scrollIntoView({ behavior: "smooth", block: "start" }); });
   $("soon-b").addEventListener("click", function () { if (totals().n > 0) openWait(); else { qpopShow(true); } });
   document.addEventListener("click", function (e) { var b = e.target.closest && e.target.closest("[data-d]"); if (b && Number(b.getAttribute("data-d")) > 0) setTimeout(function () { qpopShow(false); }, 60); }, true);
   function openWait() {

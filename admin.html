@@ -229,6 +229,9 @@ body.selmode .nav{visibility:hidden}
 .scr{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #eef2fa}.scr:last-child{border:0}
 .scr .t{flex:1;min-width:0}.scr .t b{display:block}.scr .t small{color:var(--soft);font-size:.74rem}
 .scf{display:flex;gap:8px;margin:8px 0}.scf .inp{margin:0}
+/* Popups: no mover la página de fondo */
+.modal, .modal *, .fotos, .fotos * { overscroll-behavior: contain; }
+body:has(.modal), body:has(.fotos) { overflow: hidden; }
 </style>
 </head>
 <body>

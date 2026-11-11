@@ -481,6 +481,9 @@ button.scale:hover { background: #FFEBA3; }
 @media (min-width: 700px) { .fcols { grid-template-columns: 1fr 1fr; } }
 .fcol h3 { font: 600 1.05rem var(--font-display); margin-bottom: 12px; opacity: .95; }
 @media (prefers-reduced-motion: reduce) { *:not(.grid):not(.rgrid):not(.drawer) { transition: none !important; scroll-behavior: auto !important; } }
+/* Popups y carrito: no mover la página de fondo */
+.backdrop, .backdrop *, .qpop-b, .qpop-b *, .drawer, .drawer * { overscroll-behavior: contain; }
+body:has(.backdrop:not([hidden])), body:has(.qpop-b:not([hidden])), body:has(.drawer.open) { overflow: hidden; }
 </style>
 </head>
 <body>

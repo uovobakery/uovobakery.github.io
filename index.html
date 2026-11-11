@@ -850,7 +850,7 @@ var DEFAULTS = {
   }
 
   /* ---------- Datos ---------- */
-  var BLANK_OK = ["boton_franja", "texto_packs", "texto_promos", "whatsapp", "instagram_url", "instagram_usuario", "ayuda_mail", "ayuda_telefono", "facebook_url", "google_client_id", "texto_menu", "gracias_texto", "frase", "quienes_somos", "pie", "franja", "texto_manana_abrimos", "texto_aviso_cola", "texto_enterate_instagram", "alias_transferencia", "whatsapp_pedidos"];
+  var BLANK_OK = ["boton_franja", "texto_packs", "texto_promos", "whatsapp", "instagram_url", "instagram_usuario", "ayuda_mail", "ayuda_telefono", "facebook_url", "google_client_id", "texto_menu", "gracias_texto", "frase", "quienes_somos", "pie", "franja", "pack_categorias", "texto_manana_abrimos", "texto_aviso_cola", "texto_enterate_instagram", "alias_transferencia", "whatsapp_pedidos"];
   function normalize(raw) {
     var c = {}, k;
     for (k in DEFAULTS.config) c[k] = DEFAULTS.config[k];
@@ -1732,7 +1732,9 @@ var DEFAULTS = {
   var pkTier = null, pkSel = {};
   function pkAllowed() {
     var vs = (pkTier.vars || []).map(function (x) { return x.toLowerCase(); });
-    return data.productos.filter(function (p) { return !p.agotada && (!vs.length || vs.indexOf(p.nombre.toLowerCase()) >= 0); });
+    var pcm = {}; try { pcm = JSON.parse(data.config.pack_categorias || "{}") || {}; } catch (e) { pcm = {}; }
+    var cs = (Array.isArray(pcm[String(pkTier.q)]) ? pcm[String(pkTier.q)] : []).map(function (x) { return String(x).trim().toLowerCase(); });
+    return data.productos.filter(function (p) { return !p.agotada && (!vs.length || vs.indexOf(p.nombre.toLowerCase()) >= 0) && (!cs.length || cs.indexOf(String(p.categoria || "").trim().toLowerCase()) >= 0); });
   }
   function pkTotal() { return Object.keys(pkSel).reduce(function (a, n) { return a + pkSel[n]; }, 0); }
   function pkRender() {

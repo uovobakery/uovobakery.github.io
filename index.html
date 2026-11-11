@@ -49,9 +49,11 @@ a { color: inherit; }
 .hero .logo p { font-weight: 700; color: var(--ink-soft); }
 .hero.wait { grid-template-columns: 1fr; grid-template-areas: "logo" "cl"; }
 .hero.wait #box-deliv { display: none; }
+.hero.alertmode #box-close { display: none; }
+.hero .soon { grid-area: cl; margin: 0; width: 100%; max-width: 560px; justify-self: center; box-sizing: border-box; }
 .hero.wait #box-close { width: 100%; max-width: 560px; justify-self: center; }
 .cdig { font-weight: 700; font-size: .92rem; margin-top: 4px; }
-.cdig .iglink { color: #0F59C4; text-decoration: underline; font-weight: 800; }
+.cdig .iglink { color: #fff; text-decoration: underline; text-underline-offset: 3px; font-weight: 800; }
 @media (min-width: 760px) { .hero.wait { grid-template-columns: 1fr; grid-template-areas: "logo" "cl"; } .hero.wait #box-close { max-width: 560px; justify-self: center; } }
 .soon { margin: 12px auto 0; max-width: 560px; padding: 12px 14px; border-radius: 16px; background: linear-gradient(100deg, #ffe45c, #ffb52e, #ffe45c); background-size: 200% 100%; color: #0b2f73; font-weight: 800; text-align: center; font-size: 1rem; line-height: 1.25; box-shadow: 0 4px 16px rgba(255,160,0,.45); animation: soonbg 3s linear infinite, soonpulse 1.6s ease-in-out infinite; display: grid; gap: 8px; justify-items: center; }
 .soon[hidden] { display: none; }
@@ -537,8 +539,8 @@ body:has(.backdrop:not([hidden])), body:has(.qpop-b:not([hidden])), body:has(.dr
     <span class="d" id="d-deliv"></span>
     <span class="cd" id="cd-deliv" hidden></span>
   </div>
+  <div class="soon" id="soon" hidden><span id="soon-t"></span><button type="button" id="soon-b"></button></div>
 </header>
-<div class="soon" id="soon" hidden><span id="soon-t"></span><button type="button" id="soon-b"></button></div>
 <div class="qpop-b" id="qpop" hidden><div class="qpop" role="dialog" aria-modal="true"><h3>🔔 ¡Anotate en la cola!</h3><p id="qpop-t"></p><button class="btn" id="qpop-go" type="button">Ver mi pedido y anotarme</button><button class="btn ghost" id="qpop-ok" type="button">Seguir eligiendo</button></div></div>
 </div>
 
@@ -719,6 +721,7 @@ var DEFAULTS = {
     franja: "",
     texto_manana_abrimos: "🔥 ¡MAÑANA ABRIMOS PEDIDOS! Las cookies vuelan: anotate en la cola y asegurá las tuyas.",
     boton_manana_abrimos: "Anotarme en la cola ›",
+    texto_faltan_dias: "Faltan {n} días",
     texto_enterate_instagram: "Enterate cuándo abrimos en nuestro {instagram}",
     texto_aviso_cola: "Ya podés armar tu pedido y anotarte en la cola. Te avisamos por WhatsApp apenas abramos los pedidos, así no te quedás sin tus cookies.",
     instagram_url: "https://www.instagram.com/uovo.bahiablanca/",
@@ -853,7 +856,7 @@ var DEFAULTS = {
   }
 
   /* ---------- Datos ---------- */
-  var BLANK_OK = ["boton_franja", "texto_packs", "texto_promos", "whatsapp", "instagram_url", "instagram_usuario", "ayuda_mail", "ayuda_telefono", "facebook_url", "google_client_id", "texto_menu", "gracias_texto", "frase", "quienes_somos", "pie", "franja", "pack_categorias", "texto_manana_abrimos", "texto_aviso_cola", "texto_enterate_instagram", "alias_transferencia", "whatsapp_pedidos"];
+  var BLANK_OK = ["boton_franja", "texto_packs", "texto_promos", "whatsapp", "instagram_url", "instagram_usuario", "ayuda_mail", "ayuda_telefono", "facebook_url", "google_client_id", "texto_menu", "gracias_texto", "frase", "quienes_somos", "pie", "franja", "pack_categorias", "texto_manana_abrimos", "texto_aviso_cola", "texto_enterate_instagram", "texto_faltan_dias", "alias_transferencia", "whatsapp_pedidos"];
   function normalize(raw) {
     var c = {}, k;
     for (k in DEFAULTS.config) c[k] = DEFAULTS.config[k];
@@ -916,21 +919,27 @@ var DEFAULTS = {
       tick();
       $("cd-deliv").hidden = true;
       $("cd-close").hidden = false;
-      document.querySelector(".hero").classList.remove("wait");
+      $("cd-close").className = "cd"; $("cd-close").hidden = false;
+      document.querySelector(".hero").classList.remove("wait", "alertmode");
     } else {
       closeTxt = ""; deliveryTxt = "";
-      document.querySelector(".hero").classList.add("wait");
+      var hero = document.querySelector(".hero"); hero.classList.add("wait");
+      var days = 0; if (sched) { var tA = new Date(now.getFullYear(), now.getMonth(), now.getDate()); days = Math.round((apD - tA) / 864e5); }
+      var alertOn = !!(sched && days === 1 && c.texto_manana_abrimos);
+      hero.classList.toggle("alertmode", alertOn);
       $("k-close").textContent = "Próxima tanda";
       $("d-close").textContent = sched ? longDate(parseDay(cycle.apertura)) : "Muy pronto";
       if (sched) $("k-close").textContent = "Abrimos pedidos el";
-      var igu = String(c.instagram_url || "").trim(), igt = String(c.texto_enterate_instagram || "").trim();
+      var igu = String(c.instagram_url || "").trim(), igt = String(c.texto_enterate_instagram || "").trim(), cdh = "";
+      if (sched && days > 1 && c.texto_faltan_dias) cdh += '<b class="ttl">' + esc(c.texto_faltan_dias).replace(/\{n\}/gi, days) + "</b>";
       if (igt) {
         var ig = igu ? '<a href="' + esc(igu) + '" target="_blank" rel="noopener" class="iglink">Instagram</a>' : "Instagram";
-        $("cd-close").className = "cd cdig"; $("cd-close").innerHTML = esc(igt).replace(/\{instagram\}/gi, ig); $("cd-close").hidden = false;
-      } else $("cd-close").hidden = true;
+        cdh += '<div class="cdig">' + esc(igt).replace(/\{instagram\}/gi, ig) + "</div>";
+      }
+      $("cd-close").className = "cd"; $("cd-close").innerHTML = cdh; $("cd-close").hidden = !cdh;
       $("cd-deliv").hidden = true;
     }
-    (function () { var el = $("soon"); if (!el) return; var show = false; if (sched && c.texto_manana_abrimos) { var a0 = parseDay(cycle.apertura); a0.setHours(0, 0, 0, 0); var t1 = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1); show = a0.getTime() === t1.getTime(); } el.hidden = !show; $("soon-t").textContent = show ? c.texto_manana_abrimos : ""; $("soon-b").textContent = c.boton_manana_abrimos; $("soon-b").hidden = !c.boton_manana_abrimos; })();
+    (function () { var el = $("soon"); if (!el) return; var show = !!document.querySelector(".hero.alertmode"); el.hidden = !show; $("soon-t").textContent = show ? c.texto_manana_abrimos : ""; $("soon-b").textContent = c.boton_manana_abrimos; $("soon-b").hidden = !c.boton_manana_abrimos; })();
     setPortada(c);
     $("frase").textContent = c.frase;
     $("frase").hidden = !c.frase;

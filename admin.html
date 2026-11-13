@@ -765,6 +765,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
       if (!filOk(p)) return false;
       return !q || (p.nombre + " " + p.id + " " + p.pedido + " " + p.tel).toLowerCase().indexOf(q) >= 0;
     }));
+    if (!(st.cfg || []).length && !st.cfgf) { st.cfgf = 1; api("config").then(function (j) { if (j && j.ok) st.cfg = j.config; }).catch(function () {}); }
     if (!st.loaded.productos && !st.pprf) { st.pprf = 1; api("catalogo").then(function (j) { if (j && j.ok) { st.productos = j.catalogo; st.loaded.productos = true; if (st.v === "pedidos") render(true); } }).catch(function () {}); }
     var PP = [["todo", "Todo"], ["hoy", "Hoy"], ["sem", "Esta semana"], ["mes", "Este mes"], ["anio", "Este año"], ["rng", "Personalizado"]];
     var h = colBanner() + '<div class="mbtn"><button class="btn" data-pnew="1">' + (st.pnew ? "✕ Cerrar" : "＋ Nuevo pedido") + '</button><button class="btn sec" data-masas="1">🥣 Masas</button></div>' + (st.pnew ? pedForm() : "") +
@@ -784,7 +785,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
           '<textarea class="inp" rows="2" data-pnota="1" placeholder="Nota del pedido…" style="margin-top:8px">' + esc(p.notas) + "</textarea>" +
           (c ? '<div style="margin-top:8px"><span class="badge">' + (p.cl ? "Cancelado por el cliente" : "Cancelado por nosotros") + "</span></div>" :
             ('<div class="tgl"><button class="tg' + (p.ap ? " on" : "") + '" data-t="ap">' + (p.ap ? "✓ " : "") + 'Aprobado</button><button class="tg' + (p.he ? " on" : "") + '" data-t="he">' + (p.he ? "✓ " : "") + 'Hecho</button><button class="tg' + (p.en ? " on" : "") + '" data-t="en">' + (p.en ? "✓ " : "") + "Entregado</button></div>")) +
-          '<div class="row" style="margin-top:10px;align-items:center"><button class="sm" data-dpedit="1">✏️ Editar</button><button class="sm red" data-dpe="1">Eliminar pedido</button>' +
+          '<div class="row" style="margin-top:10px;align-items:center"><button class="sm" data-dpedit="1">✏️ Editar</button>' + (wa ? '<button class="sm" data-dpwa="1">💬 Avisar</button>' : "") + '<button class="sm red" data-dpe="1">Eliminar pedido</button>' +
           (p.cl ? "" : (p.cc ? '<button class="sm" data-t="cc" data-v="0">Reactivar</button>' : '<button class="sm red" data-cc="1">Cancelar pedido</button>')) + "</div>";
       }
       var so = String(st.swo) === String(p.r); b = so ? b.replace('<article class="card pc', '<article data-open="r" style="transform:translateX(-84px)" class="card pc') : b;
@@ -828,8 +829,39 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
     if (!m) { m = document.createElement("div"); m.id = "curm"; m.className = "modal"; m.addEventListener("click", function (e) { if (e.target === m || e.target.closest("[data-popx]")) { st.curpop = false; st.sel = null; m.remove(); selSync(); return; } var g = e.target.closest("[data-popgo]"); if (g) { var x = CPG[st.curpop === true ? "cur" : st.curpop]; st.curpop = false; m.remove(); if (x[1]) st.fil = x[1]; goto(x[0]); } }); document.body.appendChild(m); }
     m.innerHTML = '<div class="box" style="width:100%;max-height:88vh;overflow:auto"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><h3 style="margin:0;flex:1">' + (CPT[k] || "Pedidos") + ' (' + cur.length + ')</h3><button class="sm" data-popgo="1" aria-label="Abrir sección"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5"/><path d="M14 3h7v7"/><path d="M21 3l-9 9"/></svg></button></div>' + (cur.length ? '<div class="meta" style="margin:0 0 8px">Total ' + money(tot) + '</div>' + cur.map(curRow).join("") : '<div class="empty">Sin pedidos.</div>') + '<button class="btn" data-popx="1" style="margin-top:6px">Cerrar</button></div>';
   }
+  var WAK = {
+    ap: ["wa_aprobado", "Hola {nombre}! 💙 Tu pedido {id} fue aprobado ✅ Total {total}. Ya lo anotamos para la tanda. Entrega: {entrega}. ¡Gracias por elegir Uovo!"],
+    he: ["wa_hecho", "Hola {nombre}! 🍪 Tu pedido {id} ya está hecho. Entrega: {entrega}. Te escribimos para coordinar."],
+    en: ["wa_entregado", "Hola {nombre}! Tu pedido {id} fue entregado 🎉 ¡Gracias por tu compra! Contanos qué te parecieron las cookies 💙"],
+    cc: ["wa_cancelado", "Hola {nombre}, tuvimos que cancelar tu pedido {id}. Escribinos y lo vemos juntos 🙏"],
+    mod: ["wa_modificado", "Hola {nombre}! Modificamos tu pedido {id} 📝\n{pedido}\nTotal {total}. Cualquier cosa avisanos 💙"]
+  };
+  function cfgv(k) { var r = (st.cfg || []).filter(function (x) { return x.k === k; })[0]; return r ? String(r.v == null ? "" : r.v).trim() : ""; }
+  function waText(kind, p) {
+    var w = WAK[kind]; if (!w) return ""; var t = cfgv(w[0]) || w[1];
+    return t.replace(/\{nombre\}/gi, String(p.nombre || "").split(" ")[0]).replace(/\{id\}/gi, p.id || "").replace(/\{total\}/gi, money(p.total)).replace(/\{entrega\}/gi, p.entrega || "a coordinar").replace(/\{pedido\}/gi, p.pedido || "");
+  }
+  function waAsk(p, kind) {
+    var wa = waLink(p.tel); if (!wa || !WAK[kind]) return;
+    var old = document.getElementById("waask"); if (old) old.remove();
+    var m = document.createElement("div"); m.className = "modal"; m.id = "waask";
+    m.innerHTML = '<div class="box" style="width:100%"><h3>💬 Avisar a ' + esc(String(p.nombre || "").split(" ")[0]) + '</h3><div class="meta">Mensaje por WhatsApp (podés editarlo antes de enviar)</div><textarea class="inp" rows="6" id="waask-t" style="margin:8px 0">' + esc(waText(kind, p)) + '</textarea><div style="display:flex;gap:8px"><button class="btn" data-w="go" style="flex:1">Enviar por WhatsApp</button><button class="sm" data-w="no">Ahora no</button></div></div>';
+    document.body.appendChild(m);
+    m.addEventListener("click", function (e) { var b = e.target.closest("[data-w]"); if (b && b.getAttribute("data-w") === "go") { window.open(wa + "?text=" + encodeURIComponent($("waask-t").value), "_blank"); m.remove(); return; } if (b || e.target === m) m.remove(); });
+  }
+  function pickProd(cb) {
+    var m = document.createElement("div"); m.className = "modal";
+    var L = (st.productos || []).filter(function (x) { return x.nombre && !x.arch; });
+    function list(q) { q = nrm(q || ""); return L.filter(function (x) { return !q || nrm(x.nombre).indexOf(q) >= 0; }).map(function (x) { return '<button type="button" class="chip" data-pk="' + esc(x.nombre) + '" style="display:block;width:100%;text-align:left;margin:0 0 6px">' + esc(x.nombre) + ' <small style="opacity:.7">· ' + money(x.precio) + (x.ag ? " · agotada" : "") + "</small></button>"; }).join("") || '<div class="empty">Sin resultados.</div>'; }
+    m.innerHTML = '<div class="box" style="width:100%;max-height:85vh;overflow:auto"><h3>Agregar producto</h3><input class="inp" id="pk-q" placeholder="Buscar…" autocomplete="off"><div id="pk-l" style="margin-top:8px">' + list("") + '</div><button class="sm" data-pkx="1" style="margin-top:6px">Cancelar</button></div>';
+    document.body.appendChild(m);
+    m.addEventListener("input", function (e) { if (e.target.id === "pk-q") $("pk-l").innerHTML = list(e.target.value); });
+    m.addEventListener("click", function (e) { var b = e.target.closest("[data-pk]"); if (b) { var n = b.getAttribute("data-pk"); m.remove(); cb(n); return; } if (e.target === m || e.target.closest("[data-pkx]")) m.remove(); });
+  }
   function pedModal(p, startEdit) {
-    var m = document.createElement("div"); m.className = "modal"; var edit = !!startEdit;
+    var m = document.createElement("div"); m.className = "modal"; var edit = !!startEdit, addl = [], ed = {}, edq = {};
+    function capture() { ["pe-n", "pe-t", "pe-ml", "pe-e", "pe-p", "pe-m"].forEach(function (id) { var e = $(id); if (e) ed[id] = e.value; }); Array.prototype.forEach.call(m.querySelectorAll("[data-peq]"), function (i) { edq[i.getAttribute("data-peq")] = i.value; }); }
+    function ev(id, d) { return ed[id] !== undefined ? ed[id] : d; }
     function hist() {
       var td = String(p.tel || "").replace(/\D/g, "").slice(-8), ml = String(p.mail || "").toLowerCase();
       var h = st.pedidos.filter(function (x) { return x !== p && !(x.cc || x.cl) && ((td.length >= 8 && String(x.tel || "").replace(/\D/g, "").slice(-8) === td) || (ml && String(x.mail || "").toLowerCase() === ml)); });
@@ -837,16 +869,17 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
     }
     function drawEdit() {
       var pi = pedItems(p), lock = pi.packs || pi.combos, pr = (st.productos || []).filter(function (x) { return x.nombre; }).map(function (x) { return x.nombre; });
-      Object.keys(pi.cookies).forEach(function (k) { if (pr.indexOf(k) < 0) pr.push(k); });
-      m.innerHTML = '<div class="box" style="width:100%;max-height:90vh;overflow:auto"><h3>Editar pedido ' + esc(p.id) + '</h3><div class="add"><input class="inp" id="pe-n" placeholder="Nombre" value="' + esc(p.nombre) + '"><input class="inp" id="pe-t" inputmode="tel" placeholder="Teléfono" value="' + esc(p.tel || "") + '"><input class="inp" id="pe-ml" type="email" inputmode="email" autocapitalize="off" placeholder="Mail" value="' + esc(p.mail || "") + '"><input class="inp" id="pe-e" placeholder="Entrega (ej. viernes, 30 de octubre)" value="' + esc(p.entrega || "") + '"><input type="hidden" id="pe-p" value="' + esc(p.pago || "") + '"><div class="chips" style="margin:0 0 8px">' + ["Efectivo", "Transferencia", "Pago full"].map(function (o) { return '<button type="button" class="chip' + (p.pago === o ? " on" : "") + '" data-payv="pe-p" data-v="' + o + '">' + o + "</button>"; }).join("") + "</div>" +
-        (lock ? '<div class="meta">Este pedido tiene packs o combos: las cantidades no se editan acá.</div>' : '<div class="meta">Cookies (cantidad de cada una)</div>' + pr.map(function (k) { return '<div class="rl" style="display:flex;gap:8px;align-items:center"><span style="flex:1">' + esc(k) + '</span><input class="inp" type="number" min="0" inputmode="numeric" data-peq="' + esc(k) + '" value="' + (pi.cookies[k] || "") + '" style="max-width:80px"></div>'; }).join("")) +
-        '<input class="inp" id="pe-m" inputmode="numeric" placeholder="Total $ (si cambiás cantidades, se recalcula solo)" value="' + (Number(p.total) || "") + '"><div style="display:flex;gap:8px"><button class="btn" data-a="save" style="flex:1">Guardar</button><button class="sm" data-a="back">Cancelar</button></div></div></div>';
+      var names = (lock ? [] : Object.keys(pi.cookies)).concat(addl.filter(function (n) { return !(n in pi.cookies) || lock; }));
+      var rowsH = names.map(function (k) { var pz = (st.productos || []).filter(function (x) { return x.nombre === k; })[0], dv = edq[k] !== undefined ? edq[k] : (addl.indexOf(k) >= 0 && !(k in pi.cookies && !lock) ? 1 : (pi.cookies[k] || "")); return '<div class="rl" style="display:flex;gap:8px;align-items:center"><span style="flex:1">' + esc(k) + (pz ? ' <small style="opacity:.6">' + money(pz.precio) + "</small>" : "") + '</span><input class="inp" type="number" min="0" inputmode="numeric" data-peq="' + esc(k) + '" value="' + esc(dv) + '" style="max-width:80px"></div>'; }).join("");
+      m.innerHTML = '<div class="box" style="width:100%;max-height:90vh;overflow:auto"><h3>Editar pedido ' + esc(p.id) + '</h3><div class="add"><input class="inp" id="pe-n" placeholder="Nombre" value="' + esc(ev("pe-n", p.nombre)) + '"><input class="inp" id="pe-t" inputmode="tel" placeholder="Teléfono" value="' + esc(ev("pe-t", p.tel || "")) + '"><input class="inp" id="pe-ml" type="email" inputmode="email" autocapitalize="off" placeholder="Mail" value="' + esc(ev("pe-ml", p.mail || "")) + '"><input class="inp" id="pe-e" placeholder="Entrega (ej. viernes, 30 de octubre)" value="' + esc(ev("pe-e", p.entrega || "")) + '"><input type="hidden" id="pe-p" value="' + esc(ev("pe-p", p.pago || "")) + '"><div class="chips" style="margin:0 0 8px">' + ["Efectivo", "Transferencia", "Pago full"].map(function (o) { return '<button type="button" class="chip' + (ev("pe-p", p.pago) === o ? " on" : "") + '" data-payv="pe-p" data-v="' + o + '">' + o + "</button>"; }).join("") + "</div>" +
+        (lock ? '<div class="meta">Este pedido tiene packs o combos: sus cantidades no se tocan, pero podés agregar productos extra (se suman al total).</div>' : '<div class="meta">Productos (cantidad de cada uno)</div>') + rowsH + '<button type="button" class="sm" data-a="padd" style="margin:6px 0 8px">＋ Agregar producto</button>' +
+        '<input class="inp" id="pe-m" inputmode="numeric" placeholder="Total $ (si cambiás cantidades, se recalcula solo)" value="' + esc(ev("pe-m", Number(p.total) || "")) + '"><div style="display:flex;gap:8px"><button class="btn" data-a="save" style="flex:1">Guardar</button><button class="sm" data-a="back">Cancelar</button></div></div></div>';
     }
     function draw() {
       if (edit) { drawEdit(); return; }
       var c = p.cc || p.cl, wa = waLink(p.tel), hh = hist();
       m.innerHTML = '<div class="box" style="width:100%;max-height:90vh;overflow:auto"><h3>' + esc(p.nombre) + '</h3><div class="meta">' + esc(p.id) + " · " + esc(p.fecha) + (p.pago ? " · " + esc(p.pago) : "") + (p.cupon ? " · Cupón " + esc(p.cupon) : "") + (p.entrega ? " · Entrega " + esc(p.entrega) : "") + "</div>" + (p.mail ? '<div class="meta">✉️ ' + esc(p.mail) + "</div>" : "") + (hh ? '<div class="meta"><b>' + hh + "</b></div>" : "") + '<div class="tot" style="margin:6px 0">' + money(p.total) + " · " + (Number(p.cant) || 0) + ' cookies</div><div style="white-space:pre-wrap;margin:6px 0 10px;line-height:1.4">' + esc(p.pedido || "") + "</div>" +
-        (wa ? '<div class="meta" style="margin-top:6px">💬 Avisar por WhatsApp a ' + esc(p.tel) + ':</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 8px">' + [["✅ Confirmado", "Hola " + String(p.nombre).split(" ")[0] + "! Tu pedido " + p.id + " está confirmado ✅ Total " + money(p.total) + ". ¡Gracias por elegir Uovo! 🍪"], ["🍪 Listo", "Hola " + String(p.nombre).split(" ")[0] + "! Tu pedido " + p.id + " ya está listo 🍪 ¿Coordinamos la entrega?"], ["💙 Gracias", "Hola " + String(p.nombre).split(" ")[0] + "! Gracias por tu compra 💙 Contanos qué te parecieron las cookies."]].map(function (w) { return '<a class="sm" target="_blank" rel="noopener" href="' + wa + "?text=" + encodeURIComponent(w[1]) + '">' + w[0] + "</a>"; }).join("") + "</div>" : "") + '<button class="sm" data-a="edit">✏️ Editar pedido</button>' +
+        (wa ? '<div class="meta" style="margin-top:6px">💬 Avisar por WhatsApp a ' + esc(p.tel) + ':</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 8px">' + [["✅ Aprobado", "ap"], ["🍪 Hecho", "he"], ["🎉 Entregado", "en"], ["📝 Modificado", "mod"], ["✖️ Cancelado", "cc"]].map(function (w) { return '<a class="sm" target="_blank" rel="noopener" href="' + wa + "?text=" + encodeURIComponent(waText(w[1], p)) + '">' + w[0] + "</a>"; }).join("") + "</div>" : "") + '<button class="sm" data-a="edit">✏️ Editar pedido</button>' +
         '<textarea class="inp" rows="2" id="pm-n" placeholder="Nota del pedido…" style="margin-top:8px">' + esc(p.notas) + "</textarea>" +
         (c ? '<div style="margin:8px 0"><span class="badge">' + (p.cl ? "Cancelado por el cliente" : "Cancelado por nosotros") + "</span></div>" : '<div class="tgl" style="margin:8px 0">' + [["ap", "Aprobado"], ["he", "Hecho"], ["en", "Entregado"]].map(function (t) { return '<button class="tg' + (p[t[0]] ? " on" : "") + '" data-t="' + t[0] + '">' + (p[t[0]] ? "✓ " : "") + t[1] + "</button>"; }).join("") + "</div>") +
         '<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="sm red" data-a="del">Eliminar</button>' + (p.cl ? "" : p.cc ? '<button class="sm" data-a="re">Reactivar</button>' : '<button class="sm red" data-a="cc">Cancelar pedido</button>') + '<button class="btn" data-a="x" style="flex:1">Cerrar</button></div></div>';
@@ -857,19 +890,22 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
       var t = e.target.closest("[data-t]"), a = e.target.closest("[data-a]");
       if (t) { var nt = $("pm-n"); if (nt && nt.value !== (p.notas || "")) patchPedido(p.r, "notas", nt.value); patchPedido(p.r, t.getAttribute("data-t"), !p[t.getAttribute("data-t")]); draw(); return; }
       if (a) { var k = a.getAttribute("data-a"), nt2 = $("pm-n"); if (nt2 && !edit && nt2.value !== (p.notas || "")) patchPedido(p.r, "notas", nt2.value);
-        if (k === "x") { m.remove(); return; } if (k === "edit") { edit = true; draw(); return; } if (k === "back") { edit = false; draw(); return; }
+        if (k === "x") { m.remove(); return; } if (k === "edit") { edit = true; draw(); return; } if (k === "back") { edit = false; addl = []; ed = {}; edq = {}; draw(); return; }
+        if (k === "padd") { capture(); pickProd(function (n) { var q0 = pedItems(p).cookies; if (addl.indexOf(n) < 0) addl.push(n); if (edq[n] === undefined) edq[n] = (n in q0 && !(pedItems(p).packs || pedItems(p).combos)) ? q0[n] : 1; drawEdit(); }); return; }
         if (k === "save") {
           var pi = pedItems(p), lock = pi.packs || pi.combos, its = [], ch = false, sv = a;
-          Array.prototype.forEach.call(m.querySelectorAll("[data-peq]"), function (i) { var q = Math.floor(Number(i.value) || 0), k0 = i.getAttribute("data-peq"); if (q > 0) its.push({ nombre: k0, cantidad: q }); if (q !== (pi.cookies[k0] || 0)) ch = true; });
-          if (!lock && ch && !its.length) { toast("Dejá al menos una cookie"); return; }
+          var exP = 0;
+          Array.prototype.forEach.call(m.querySelectorAll("[data-peq]"), function (i) { var q = Math.floor(Number(i.value) || 0), k0 = i.getAttribute("data-peq"); if (q > 0) its.push({ nombre: k0, cantidad: q }); if (q !== (lock ? 0 : (pi.cookies[k0] || 0))) ch = true; if (lock && q > 0) { var pz0 = (st.productos || []).filter(function (x) { return x.nombre === k0; })[0]; exP += (pz0 ? Number(pz0.precio) || 0 : 0) * q; } });
+          if (lock && ch) its = Object.keys(pi.cookies).map(function (k1) { return { nombre: k1, cantidad: pi.cookies[k1] }; }).concat(its);
+          if (!lock && ch && !its.length) { toast("Dejá al menos un producto"); return; }
           var body = { id: p.id, r: p.r, nombre: $("pe-n").value.trim(), telefono: $("pe-t").value.trim(), email: $("pe-ml").value.trim(), entrega: $("pe-e").value.trim(), pago: $("pe-p").value };
           if (!body.nombre) { toast("Poné el nombre"); return; }
-          if (!lock && ch) body.items = its; var tv = parseAR($("pe-m").value); if (tv > 0 && tv !== Number(p.total)) body.total = tv;
+          if (ch) body.items = its; var tv = parseAR($("pe-m").value); if (tv > 0 && tv !== Number(p.total)) body.total = tv; else if (lock && ch) body.total = Number(p.total) + exP;
           sv.disabled = true; sv.textContent = "Guardando…";
           api("editPedido", body).then(function (j) {
             if (!j || !j.ok) { sv.disabled = false; sv.textContent = "Guardar"; toast(j && j.msg || "No se pudo guardar"); return; }
             store("uovo_c_pedidos", null);
-            return api("pedidos").then(function (k2) { if (k2 && k2.ok) { st.pedidos = k2.pedidos; var np = st.pedidos.filter(function (z) { return z.id === p.id; })[0]; if (np) p = np; } edit = false; draw(); render(true); toast("Pedido actualizado ✓"); });
+            return api("pedidos").then(function (k2) { if (k2 && k2.ok) { st.pedidos = k2.pedidos; var np = st.pedidos.filter(function (z) { return z.id === p.id; })[0]; if (np) p = np; } edit = false; addl = []; ed = {}; edq = {}; draw(); render(true); toast("Pedido actualizado ✓"); if (ch || body.total) waAsk(p, "mod"); });
           }).catch(function () { sv.disabled = false; sv.textContent = "Guardar"; toast("No se pudo guardar"); });
           return;
         }
@@ -1094,7 +1130,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
     var old = p[campo], oldcc = p.cc; p[campo] = valor; if (campo === "te") p.cc = valor; render(true);
     api("setPedido", { r: r, id: p.id, campo: campo, valor: valor }).then(function (j) {
       if (!j || !j.ok) { p[campo] = old; p.cc = oldcc; render(true); toast(j && j.msg || "No se pudo guardar"); return; }
-      for (var k in j.p) p[k] = j.p[k]; render(true); if ((campo === "en" || campo === "he") && valor) cpdFreeze([p]).catch(function () {});
+      for (var k in j.p) p[k] = j.p[k]; render(true); if (valor === true && !undo && WAK[campo]) waAsk(p, campo); if ((campo === "en" || campo === "he") && valor) cpdFreeze([p]).catch(function () {});
     }).catch(function () { p[campo] = old; p.cc = oldcc; render(true); toast("No se pudo guardar"); });
   }
 
@@ -2795,7 +2831,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
       ["[data-fxk]", "Filtrar y ordenar", "El embudo abre las opciones: medio de pago, entrega, cupón, nota, cantidad de cookies, más nuevos, total, etc. Elegí varias y se combinan. El botón Aplicar aparece solo apenas elegís algo."],
       ["[data-pdp=rng]", "Fecha personalizada", "Tocá «Personalizado» para elegir Desde y Hasta. Esos campos solo aparecen cuando lo elegís."],
       [".chips", "Etapas", "Filtrá por Pendientes, A cocinar, Listos, Entregados o Cancelados. El número es la cantidad."],
-      [".pc", "Tocá un pedido", "Se abre y ves el detalle, el WhatsApp del cliente, la nota, y los botones Aprobado, Hecho y Entregado."],
+      [".pc", "Tocá un pedido", "Se abre y ves el detalle, el WhatsApp del cliente, la nota, y los botones Aprobado, Hecho y Entregado. Con ✏️ Editar pedido podés cambiar datos y agregar productos (ej. un Banana Bread que se olvidaron). Al avanzar de estado o modificar, te ofrece avisar al cliente por WhatsApp con un mensaje propio de cada estado (se editan en Textos)."],
       ["[data-masas]", "Masas y sobrantes 🥣", "Cuántas masas tenés que hacer por sabor y cuántas sobran. Cuando todos los pedidos de una fecha quedan Hechos, se descuentan solos los insumos de esas masas y los sobrantes pasan al stock de cookies."],
       ["[data-dlote]", "Eliminar pedidos", "Borrá de una vez todos los pedidos de la lista (por ejemplo los de prueba o los cancelados). También podés borrar uno abierto con 🗑. Es definitivo."]],
     productos: [["#newp", "Nuevo producto", "Creá una cookie nueva: nombre, descripción, precio y categoría."],
@@ -2895,6 +2931,8 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
 
   /* ---------- Bot de ayuda (sin IA, gratis) ---------- */
   var KB = [
+    { t: "Agregar o cambiar productos de un pedido", k: "editar pedido agregar producto banana bread olvidaron cambiar cantidad modificar", go: "pedidos", p: ["Abrí el pedido y tocá ✏️ Editar pedido.", "Tocá «＋ Agregar producto», elegí uno (cualquiera del catálogo) y poné la cantidad. Con 0 se quita.", "Guardá: se recalcula el total y te ofrece avisar al cliente por WhatsApp (📝 Pedido modificado).", "Si el pedido tiene packs o combos, sus cantidades no se tocan: lo que agregues se suma al total."] },
+    { t: "Avisar al cliente por WhatsApp en cada estado", k: "whatsapp avisar cliente mensaje aprobado hecho entregado cancelado modificado estado aviso texto", go: "textos", p: ["Al marcar Aprobado, Hecho, Entregado o Cancelado un pedido, aparece un cuadro con el mensaje listo: lo editás y tocás «Enviar por WhatsApp».", "También están los botones por estado dentro del pedido abierto.", "Los 5 mensajes se editan en Más → Textos de la página (wa_…). Podés usar {nombre}, {id}, {total}, {entrega} y {pedido}."] },
     { t: "Elegir qué categorías entran en un pack", k: "pack categorias categoria banana bread budin cookies elegir solo habilitar variedades", go: "packs", p: ["En Packs, abrí el pack y marcá «Categorías que valen» (por ejemplo solo Clásicas).", "Al armar el pack, el cliente solo ve productos de esas categorías. Si no marcás ninguna, valen todas.", "Podés combinarlo con elegir cookies puntuales. Después podés hacer otro pack, por ejemplo cookies con budín."] },
     { t: "La tanda se abre sola", k: "tanda abrir sola automatica apertura programada pedidos abiertos cerrados pausa interruptor", go: "tandas", p: ["Si una tanda tiene fecha de apertura, la tienda se abre sola ese día a las 00:00, aunque el interruptor diga cerrado.", "Si querés frenarla antes, tocá «Cerrar pedidos» en Tandas: queda en pausa hasta que vuelvas a abrir.", "Mientras está cerrada, la portada muestra un solo cartel (fecha de apertura o «Muy pronto») con un link a tu Instagram. El texto se edita en Textos (buscá «enterate»)."] },
     { t: "Cartel «Mañana abrimos pedidos»", k: "cartel manana abrimos abren pedidos tanda aviso apertura texto programada", go: "textos", p: ["Si programás la apertura de una tanda, el día anterior la tienda muestra un cartel amarillo.", "El cartel llama la atención y trae un botón para anotarse en la cola. Cuando alguien toca una cookie con los pedidos cerrados, sale un aviso diciendo que lo vas a avisar apenas abras.", "Los 3 textos (cartel, botón y aviso) se editan en Más → Textos de la página (buscá «mañana abrimos» o «aviso cola»). Vacío = no se muestra.", "La tanda abre a las 00:00 del día programado, pero solo si el interruptor de pedidos en Inicio está prendido."] },
@@ -3483,6 +3521,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
       if (c && c.getAttribute("data-open") && !e.target.closest(".swb,.swl")) { closeSw(); e.stopPropagation(); e.preventDefault(); return; }
       var d = e.target.closest && e.target.closest("[data-swdel]");
       if (d) { e.stopPropagation(); var r0 = Number(d.getAttribute("data-swdel")), p0 = st.pedidos.filter(function (x) { return x.r === r0; })[0]; if (p0) pedSheet(p0); return; }
+      var dpw = e.target.closest && e.target.closest("[data-dpwa]"); if (dpw) { var pc8 = dpw.closest("[data-r]"), pe8 = pc8 && st.pedidos.filter(function (x) { return String(x.r) === pc8.getAttribute("data-r"); })[0]; if (pe8) { e.stopPropagation(); waAsk(pe8, pe8.cc || pe8.cl ? "cc" : pe8.en ? "en" : pe8.he ? "he" : "ap"); return; } }
       var dpd = e.target.closest && e.target.closest("[data-dpedit]"); if (dpd) { var pc9 = dpd.closest("[data-r]"), pe9 = pc9 && st.pedidos.filter(function (x) { return String(x.r) === pc9.getAttribute("data-r"); })[0]; if (pe9) { e.stopPropagation(); pedModal(pe9, true); return; } }
       var kb = e.target.closest && e.target.closest("#kp-ped .kpi");
       if (e.target.closest && e.target.closest("[data-kpdone]")) { e.stopPropagation(); st.kpEdit = false; render(true); return; }

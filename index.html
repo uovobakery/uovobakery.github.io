@@ -1346,8 +1346,9 @@ var DEFAULTS = {
   }
   function totals() {
     var unit = [], n = 0, ct = 0;
-    data.productos.forEach(function (p) { var q = p.agotada ? 0 : (qty[p.nombre] || 0); n += q; for (var i = 0; i < q; i++) unit.push(p.precio); });
-    var e = escalaPrecio(unit);
+    var elig = (function () { var m = {}, o = []; try { m = JSON.parse(data.config.pack_categorias || "{}") || {}; } catch (x) { m = {}; } Object.keys(m).forEach(function (k) { if (Array.isArray(m[k])) m[k].forEach(function (c) { c = String(c).trim().toLowerCase(); if (c && o.indexOf(c) < 0) o.push(c); }); }); return o.length ? o : null; })(), fuera = 0;
+    data.productos.forEach(function (p) { var q = p.agotada ? 0 : (qty[p.nombre] || 0); n += q; if (elig && elig.indexOf(String(p.categoria || "").trim().toLowerCase()) < 0) { fuera += p.precio * q; return; } for (var i = 0; i < q; i++) unit.push(p.precio); });
+    var e = escalaPrecio(unit); e.total += fuera;
     chosenCombos().forEach(function (cb) { var q = cq[cb.nombre]; ct += cb.precio * q; cb.items.forEach(function (it) { n += it.c * q; }); });
     var as = 0;
     chosenCombos().forEach(function (cb) { as += Math.max(0, comboNormal(cb) - cb.precio) * cq[cb.nombre]; });

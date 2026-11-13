@@ -676,7 +676,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
     if (v === "voz") { api("vozEstado").then(function (j) { st.vz = !!(j && j.clave); st.loaded.voz = true; if (st.v === "voz") render(); }).catch(function () {}); return; }
     if (v === "inicio" && allowed("proveedores") && !st.stkf) { st.stkf = 1; api("stock").then(function (j) { if (j && j.ok) { st.stock = j.stock; st.alertas = !!j.alertas; if (st.alertas) api("recetas2").then(function (k) { if (k && k.ok) { st.recetas = k.recetas; st.insumos = k.insumos; if (st.v === "inicio") render(true); } }).catch(function () {}); if (st.v === "inicio") render(true); } }).catch(function () {}); }
     var op = v === "puntos" ? "stock" : v === "inicio" ? "pedidos" : v === "resenas" ? "resenas" : v === "productos" ? "catalogo" : v === "recetas" ? "recetas2" : v === "packs" ? "packs2" : v;
-    if (v === "packs" && !(st.cfg || []).length) api("config").then(function (j) { if (j && j.ok) { st.cfg = j.config; if (st.v === "packs") render(true); } }).catch(function () {});
+    if ((v === "packs" || v === "recetas" || v === "productos") && !(st.cfg || []).length) api("config").then(function (j) { if (j && j.ok) { st.cfg = j.config; if (st.v === "packs") render(true); } }).catch(function () {});
     if ((v === "recetas" || v === "packs") && !st.loaded.productos) api("catalogo").then(function (j) { if (j && j.ok) { st.productos = j.catalogo; st.loaded.productos = true; } }).catch(function () {});
     if (v === "inicio" && !st.loaded.productos) api("catalogo").then(function (j) { if (j && j.ok) { st.productos = j.catalogo; st.loaded.productos = true; if (st.v === "inicio") render(true); } }).catch(function () {});
     var ck = "uovo_c_" + op, hit = null; if (!DEMO) { try { hit = JSON.parse(load(ck) || "null"); } catch (e) {} }
@@ -1041,7 +1041,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
     var pn = pendNeed(), ks = Object.keys(pn).sort(function (a, b) { return pn[b] - pn[a]; }), tm = 0;
     var rows = ks.map(function (k) {
       var rec = (st.recetas || []).filter(function (r) { return nrm(r.nombre) === nrm(k); })[0];
-      if (!rec || !rec.y) return '<div class="ing"><div style="flex:1"><div class="in">' + esc(k) + '</div><div class="meta" style="margin:0">' + pn[k] + " cookies · sin receta</div></div></div>";
+      if (!rec || !rec.y) return '<div class="ing"><div style="flex:1"><div class="in">' + esc(k) + '</div><div class="meta" style="margin:0">' + pn[k] + " " + esc(recUni(k)) + " · sin receta</div></div></div>";
       var nz = Math.max(1, Math.ceil(pn[k] / rec.y - 1e-9)), so = nz * rec.y - pn[k]; tm += nz;
       return '<div class="ing"><div style="flex:1;min-width:0"><div class="in">' + esc(k) + '</div><div class="meta" style="margin:0">' + pn[k] + " pedidas · " + nz + (nz === 1 ? " masa" : " masas") + " × " + rec.y + " = " + nz * rec.y + '</div></div><b style="color:' + (so ? "#1B7A3A" : "var(--soft)") + '">' + (so ? "sobran " + so : "justas") + "</b>" + "" + "</div>";
     }).join("");
@@ -1280,7 +1280,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
         h += '<div class="pmrow"><div class="pr"><span>$</span><input class="inp" id="pm-pr" type="number" inputmode="numeric" min="0" step="50" value="' + p.precio + '" style="margin:0"></div><button class="sw warn' + (p.ag ? " on" : "") + '" data-pm="ag" style="border:0;background:none;padding:0"><i></i>Agotada</button><button class="sw' + (p.vi ? " on" : "") + '" data-pm="vi" style="border:0;background:none;padding:0"><i></i>Visible</button></div>' +
           '<input class="inp" data-pf="cat" list="cat-list" placeholder="Categoría" value="' + esc(p.cat) + '"><datalist id="cat-list">' + catOpts() + '</datalist><textarea class="inp" rows="2" data-pf="desc" placeholder="Descripción">' + esc(p.desc) + '</textarea><input class="inp" data-pf="ing" placeholder="Ingredientes para el buscador" value="' + esc(p.ing) + '"><button class="sm" data-pm="fotos" style="width:100%">📎 Fotos</button>';
       }
-      h += '<div class="pmsec">Receta' + (rd.ex ? "" : " · sin cargar") + '</div><div class="pmrow2"><span>Una masa rinde</span><input class="inp" id="pm-y" type="number" inputmode="numeric" value="' + (rd.y || "") + '" style="width:80px;margin:0"><span>cookies</span></div>';
+      h += '<div class="pmsec">Receta' + (rd.ex ? "" : " · sin cargar") + '</div><div class="pmrow2"><span>Una masa rinde</span><input class="inp" id="pm-y" type="number" inputmode="numeric" value="' + (rd.y || "") + '" style="width:80px;margin:0"><input class="inp" id="pm-u" placeholder="cookies" value="' + esc(recUni(name) === "cookies" ? "" : recUni(name)) + '" style="width:140px;margin:0"></div><div class="meta" style="margin:2px 0 6px">Escribí qué rinde la masa (ej. banana bread, brownies). Vacío = cookies.</div>';
       var pmc = prCosts();
       h += (pmc && rd.items.some(function (it) { return !(pmc[nrm(it.n)] > 0); }) ? '<div class="nopm">Los insumos en rojo no tienen precio. Tocalos para cargarlo.</div>' : "") + rd.items.map(function (it, i) { var np = pmc && !(pmc[nrm(it.n)] > 0); return '<div class="pmit"><div class="pmin' + (np ? ' nop" data-nop="' + esc(it.n) + '"' : '"') + '>' + esc(it.n) + (np ? "<small>sin precio ›</small>" : "") + '</div><input class="inp" data-pq="' + i + '" type="text" inputmode="decimal" value="' + (it.q === "" ? "" : String(it.q).replace(".", ",")) + '" placeholder="Cant."><input class="inp" data-pu="' + i + '" list="u-all" value="' + esc(u[it.n] || "") + '" placeholder="unidad"><button class="sm red" data-pm="rm" data-i="' + i + '">×</button></div>'; }).join("");
       h += '<input class="inp" id="pm-s" placeholder="＋ Buscar insumo para agregar…" value="' + esc(qs) + '" autocomplete="off"><div id="pm-res">' + resHtml() + '</div><datalist id="u-all">' + UNL.map(function (x) { return '<option value="' + x + '">'; }).join("") + '</datalist>';
@@ -1327,10 +1327,10 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
       }
       if (a === "save") {
         var y = Number(m.querySelector("#pm-y").value), its = rd.items.filter(function (i) { return Number(i.q) > 0; });
-        if (!(y > 0)) { toast("Poné cuántas cookies rinde una masa"); return; } if (!its.length) { toast("Agregá al menos un insumo con cantidad"); return; }
+        if (!(y > 0)) { toast("Poné cuántas unidades rinde una masa"); return; } if (!its.length) { toast("Agregá al menos un insumo con cantidad"); return; }
         b.disabled = true; b.textContent = "Guardando…";
         (DEMO ? Promise.resolve({ ok: true, recetas: (st.recetas || []).filter(function (z) { return nrm(z.nombre) !== nrm(name); }).concat([{ nombre: name, y: y, q: y, items: its }]), insumos: st.insumos }) : api("saveReceta", { nombre: name, y: y, items: its.map(function (i) { return [i.n, i.q]; }) })).then(function (j) {
-          if (j && j.ok) { st.recetas = j.recetas; st.insumos = j.insumos; dirty = false; drClr(); loadRd(); refreshCat(function () { if (p) p = st.productos.filter(function (x) { return x.r === p.r; })[0] || p; draw(); render(true); toast("Receta guardada ✓"); }); }
+          if (j && j.ok) { st.recetas = j.recetas; st.insumos = j.insumos; dirty = false; drClr(); loadRd(); var uu = (m.querySelector("#pm-u") || {}).value || ""; uu = uu.trim(); var fin = function () { refreshCat(function () { if (p) p = st.productos.filter(function (x) { return x.r === p.r; })[0] || p; draw(); render(true); toast("Receta guardada ✓"); }); }; if (uu === (recUni(name) === "cookies" ? "" : recUni(name)) || DEMO) fin(); else api("setRecUni", { nombre: name, uni: uu }).then(function () { return api("config"); }).then(function (c) { if (c && c.ok) st.cfg = c.config; fin(); }).catch(fin); }
           else { b.disabled = false; b.textContent = "Guardar receta"; toast(j && j.msg || "No se pudo guardar"); }
         }).catch(function () { b.disabled = false; b.textContent = "Guardar receta"; toast("No se pudo guardar"); });
         return;
@@ -1556,11 +1556,35 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
       foot = '<div class="msf"><div class="meta" style="margin-bottom:6px"><b>' + ns + "</b> elegidos</div>" + (CMP.mv ? '<div class="chips" style="flex-wrap:wrap;margin-bottom:6px">' + (id !== "auto" ? '<button class="chip" data-mvt="auto">Automática</button>' : "") + o.list.filter(function (z) { return z.id !== id; }).map(function (z) { return '<button class="chip" data-mvt="' + z.id + '">' + esc(z.n) + "</button>"; }).join("") + '</div><div style="display:flex;gap:6px;margin-bottom:6px"><input class="inp" id="cm-mvn" placeholder="Nuevo carrito" style="flex:1;min-width:0"><button class="btn" data-mvnew="1" style="padding:6px 12px">Crear y mover</button></div>' : "") + '<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="sm" data-msall="1">Todos</button><button class="sm" data-mmv="1">Mover a…</button><button class="sm" data-mbuy="1">Comprados</button><button class="sm red" data-mdel="1">Quitar</button><button class="sm" data-mx="1">Cancelar</button></div></div>';
     } else {
       foot = '<div style="display:flex;gap:6px;margin-top:10px"><input class="inp" id="cm-n" list="cm-dl" autocomplete="off" placeholder="Agregar (ej. manteca)" style="flex:2;min-width:0"><input class="inp" id="cm-q" placeholder="Cant." style="flex:1;min-width:0"><button class="btn" id="cm-add" style="width:48px;padding:0;font-size:1.4rem">＋</button></div>' +
-        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="sm" id="cm-wa">WhatsApp</button><button class="sm" id="cm-cp">Copiar</button>' + (R.length ? '<button class="sm red" id="cm-vac">Vaciar</button>' : "") + (R.some(function (x) { return x.done; }) ? '<button class="sm" id="cm-cl">Destildar</button>' : "") + "</div>";
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="sm" id="cm-wa">WhatsApp</button><button class="sm" id="cm-cp">Copiar</button><button class="sm" id="cm-ld">📥 Cargar al stock</button>' + (R.length ? '<button class="sm red" id="cm-vac">Vaciar</button>' : "") + (R.some(function (x) { return x.done; }) ? '<button class="sm" id="cm-cl">Destildar</button>' : "") + "</div>";
     }
     var keep = $("cm-n") && document.activeElement === $("cm-n") ? [$("cm-n").value, $("cm-q").value] : null;
     m.innerHTML = '<div class="box" style="width:100%;max-height:88vh;overflow:auto"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><h3 style="margin:0;flex:1">Lista de compras</h3><button class="sm" data-cx="1">Cerrar</button></div>' + dl + chips + body + foot + "</div>";
     if (keep) { $("cm-n").value = keep[0]; $("cm-q").value = keep[1]; $("cm-n").focus(); }
+  }
+  function cmpLoad(o, id) {
+    var m = document.createElement("div"); m.className = "modal"; m.style.zIndex = 70;
+    m.innerHTML = '<div class="box" style="width:100%"><h3>📥 Cargar compra al stock</h3><div class="meta">Editá la lista con lo que compraste de verdad (cantidad y, si querés, el precio total: «• Manteca — 1 kg $3000»). Cada línea se suma al stock como compra.</div><textarea class="inp" id="cl-t" rows="10" style="margin:8px 0">' + esc(cmpText(o, id)) + '</textarea><div style="display:flex;gap:8px"><button class="btn" id="cl-go" style="flex:1">Cargar al stock</button><button class="sm" id="cl-no">Cancelar</button></div></div>';
+    document.body.appendChild(m);
+    m.addEventListener("click", function (e) {
+      if (e.target === m || e.target.closest("#cl-no")) { m.remove(); return; }
+      var b = e.target.closest("#cl-go"); if (!b) return;
+      var segs = [], skip = 0;
+      String($("cl-t").value).split("\n").forEach(function (ln) {
+        ln = ln.replace(/^\s*[•\-*]\s*/, "").trim(); if (!ln || /^lista de compras/i.test(ln) || /^\(vac/i.test(ln)) return;
+        var p = ln.split(/\s+[—–-]\s+/), nm = p[0].trim(), q = p.slice(1).join(" ").trim();
+        if (!nm || !/\d/.test(q)) { skip++; return; }
+        segs.push(q + " de " + nm);
+      });
+      if (!segs.length) { toast("No hay líneas con cantidad"); return; }
+      b.disabled = true; b.textContent = "Cargando…";
+      stkLoad(function () {
+        var its = stkParse(segs.join("; "), "prov");
+        if (!its.length) { b.disabled = false; b.textContent = "Cargar al stock"; toast("No entendí la lista"); return; }
+        m.remove();
+        stkFlow(its, function (r) { toast(r && r.ok ? "Cargué " + r.ok + (r.ok === 1 ? " compra" : " compras") + " al stock ✓" + (skip ? " · " + skip + " sin cantidad" : "") : (r && r.fail) || "No se pudo cargar"); });
+      });
+    });
   }
   function cmpText(o, id) {
     var R = cmpRows(o, id).filter(function (x) { return !x.done; }), c = id === "auto" ? "Lista de compras" : cmpCart(o, id).n;
@@ -1630,6 +1654,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
     }
     if ((b = t.closest("[data-ck]"))) { var rw1 = cmpRows(o, id).filter(function (x) { return x.k === b.getAttribute("data-ck"); })[0]; if (!rw1) return; if (rw1.done) { cmpSetDone(o, id, rw1, false); cmpDraw(); } else cmpPay(rw1, false); return; }
     if (t.closest("#cm-add")) { var nm = $("cm-n").value.trim(); if (!nm) { toast("Escribí qué comprar"); return; } cmpCart(o, id).items.push({ n: nm, q: $("cm-q").value.trim(), done: false }); lsW(CK, o); cmpDraw(); setTimeout(function () { if ($("cm-n")) $("cm-n").focus(); }, 30); return; }
+    if (t.closest("#cm-ld")) { cmpLoad(o, id); return; }
     if (t.closest("#cm-wa")) { window.open("https://wa.me/?text=" + encodeURIComponent(cmpText(o, id)), "_blank"); return; }
     if (t.closest("#cm-cp")) { try { navigator.clipboard.writeText(cmpText(o, id)); toast("Lista copiada ✓"); } catch (x) { toast("No pude copiar"); } return; }
     if ((b = t.closest("#cm-vac"))) {
@@ -1868,7 +1893,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
     if (!st.recetas.length) return h + '<div class="empty">Todavía no hay recetas.</div>';
     h += fxRow("recetas"); var RL = fxList("recetas", st.recetas); if (!RL.length) return h + '<div class="empty">Sin resultados.</div>';
     return h + '<div class="help">Tocá una receta para editarla. Deslizá → editar, ← eliminar. Mantené apretado para elegir varias.</div>' + RL.map(function (x) {
-      return swrap("rec", x.nombre, '<article class="card pc" data-rcp="' + esc(x.nombre) + '"><div class="row" style="align-items:center;gap:10px"><div style="min-width:0;flex:1"><div class="nm">' + esc(x.nombre) + '</div><div class="meta">Una masa rinde ' + x.y + " cookies · " + (x.items ? x.items.length : 0) + ' insumos</div></div><span style="color:var(--soft);font-size:1.3rem">›</span></div></article>', true, true, "✏️<br>Editar", "🗑<br>Eliminar");
+      return swrap("rec", x.nombre, '<article class="card pc" data-rcp="' + esc(x.nombre) + '"><div class="row" style="align-items:center;gap:10px"><div style="min-width:0;flex:1"><div class="nm">' + esc(x.nombre) + '</div><div class="meta">Una masa rinde ' + x.y + " " + esc(recUni(x.nombre)) + " · " + (x.items ? x.items.length : 0) + ' insumos</div></div><span style="color:var(--soft);font-size:1.3rem">›</span></div></article>', true, true, "✏️<br>Editar", "🗑<br>Eliminar");
     }).join("");
   }
   function setUnidadInsumo(name, uni) {
@@ -1941,7 +1966,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
     });
     return o;
   }
-  function catLbl(map) { var CT = {}; (st.productos || []).forEach(function (x) { if (x.nombre) CT[nrm(x.nombre)] = String(x.cat || "").replace(/^~arch\|/, "").trim(); }); var g = {}, o = []; Object.keys(map || {}).forEach(function (k) { var c = CT[nrm(k)] || "Cookies"; if (/^(packs?|combos?)$/i.test(c)) c = "Cookies"; c = c.toLowerCase(); g[c] = (g[c] || 0) + map[k]; }); Object.keys(g).forEach(function (c) { o.push(g[c] + " " + c); }); return o.join(" · "); }
+  function catLbl(map) { if (!(st.productos || []).length) return ""; var CT = {}; (st.productos || []).forEach(function (x) { if (x.nombre) CT[nrm(x.nombre)] = String(x.cat || "").replace(/^~arch\|/, "").trim(); }); var g = {}, o = []; Object.keys(map || {}).forEach(function (k) { var c = CT[nrm(k)] || "Cookies"; if (/^(packs?|combos?)$/i.test(c)) c = "Cookies"; c = c.toLowerCase(); g[c] = (g[c] || 0) + map[k]; }); Object.keys(g).forEach(function (c) { o.push(g[c] + " " + c); }); return o.join(" · "); }
   function pedCnt(p) { return catLbl(pedItems(p).cookies) || ((Number(p.cant) || 0) + " productos"); }
   function costoDe(name) { var pr = fnd(st.productos || [], name); return pr && pr.costo != null ? Number(pr.costo) : null; }
   function finRango() { var a = new Date(st.fd + "T00:00:00"), b = new Date(st.fh + "T23:59:59"); if (a > b) { var t = a; a = b; b = t; } return [a, b]; }
@@ -2934,6 +2959,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
   /* ---------- Asistente de voz ---------- */
   var VZ = { el: null, prev: "", acc: [], rec: null, listening: false, busy: false };
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  function recUni(n) { var r = (st.cfg || []).filter(function (x) { return x.k === "receta_unidades"; })[0], m = {}; try { m = JSON.parse((r && r.v) || "{}") || {}; } catch (e) { m = {}; } var k = Object.keys(m).filter(function (z) { return nrm(z) === nrm(n); })[0]; return k && m[k] ? m[k] : "cookies"; }
   function nrm(x) { return String(x == null ? "" : x).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9@. ]+/g, " ").replace(/\s+/g, " ").trim(); }
   function fnd(list, name, get) {
     var n = nrm(name); if (!n) return null; get = get || function (x) { return x.nombre; };
@@ -2952,6 +2978,8 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
     { t: "Cartel «Mañana abrimos pedidos»", k: "cartel manana abrimos abren pedidos tanda aviso apertura texto programada", go: "textos", p: ["Si programás la apertura de una tanda, el día anterior la tienda muestra un cartel amarillo.", "El cartel llama la atención y trae un botón para anotarse en la cola. Cuando alguien toca una cookie con los pedidos cerrados, sale un aviso diciendo que lo vas a avisar apenas abras.", "Los 3 textos (cartel, botón y aviso) se editan en Más → Textos de la página (buscá «mañana abrimos» o «aviso cola»). Vacío = no se muestra.", "La tanda abre a las 00:00 del día programado, pero solo si el interruptor de pedidos en Inicio está prendido."] },
     { t: "Elegir los botones de la barra de abajo", k: "barra inferior abajo botones menu personalizar ordenar proveedores stock finanzas reportes", go: "mas", p: ["Andá a Más → Personalizar barra inferior.", "Prendé hasta 5 botones y ordenalos con ↑ ↓. Restablecer vuelve a los de siempre.", "Se guarda en este dispositivo."] },
     { t: "Cambiar el precio de un insumo sin comprar", k: "precio costo insumo actualizar sin comprar investigar proveedor cantidad unidad", go: "proveedores", p: ["En Proveedores abrí el insumo y usá «Precio actual».", "Poné cantidad, unidad y precio total, y tocá Guardar precio: el stock no cambia.", "«Registrar compra» es solo para cuando de verdad compraste (suma stock)."] },
+    { t: "Cargar la lista de compras al stock", k: "lista compras carrito cargar stock comprado compre cantidad whatsapp sumar", go: "stock", p: ["Abrí el carrito (Inicio → carrito) y tocá 📥 Cargar al stock.", "Editá la lista con lo que compraste de verdad: cantidad y, si querés, el precio total (ej. «• Manteca — 1 kg $3000»).", "Tocá Cargar al stock: se suma como compra y, si falta, te pide el precio."] },
+    { t: "Qué rinde una masa (banana bread, brownies…)", k: "receta masa rinde unidad banana bread brownie budin cookies rinde unidades", go: "recetas", p: ["En la receta, al lado de «Una masa rinde», poné la cantidad.", "En el campo de al lado escribí qué es (ej. banana bread). Vacío = cookies.", "Se usa en Masas y en las recetas."] },
     { t: "Filtrar y ordenar listas", k: "filtrar filtro filtros ordenar orden embudo combinar aplicar limpiar escoba buscar", go: "productos", p: ["En Productos, Pedidos, Stock, Packs, Recetas, Cupones, Reseñas y Lista de espera tocá el embudo.", "Elegí varias opciones: se combinan. El botón Aplicar aparece solo apenas elegís algo.", "Con filtros puestos aparece al lado una escoba roja: tocala para limpiarlos sin entrar."] },
     { t: "Cambiar el orden de packs, combos, cookies o cupones", k: "mover subir bajar orden ordenar arriba abajo packs combos productos cupones mantener apretado", go: "packs", p: ["Mantené apretado un elemento para elegirlo (se mueve un poquito).", "Podés elegir varios.", "Abajo tocá ↑ Subir o ↓ Bajar. Sin filtros puestos; en la tienda se ve en ese orden."] },
     { t: "Cambiar el precio de una cookie", k: "precio cambiar cambio modificar subir bajar aumentar cookie producto valor cuanto", go: "productos", p: ["Tocá Productos abajo.", "Buscá la cookie y tocá el número del precio.", "Escribí el precio nuevo y salí del campo: se guarda solo y se ve en la tienda."] },

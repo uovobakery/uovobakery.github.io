@@ -889,6 +889,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
   var PIK = "uovo_adm_pitems";
   function pdAll() { try { return JSON.parse(localStorage.getItem(PIK) || "{}") || {}; } catch (e) { return {}; } }
   function pdDone(p) { var ks = Object.keys(pedItems(p).cookies), o = {}; if (p.he || p.en) { ks.forEach(function (k) { o[k] = true; }); return o; } return pdAll()[p.id] || {}; }
+  function pedPend(p) { var it = pedItems(p).cookies, dm = pdDone(p), o = {}; Object.keys(it).forEach(function (k) { if (!dm[k]) o[k] = it[k]; }); return o; }
   function pdSet(p, mp) { try { var a = pdAll(); a[p.id] = mp; localStorage.setItem(PIK, JSON.stringify(a)); } catch (e) {} }
   function pedModal(p, startEdit) {
     var m = document.createElement("div"); m.className = "modal"; var edit = !!startEdit, addl = [], ed = {}, edq = {};
@@ -988,7 +989,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
     out.sort(function (a, b) { return b.falta / b.need - a.falta / a.need; });
     return { rows: out, nor: nor };
   }
-  function pendNeed() { var n = {}; (st.pedidos || []).forEach(function (p) { var e = estadoDe(p); if (e !== "pend" && e !== "coc") return; var it = pedItems(p).cookies; Object.keys(it).forEach(function (k) { n[k] = (n[k] || 0) + it[k]; }); }); return n; }
+  function pendNeed() { var n = {}; (st.pedidos || []).forEach(function (p) { var e = estadoDe(p); if (e !== "pend" && e !== "coc") return; var it = pedPend(p); Object.keys(it).forEach(function (k) { n[k] = (n[k] || 0) + it[k]; }); }); return n; }
   var CRT = [];
   function cartReg(r) { CRT.push(r); return CRT.length - 1; }
   function cartBtn(r) { return '<button class="cartb" data-cart="' + cartReg(r) + '" aria-label="Agregar al carrito"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h3l2.4 11.2a1.5 1.5 0 0 0 1.5 1.2h8.7a1.5 1.5 0 0 0 1.5-1.1L21 7H6"/><path d="M13 8v5M10.5 10.5h5"/></svg></button>'; }
@@ -1097,7 +1098,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
   }
   function ckAvailFor(nk) {
     var av = {}, cs = ckStock(), G = {}; Object.keys(cs).forEach(function (z) { av[nrm(z)] = (av[nrm(z)] || 0) + (Number(cs[z]) || 0); });
-    (st.pedidos || []).forEach(function (p) { var e = estadoDe(p); if (e === "ent" || e === "canc" || e === "test" || p.he) return; var k = nrm(p.entrega || "Sin fecha"), g = G[k] = G[k] || { d: entD(p.entrega), m: {} }, it = pedItems(p).cookies; Object.keys(it).forEach(function (n) { g.m[nrm(n)] = (g.m[nrm(n)] || 0) + it[n]; }); });
+    (st.pedidos || []).forEach(function (p) { var e = estadoDe(p); if (e === "ent" || e === "canc" || e === "test" || p.he) return; var k = nrm(p.entrega || "Sin fecha"), g = G[k] = G[k] || { d: entD(p.entrega), m: {} }, it = pedPend(p); Object.keys(it).forEach(function (n) { g.m[nrm(n)] = (g.m[nrm(n)] || 0) + it[n]; }); });
     var dn = G[nk] && G[nk].d; if (!dn) return av;
     Object.keys(G).filter(function (k) { return k !== nk && G[k].d && G[k].d < dn; }).sort(function (a, b) { return G[a].d - G[b].d; }).forEach(function (k) { Object.keys(G[k].m).forEach(function (n) { av[n] = Math.max(0, (av[n] || 0) - G[k].m[n]); }); });
     return av;
@@ -1108,7 +1109,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
     function lst() { return st.pedidos.filter(function (p) { var e = estadoDe(p); return e !== "ent" && e !== "canc" && e !== "test" && nrm(p.entrega || "Sin fecha") === nk; }); }
     function draw() {
       var L = lst(), need = {}, q = 0, hh = 0, lab = L[0] ? (L[0].entrega || "Sin fecha") : "Sin fecha";
-      L.forEach(function (p) { if (p.he) { hh++; return; } var it = pedItems(p).cookies; Object.keys(it).forEach(function (n) { need[n] = (need[n] || 0) + it[n]; q += it[n]; }); });
+      L.forEach(function (p) { if (p.he) { hh++; return; } var it = pedPend(p); Object.keys(it).forEach(function (n) { need[n] = (need[n] || 0) + it[n]; q += it[n]; }); });
       var NN = netNeed(need, nk), nq = 0; Object.keys(NN.net).forEach(function (n) { nq += NN.net[n]; });
       PL = st.stock && st.recetas && st.recetas.length ? entPlan(NN.net) : null; m.__pl = PL;
       var tm = 0, rws = Object.keys(need).map(function (n) {
@@ -1413,7 +1414,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
       if (!p.en) { vpv += Number(p.total) || 0; npv++; }
       if (d) { if (d.getMonth() === cm && d.getFullYear() === cy) { if (p.en) { vm += p.total; ck += Number(p.cant) || 0; pm++; } else vsa += p.total; } else if (p.en && (d.getMonth() === (cm + 11) % 12) && d.getFullYear() === (cm ? cy : cy - 1)) vp += p.total; }
       if (e === "pend" && d && now - d > 864e5) viejos++;
-      if (e !== "ent") { var nk = nrm(p.entrega || "Sin fecha"), g = ent[nk] = ent[nk] || { lab: p.entrega || "Sin fecha", n: 0, q: 0, hh: 0, f: {} }; g.n++; if (p.he) g.hh++; else { var fi = pedItems(p).cookies; Object.keys(fi).forEach(function (n0) { g.f[n0] = (g.f[n0] || 0) + fi[n0]; g.q += fi[n0]; }); } }
+      if (e !== "ent") { var nk = nrm(p.entrega || "Sin fecha"), g = ent[nk] = ent[nk] || { lab: p.entrega || "Sin fecha", n: 0, q: 0, hh: 0, f: {} }; g.n++; if (p.he) g.hh++; else { var fi = pedPend(p); Object.keys(fi).forEach(function (n0) { g.f[n0] = (g.f[n0] || 0) + fi[n0]; g.q += fi[n0]; }); } }
     });
     var ag = st.productos.filter(function (p) { return p.ag; }).length;
     var nom = st.me && st.me.nombre ? String(st.me.nombre).split(" ")[0] : "";

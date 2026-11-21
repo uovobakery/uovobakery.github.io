@@ -235,6 +235,8 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
 .st-pend{--sg:linear-gradient(135deg,#FFC24D,#F28C00);--st:#FFF3DA;--sc:#F28C00}.st-coc{--sg:linear-gradient(135deg,#4C9BFF,#0F59C4);--st:#E6F0FF;--sc:#0F59C4}.st-list{--sg:linear-gradient(135deg,#46D17F,#1B9A4A);--st:#E2F6EA;--sc:#1B9A4A}.st-ent{--sg:linear-gradient(135deg,#22C7B5,#0E7C86);--st:#DDF5F2;--sc:#0E7C86}.st-canc{--sg:linear-gradient(135deg,#FF7B6E,#C62828);--st:#FDE6E3;--sc:#C62828}.st-test{--sg:linear-gradient(135deg,#9575CD,#5E35B1);--st:#EDE7F6;--sc:#5E35B1}
 .stb{display:inline-block;font-size:.72rem;font-weight:800;padding:3px 11px;border-radius:999px;color:#fff;background:var(--sg);box-shadow:0 2px 6px rgba(12,34,71,.18);white-space:nowrap}
 .card.stc{position:relative;overflow:hidden;padding-left:20px;background:linear-gradient(100deg,var(--st) 0%,#fff 60%)}.card.stc::before{content:"";position:absolute;left:0;top:0;bottom:0;width:7px;background:var(--sg)}
+.ptot{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;text-align:left;border:0;background:#fff;border-radius:14px;padding:8px 12px;box-shadow:0 2px 8px rgba(12,34,71,.08);font:inherit;color:var(--ink);cursor:pointer}.ptot span{font-size:.72rem;color:var(--soft);font-weight:700}.pbar{display:flex;height:9px;border-radius:99px;overflow:hidden;background:#E6ECF6}.pbar i{display:block;height:100%;background:var(--sg)}
+.pbr{display:flex;align-items:center;gap:10px;margin:8px 0}.pbr .pbar{flex:1}.pbr b{min-width:24px;text-align:right}
 </style>
 </head>
 <body>
@@ -755,6 +757,24 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
     else if (k === "rng") { if (st.pdd) { var x = st.pdd.split("-"); a = new Date(+x[0], +x[1] - 1, +x[2]); } if (st.pdh) { var y = st.pdh.split("-"); b = new Date(+y[0], +y[1] - 1, +y[2]); } }
     return [a, b];
   }
+  var TRK = "uovo_adm_trash";
+  function trashGet() { try { return JSON.parse(localStorage.getItem(TRK) || "[]") || []; } catch (e) { return []; } }
+  function trashAdd(L) { try { var T = trashGet().concat(L); localStorage.setItem(TRK, JSON.stringify(T.slice(-300))); } catch (e) {} }
+  function ptotCnt(base) { var c = { pend: 0, coc: 0, list: 0, ent: 0 }, n = 0; base.forEach(function (p) { var e = estadoDe(p); if (c[e] === undefined) return; c[e]++; n++; }); return { c: c, n: n }; }
+  function ptotBar(c, n) { return '<div class="pbar">' + ["ent", "list", "coc", "pend"].map(function (k) { return c[k] ? '<i class="' + stCls(k) + '" style="width:' + (c[k] * 100 / n) + '%"></i>' : ""; }).join("") + "</div>"; }
+  function ptotBtn(base) { var P = ptotCnt(base); if (!P.n) return ""; return '<button class="ptot" data-ptot="1"><b>Pedido total</b>' + ptotBar(P.c, P.n) + "<span>" + P.c.ent + " de " + P.n + " entregados</span></button>"; }
+  function ptotPop() {
+    var base = st.pedidos.filter(function (p) { var q = st.q.trim().toLowerCase(); return dateOk(p) && (!q || (p.nombre + " " + p.id + " " + p.pedido + " " + p.tel).toLowerCase().indexOf(q) >= 0); }), P = ptotCnt(base), tot = {}; base.forEach(function (p) { var e = estadoDe(p); tot[e] = (tot[e] || 0) + (Number(p.total) || 0); });
+    var m = document.createElement("div"); m.className = "modal"; m.innerHTML = '<div class="box" style="width:100%"><div class="phd"><h3 style="flex:1">Pedido total</h3><button class="sm" data-x="1">✕</button></div><div class="meta" style="margin:0 0 8px">' + P.n + ' pedidos en el período · ' + P.c.ent + ' entregados</div>' + ptotBar(P.c, P.n) + ["pend", "coc", "list", "ent"].map(function (k) { return '<div class="pbr"><span class="stb ' + stCls(k) + '" style="min-width:86px;text-align:center">' + ESTL[k][0] + '</span><div class="pbar"><i class="' + stCls(k) + '" style="width:' + (P.n ? P.c[k] * 100 / P.n : 0) + '%"></i></div><b>' + P.c[k] + '</b></div><div class="meta" style="margin:-4px 0 4px 96px">' + money(tot[k] || 0) + "</div>"; }).join("") + "</div>";
+    document.body.appendChild(m); m.addEventListener("click", function (e) { if (e.target === m || e.target.closest("[data-x]")) m.remove(); });
+  }
+  function trashList() { var q = st.q.trim().toLowerCase(); return trashGet().filter(function (p) { return dateOk(p) && (!q || (p.nombre + " " + p.id + " " + p.pedido + " " + p.tel).toLowerCase().indexOf(q) >= 0); }).reverse(); }
+  function trashPop() {
+    var m = document.createElement("div"); m.className = "modal";
+    function draw() { var L = trashList(); m.innerHTML = '<div class="box" style="width:100%;max-height:86vh;overflow:auto"><div class="phd"><h3 style="flex:1">🗑 Pedidos eliminados</h3><button class="sm" data-x="1">✕</button></div><div class="meta" style="margin:0 0 8px">Guardados en este dispositivo. Solo se ven, no se restauran.</div>' + (L.length ? L.map(function (p) { return '<div class="card stc st-canc" style="margin:0 0 8px"><div class="nm">' + esc(p.nombre || "") + '</div><div class="meta">' + esc(p.id) + " · " + money(p.total) + " · entrega " + esc(p.entrega || "—") + '</div><div class="meta">' + esc(p.pedido || "") + '</div><div class="meta">Eliminado ' + new Date(p._t).toLocaleDateString("es-AR") + "</div></div>"; }).join("") + '<button class="sm red" data-clr="1" style="width:100%">Vaciar esta lista</button>' : '<div class="empty">No hay eliminados.</div>') + "</div>"; }
+    draw(); document.body.appendChild(m);
+    m.addEventListener("click", function (e) { if (e.target === m || e.target.closest("[data-x]")) { m.remove(); return; } if (e.target.closest("[data-clr]")) { confirmM("Se vacía la lista de eliminados de este dispositivo.", function () { try { localStorage.removeItem(TRK); } catch (x) {} m.remove(); render(true); }); } });
+  }
   function dateOk(p) { var r = pdRange(); if (!r[0] && !r[1]) return true; var d = pf(p.fecha); if (!d) return true; var dd = new Date(d.getFullYear(), d.getMonth(), d.getDate()); return (!r[0] || dd >= r[0]) && (!r[1] || dd <= r[1]); }
   function filOk(p) { if (st.fil === "apr") return !!p.ap && !p.cc && !p.cl; return st.fil === "todos" || estadoDe(p) === st.fil; }
   var FILS = [["pend", "Pendientes"], ["apr", "Aprobados"], ["coc", "A cocinar"], ["list", "Listos"], ["ent", "Entregados"], ["canc", "Cancelados"], ["todos", "Todos"]];
@@ -776,7 +796,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
       '<div class="chips">' + FILS.map(function (f) { var n = f[0] === "todos" ? base.length : f[0] === "apr" ? base.filter(function (p) { return p.ap && !p.cc && !p.cl; }).length : (cnt[f[0]] || 0); return '<button class="chip' + (st.fil === f[0] ? " on" : "") + '" data-f="' + f[0] + '">' + f[1] + "<b>" + n + "</b></button>"; }).join("") + "</div>";
     if (!list.length) h += '<div class="empty">No hay pedidos en esta vista.</div>';
     else h += '<div class="meta" style="margin:0 4px 8px">' + list.length + " pedidos · " + money(list.reduce(function (a, p) { return a + (Number(p.total) || 0); }, 0)) + (fxSorted("pedidos") ? "" : " · hechos entre " + esc(String(list[list.length - 1].fecha).slice(0, 10)) + " y " + esc(String(list[0].fecha).slice(0, 10))) + "</div>";
-    if (list.length) h += '<div style="text-align:right;margin:-2px 2px 8px"><button class="sm red" data-dlote="1" style="font-size:.76rem">Eliminar estos ' + list.length + "</button></div>";
+    if (list.length) h += '<div style="display:flex;gap:8px;align-items:stretch;margin:-2px 0 10px">' + ptotBtn(base) + '<button class="sm red" data-dlote="1" style="font-size:.76rem;align-self:center">Eliminar estos ' + list.length + "</button></div>";
     h += list.map(function (p) {
       var c = p.cc || p.cl, wa = waLink(p.tel), e = estadoDe(p), sb = ESTL[e], open = st.pdx === p.r;
       var b = '<article class="card pc stc ' + stCls(e) + (c ? " dim" : "") + '" data-r="' + p.r + '"><button class="row" data-pdx="' + p.r + '" style="width:100%;border:0;background:none;padding:0;text-align:left;align-items:center;gap:10px"><div style="min-width:0;flex:1"><div class="nm" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(p.nombre) + (p.notas ? " 📝" : "") + '</div><div class="id">' + esc(p.id) + " · " + pedCnt(p) + (p.entrega ? " · " + esc(p.entrega) : "") + '</div></div><div style="text-align:right"><div class="tot" style="font-size:1rem">' + money(p.total) + '</div>' + stTag(e) + "</div></button>";
@@ -793,6 +813,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
       var so = String(st.swo) === String(p.r); b = so ? b.replace('<article class="card pc', '<article data-open="r" style="transform:translateX(-84px)" class="card pc') : b;
       return '<div class="sw' + (so ? " sxr" : "") + '" data-kind="ped" data-sw="' + p.r + '">' + advBtn(p) + '<button class="swb k3" data-swdel="' + p.r + '">Eliminar</button>' + b + "</article></div>";
     }).join("");
+    var tn = trashList().length; if (tn) h += '<button class="sm" data-trash="1" style="width:100%;margin:6px 0 12px">🗑 Pedidos eliminados (' + tn + ")</button>";
     return h;
   }
   function advNext(p) { if (p.cc || p.cl) return null; return !p.ap ? ["ap", "Aprobar"] : !p.he ? ["he", "Hecho"] : !p.en ? ["en", "Entregado"] : null; }
@@ -1079,7 +1100,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
       PL = st.stock && st.recetas && st.recetas.length ? entPlan(NN.net) : null; m.__pl = PL;
       var rows = Object.keys(need).sort(function (a, b) { return need[b] - need[a]; }).map(function (n) {
         var r = PL && PL[n], sn = NN.use[n] ? '<span class="meta">' + NN.use[n] + ' en stock</span>' : '', st1 = !PL ? sn : !r ? (sn ? '<span class="meta">✓ alcanza con el stock</span>' : '') : r.s === "falta" ? '<span class="rdz">' + '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18.5v.01"/></svg>' + " " + r.mcan + " de " + r.masas + (r.masas === 1 ? " masa" : " masas")  + (r.shared ? " · comparte insumos" : "") + "</span>" : r.s === "ok" ? '<span class="meta">' + (sn ? NN.use[n] + " en stock · " : "") + r.masas + (r.masas === 1 ? " masa" : " masas") + " · quedan " + (r.sob + (NN.left[n] || 0)) + "</span>" : r.s === "norec" ? '<span class="meta">sin receta</span>' : "";
-        return '<div class="entr' + (r && r.s === "falta" ? " bad" : "") + '" data-ens="' + esc(n) + '"><span class="en">' + esc(n) + "</span>" + st1 + "<b>" + need[n] + '</b><span style="color:var(--soft)">›</span></div>';
+        return '<div class="entr' + (r && r.s === "falta" ? " bad" : "") + '" data-ens="' + esc(n) + '"><span class="en">' + esc(n) + "</span>" + st1 + "<b>" + need[n] + '</b>' + (r ? '<span style="color:var(--soft)">›</span>' : "") + '</div>';
       }).join("");
       var IL = PL ? insList(NN.net) : null, ban = IL && IL.rows.length ? '<button class="insban" data-insall="1"><span>Sumando todas las cookies faltan <b>' + IL.rows.length + (IL.rows.length === 1 ? " insumo" : " insumos") + "</b></span><span>Ver ›</span></button>" : (PL ? '<div class="insok">Alcanzan los insumos para todas</div>' : ""); m.__il = IL;
       m.innerHTML = '<div class="box" style="width:100%;max-height:88vh;overflow:auto"><div class="phd"><h3 style="flex:1">' + esc(entLab(lab)) + "</h3>" + dchip({ lab: lab, q: q, hh: hh }) + '<button class="sm" data-a="x">✕</button></div>' + (q ? ban + '<div class="meta" style="margin:0 0 6px">' + (nq ? "Para preparar: " + (catLbl(NN.net) || nq + " productos") + (nq < q ? " (el resto sale del stock)" : "") : "Alcanza con el stock, no hace falta cocinar") + (hh ? " · " + hh + " pedidos ya hechos" : "") + (PL ? "" : " · calculando stock…") + "</div>" + rows : '<div class="empty">Todo hecho, esperando entrega.</div>') + "</div>";
@@ -1135,6 +1156,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
     if (!rows.length) return;
     (DEMO ? Promise.resolve({ ok: true, n: rows.length }) : api("delPedidos", { rows: rows })).then(function (j) {
       if (!j || !j.ok) { toast(j && j.msg || "No se pudo eliminar"); render(true); return; }
+      (function () { var ks = {}; rows.forEach(function (x) { ks[x.id] = 1; }); var now = Date.now(); trashAdd(st.pedidos.filter(function (p) { return ks[p.id]; }).map(function (p) { var o = JSON.parse(JSON.stringify(p)); o._t = now; return o; })); })();
       if (DEMO) { var ids = {}; rows.forEach(function (x) { ids[x.id] = 1; }); st.pedidos = st.pedidos.filter(function (p) { return !ids[p.id]; }); st.pdx = 0; render(); toast("Eliminados: " + j.n); }
       else { store("uovo_c_pedidos", null); st.swo = null; api("pedidos").then(function (k) { if (k && k.ok) st.pedidos = k.pedidos; st.pdx = 0; render(); toast("Eliminados: " + j.n + (j.pedidos && j.pedidos > j.n ? " de " + j.pedidos : "")); }); }
     }).catch(function () { render(true); toast("No se pudo eliminar"); });
@@ -2845,13 +2867,13 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
       ["#vfab", "Asistente de voz 🎙️", "Tocá el micrófono y preguntale lo que no te acuerdes: «¿cómo cambio un precio?». Te explica paso a paso y te lleva ahí."],
       ["#bell", "Notificaciones 🔔", "Pedidos nuevos, insumos que faltan y cosas del carrito. Abrila y el número desaparece. Deslizá una para marcarla leída, «Limpiar» las saca todas, y abajo de todo están las Leídas para recuperarlas."],
       ["#wand", "La varita ✨", "Tocala cuando quieras para ver esta guía de nuevo en cualquier pantalla."]],
-    pedidos: [["[data-pdx]", "Pedidos con color", "Cada etapa tiene su color: Pendiente naranja, A cocinar azul, Listo verde, Entregado turquesa, Cancelado rojo. Tocá un pedido y se abre un popup: ahí editás, agregás productos, avisás por WhatsApp o cambiás el estado."], ["[data-masas]", "Masas", "Atajo a Masas y sobrantes, con el stock ya descontado."], ["#pq", "Buscador", "Escribí un nombre, un código o un sabor para encontrar un pedido."],
+    pedidos: [["[data-ptot]", "Pedido total", "Barra de avance del período: naranja pendientes, azul a cocinar, verde listos, turquesa entregados. Tocala para ver cuántos hay en cada etapa y cuánta plata."], ["[data-pdx]", "Pedidos con color", "Cada etapa tiene su color: Pendiente naranja, A cocinar azul, Listo verde, Entregado turquesa, Cancelado rojo. Tocá un pedido y se abre un popup: ahí editás, agregás productos, avisás por WhatsApp o cambiás el estado."], ["[data-masas]", "Masas", "Atajo a Masas y sobrantes, con el stock ya descontado."], ["#pq", "Buscador", "Escribí un nombre, un código o un sabor para encontrar un pedido."],
       ["[data-fxk]", "Filtrar y ordenar", "El embudo abre las opciones: medio de pago, entrega, cupón, nota, cantidad de cookies, más nuevos, total, etc. Elegí varias y se combinan. El botón Aplicar aparece solo apenas elegís algo."],
       ["[data-pdp=rng]", "Fecha personalizada", "Tocá «Personalizado» para elegir Desde y Hasta. Esos campos solo aparecen cuando lo elegís."],
       [".chips", "Etapas", "Filtrá por Pendientes, A cocinar, Listos, Entregados o Cancelados. El número es la cantidad."],
       [".pc", "Tocá un pedido", "Se abre y ves el detalle, el WhatsApp del cliente, la nota, y los botones Aprobado, Hecho y Entregado. Con ✏️ Editar pedido podés cambiar datos y agregar productos (ej. un Banana Bread que se olvidaron). Al avanzar de estado o modificar, te ofrece avisar al cliente por WhatsApp con un mensaje propio de cada estado (se editan en Textos)."],
       ["[data-masas]", "Masas y sobrantes 🥣", "Cuántas masas tenés que hacer por sabor y cuántas sobran. Cuando todos los pedidos de una fecha quedan Hechos, se descuentan solos los insumos de esas masas y los sobrantes pasan al stock de cookies."],
-      ["[data-dlote]", "Eliminar pedidos", "Borrá de una vez todos los pedidos de la lista (por ejemplo los de prueba o los cancelados). También podés borrar uno abierto con 🗑. Es definitivo."]],
+      ["[data-dlote]", "Eliminar pedidos", "Borrá de una vez todos los pedidos de la lista (por ejemplo los de prueba o los cancelados). Antes te pide confirmar. Quedan guardados para verlos en «Pedidos eliminados»."], ["[data-trash]", "Pedidos eliminados", "Aparece al final solo si eliminaste pedidos de ese período. Se guarda en este dispositivo y sirve para consultarlos."]],
     productos: [["#newp", "Nuevo producto", "Creá una cookie nueva: nombre, descripción, precio y categoría."],
       ["[data-fxk]", "Filtrar y ordenar", "El embudo filtra por estado, receta, fotos, stock o categoría y ordena por nombre, precio, margen o stock. Se combinan. Si hay filtros puestos, aparece al lado la escoba roja para limpiarlos de un toque."],
       [".sw", "Mover de lugar", "Mantené apretada una cookie para elegirla (se mueve suavecito). Abajo aparecen ↑ Subir y ↓ Bajar para cambiar el orden; se ve igual en la tienda. Se puede con varias a la vez."],
@@ -2949,6 +2971,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
 
   /* ---------- Bot de ayuda (sin IA, gratis) ---------- */
   var KB = [
+    { t: "Pedido total (barra de avance) y pedidos eliminados", k: "pedido total progreso barra avance eliminados borrados papelera eliminar lote confirmar", go: "pedidos", p: ["Arriba de la lista, «Pedido total» muestra cuántos pedidos del período están entregados. Tocalo para ver el detalle por etapa.", "«Eliminar estos N» ahora pide confirmación.", "Al final de la lista, «Pedidos eliminados» aparece solo si borraste pedidos de ese período (se guardan en este dispositivo, solo para ver)."] },
     { t: "Masas y sobrantes (con stock descontado)", k: "masas sobrantes stock cookies cuantas quedan hacer masa cocinar atajo ofrecer", go: "inicio", p: ["Tocá el atajo 🥣 Masas en Inicio (o el botón Masas en Pedidos).", "Para cada sabor descuenta lo que ya tenés en stock y hace masa solo por lo que falta.", "«quedan N» incluye el stock más lo que sobra de la masa.", "Si querés ocultar o mover el atajo: Personalizar en Atajos rápidos."] },
     { t: "Colores de cada etapa", k: "colores estado etapa pendiente cocinar listo entregado cancelado degradé franja", go: "pedidos", p: ["Pendiente naranja, A cocinar azul, Listo verde, Entregado turquesa, Cancelado rojo.", "Se ven igual en Inicio, Pedidos, Gestionados y dentro del pedido."] },
     { t: "Gestionados en Inicio", k: "gestionados hoy semana mes pedidos gestionados avanzar deslizar", go: "inicio", p: ["Aparece solo si gestionaste pedidos (Aprobado, Hecho, Entregado) en el período elegido.", "Tocá una tarjeta para abrir el pedido. Deslizá a la derecha para avanzar de estado, a la izquierda para «Más»."] },
@@ -3503,11 +3526,13 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
       }).catch(function () { render(true); toast("No se pudo crear"); }); return;
     }
     var tl = t.closest("[data-dlote]"); if (tl && st.v === "pedidos") {
-      if (!tl.classList.contains("arm")) { tl.classList.add("arm"); tl.dataset.txt = tl.textContent; tl.textContent = "¿Seguro? Se borran para siempre"; clearTimeout(armTimer); armTimer = setTimeout(function () { tl.classList.remove("arm"); tl.textContent = tl.dataset.txt; }, 3500); return; }
+      if (false) return;
       var q2 = st.q.trim().toLowerCase();
       var rows = st.pedidos.filter(function (p) { if (!dateOk(p) || !filOk(p)) return false; return !q2 || (p.nombre + " " + p.id + " " + p.pedido + " " + p.tel).toLowerCase().indexOf(q2) >= 0; }).map(function (p) { return { r: p.r, id: p.id }; });
-      delPedidos(rows); return;
+      confirmM("Se eliminan " + rows.length + " pedidos. Quedan guardados en «Pedidos eliminados» de este dispositivo.", function () { delPedidos(rows); }); return;
     }
+    if (t.closest("[data-ptot]") && st.v === "pedidos") { ptotPop(); return; }
+    if (t.closest("[data-trash]") && st.v === "pedidos") { trashPop(); return; }
     var dpe = t.closest("[data-dpe]"); if (dpe) {
       if (!dpe.classList.contains("arm")) { dpe.classList.add("arm"); dpe.dataset.txt = dpe.textContent; dpe.textContent = "¿Seguro? Tocá de nuevo"; clearTimeout(armTimer); armTimer = setTimeout(function () { dpe.classList.remove("arm"); dpe.textContent = dpe.dataset.txt; }, 3000); return; }
       var pr0 = st.pedidos.filter(function (x) { return x.r === Number(dpe.closest("[data-r]").getAttribute("data-r")); })[0]; if (pr0) delPedidos([{ r: pr0.r, id: pr0.id }]); return;

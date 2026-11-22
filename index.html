@@ -1898,9 +1898,9 @@ var DEFAULTS = {
     var ce = $("c-cup"), cb0 = cupones.slice().sort(function (a, b) { return b.pct - a.pct; })[0];
     ce.hidden = !(cb0 && x.n > 0 && !x.cupon);
     if (!ce.hidden) ce.textContent = cb0.min > x.base ? fill(data.config.texto_cupon_minimo, { min: money(cb0.min), nombre: cb0.nombre, pct: cb0.pct }) : fill(data.config.texto_cupon, { texto: cb0.texto || cb0.nombre, nombre: cb0.nombre, pct: cb0.pct });
-    var pe2 = $("c-pts"), pm = ptsMax(x.ptsNet), gan = pts && pts.on && pts.pct > 0 ? Math.floor(x.t * pts.pct / 100) : 0;
+    var pe2 = $("c-pts"), tk0 = ""; try { tk0 = JSON.parse(localStorage.getItem("uovo-cliente") || "{}").t || ""; } catch (e) {} var hasTel = (pts && pts.saldo > 0) || String(($("phone") && $("phone").value) || tk0).replace(/\D/g, "").length >= 8, pm = ptsMax(x.ptsNet), gan = pts && pts.on && pts.pct > 0 ? Math.floor(x.t * pts.pct / 100) : 0;
     pe2.hidden = !(x.n > 0 && pts && pts.on && (pm > 0 || gan > 0));
-    if (!pe2.hidden) pe2.innerHTML = (pm > 0 ? "<span>⭐ Tenés <b>" + pts.saldo + " puntos</b> (= " + money(pts.saldo) + ")</span><button type=\"button\" data-usepts=\"1\" class=\"" + (usePts ? "off" : "") + "\">" + (usePts ? "No usar puntos" : "Usar " + pm + " puntos · −" + money(pm)) + "</button>" : "") + (gan > 0 ? "<span>🍪 Con este pedido sumás <b>" + gan + " puntos</b></span>" : "");
+    if (!pe2.hidden) pe2.innerHTML = (pm > 0 ? "<span>⭐ Tenés <b>" + pts.saldo + " puntos</b> (= " + money(pts.saldo) + ")</span><button type=\"button\" data-usepts=\"1\" class=\"" + (usePts ? "off" : "") + "\">" + (usePts ? "No usar puntos" : "Usar " + pm + " puntos · −" + money(pm)) + "</button>" : "") + (gan > 0 ? (hasTel ? "<span>🍪 Con este pedido sumás <b>" + gan + " puntos</b></span>" : "<span>📱 Agregá tu teléfono al pedir y ganá <b>" + gan + " puntos</b></span>") : "");
     $("c-total").textContent = money(x.t); setTransf($("c-transf"), x.t);
     var note = $("c-note"); note.hidden = !(x.n > 0 && !ok); note.textContent = "Por ahora no estamos tomando pedidos.";
     $("cart-go").textContent = waitMode ? "Anotarme en la cola" : data.config.boton_enviar;

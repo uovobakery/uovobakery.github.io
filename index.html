@@ -292,9 +292,13 @@ footer img { width: 150px; height: auto; border-radius: 12px; display: block; }
 .acctbar #acct-user { display: flex; align-items: flex-start; gap: 14px; }
 .acctbar .tool { color: var(--ink-soft); text-decoration: none; font: 600 .7rem/1.2 var(--font-body); padding: 2px 4px; margin: 0; align-self: flex-start; }
 .acctbar button.tool:hover { color: var(--blue); }
-#acct-who { cursor: default; display: grid; justify-items: center; gap: 2px; }
-.acctbar button.ptsb { display: block; margin-top: 2px; padding: 3px 10px; border-radius: 999px; background: linear-gradient(135deg,#FFB020,#FF7A00); color: #fff; font: 800 .72rem/1.2 var(--font-body); text-decoration: none; box-shadow: 0 2px 8px rgba(255,122,0,.35); white-space: nowrap; }
-.acctbar button.ptsb:hover { color: #fff; filter: brightness(1.06); }
+#acct-who { display: grid; justify-items: center; gap: 1px; }
+.acctbar .tool svg { width: 22px; height: 22px; margin: 3px 0; }
+#acct-who { cursor: default; }
+.acctbar button.ptsb { display: grid; justify-items: center; gap: 1px; padding: 2px 4px; background: none; color: #E26A00; text-decoration: none; font: 800 .7rem/1.2 var(--font-body); white-space: nowrap; }
+.acctbar button.ptsb[hidden] { display: none; }
+.acctbar button.ptsb .pi { font-size: 19px; line-height: 22px; height: 22px; margin: 3px 0; display: block; }
+.acctbar button.ptsb:hover { color: #FF7A00; }
 .dpts { background: linear-gradient(135deg,#FFF6E0,#FFEBC2); border-radius: 14px; padding: 10px 12px; margin: 0 0 10px; font-size: .9rem; display: grid; gap: 6px; color: var(--ink); }
 .dpts button { font: 800 .85rem var(--font-body); border: 0; border-radius: 999px; padding: 8px 14px; cursor: pointer; background: linear-gradient(135deg,#FFB020,#FF7A00); color: #fff; justify-self: start; }
 .dpts button.off { background: #fff; color: #FF7A00; box-shadow: inset 0 0 0 2px #FFB020; }
@@ -339,7 +343,32 @@ footer img { width: 150px; height: auto; border-radius: 12px; display: block; }
 .hpanel svg { flex: none; width: 20px; height: 20px; fill: none; stroke: var(--blue); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .hpanel .hh { font: 600 .8rem var(--font-display); color: var(--ink-soft); text-transform: uppercase; letter-spacing: .05em; padding-inline: 6px; }
 .acctbar, .tools { align-self: start; }
-.clubbn { padding: 14px 0; }
+.clubbn { position: relative; z-index: 3; background: var(--paper); padding: 26px 0; }
+#canjes { position: fixed; inset: 0; z-index: 88; overflow-y: auto; background: linear-gradient(180deg,#FFF3DC 0,#FFFFFF 340px); -webkit-overflow-scrolling: touch; }
+#canjes .cj { max-width: 720px; margin: 0 auto; padding: 14px 16px 40px; display: grid; gap: 16px; }
+#canjes .cj-top { display: flex; align-items: center; gap: 10px; position: sticky; top: 0; padding: 10px 0; background: linear-gradient(180deg,#FFF3DC 70%,rgba(255,243,220,0)); z-index: 2; }
+#canjes .cj-top button { font: 800 1rem var(--font-body); border: 0; background: #fff; color: var(--blue); width: 42px; height: 42px; border-radius: 50%; cursor: pointer; box-shadow: 0 2px 10px rgba(12,34,71,.15); }
+#canjes .cj-top b { font: 800 1.25rem var(--font-body); color: var(--ink); }
+#canjes .cj-hero { background: linear-gradient(135deg,#FFB020,#FF7A00); color: #fff; border-radius: 24px; padding: 22px 20px; text-align: center; display: grid; gap: 6px; box-shadow: 0 8px 22px rgba(255,122,0,.35); }
+#canjes .cj-hero .n { font: 800 3rem/1 var(--font-body); }
+#canjes .cj-hero p { margin: 0; font-weight: 600; opacity: .95; }
+#canjes .cj-hero button { justify-self: center; margin-top: 6px; font: 800 .95rem var(--font-body); border: 0; border-radius: 999px; padding: 10px 20px; background: #fff; color: #E26A00; cursor: pointer; }
+#canjes .cj-steps { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+#canjes .cj-steps div { background: #fff; border-radius: 18px; padding: 14px 8px; text-align: center; box-shadow: 0 2px 12px rgba(12,34,71,.08); font-size: .82rem; color: var(--ink-soft); line-height: 1.3; }
+#canjes .cj-steps i { display: block; font-style: normal; font-size: 2rem; margin-bottom: 6px; }
+#canjes h3 { margin: 6px 2px 0; font: 800 1.15rem var(--font-body); color: var(--ink); }
+#canjes .cj-sub { margin: -10px 2px 0; color: var(--ink-soft); font-size: .9rem; }
+#canjes .cj-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; }
+#canjes .cj-c { background: #fff; border-radius: 20px; overflow: hidden; box-shadow: 0 4px 16px rgba(12,34,71,.1); display: grid; align-content: start; }
+#canjes .cj-c.off { filter: grayscale(.8); opacity: .65; }
+#canjes .cj-img { aspect-ratio: 1; background: var(--sky); display: grid; place-items: center; font-size: 3rem; overflow: hidden; }
+#canjes .cj-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+#canjes .cj-b { padding: 10px 12px 12px; display: grid; gap: 6px; }
+#canjes .cj-b b { font: 700 .98rem/1.2 var(--font-body); color: var(--ink); }
+#canjes .cj-p { font: 800 .95rem var(--font-body); color: #E26A00; }
+#canjes .cj-s { font-size: .78rem; font-weight: 700; color: var(--ink-soft); }
+#canjes .cj-s.ok { color: #1E9E5A; }
+#canjes .cj-b button { font: 800 .88rem var(--font-body); border: 0; border-radius: 999px; padding: 9px 10px; cursor: pointer; background: linear-gradient(135deg,#FFB020,#FF7A00); color: #fff; }
 .clubbn .wrap { display: flex; justify-content: center; }
 .clubbn button { font: 800 1rem var(--font-body); border: 0; border-radius: 999px; padding: 12px 22px; cursor: pointer; background: linear-gradient(135deg,#FFB020,#FF7A00); color: #fff; box-shadow: 0 4px 14px rgba(255,122,0,.35); }
 @media (max-width: 759px) { .sb-in { grid-template-columns: 1fr auto; grid-template-areas: "acct tools" "search search"; gap: 8px 12px; padding-block: 6px 8px; } .tools { gap: 12px; } }
@@ -513,7 +542,7 @@ body:has(.backdrop:not([hidden])), body:has(.qpop-b:not([hidden])), body:has(.dr
   <div class="acctbar" id="acct" hidden>
     <span id="acct-msg">Iniciá sesión y completamos tus datos solos</span>
     <div id="gbtn"></div>
-    <span id="acct-user" hidden><span class="tool" id="acct-who"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg><span id="acct-name"></span><button type="button" class="ptsb" id="acct-pts" hidden></button></span><button class="tool" type="button" id="acct-orders"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2l-2 4v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6l-2-4z"/><path d="M4 6h16"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span>Mis pedidos</span></button><button class="tool" type="button" id="acct-out" aria-label="Salir"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg><span>Salir</span></button></span>
+    <span id="acct-user" hidden><span class="tool" id="acct-who"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg><span id="acct-name"></span></span><button type="button" class="tool ptsb" id="acct-pts" hidden><span class="pi">⭐</span><span id="acct-pts-t"></span></button><button class="tool" type="button" id="acct-orders"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2l-2 4v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6l-2-4z"/><path d="M4 6h16"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span>Mis pedidos</span></button><button class="tool" type="button" id="acct-out" aria-label="Salir"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg><span>Salir</span></button></span>
   </div>
   <form class="sform" id="sform" role="search">
     <input id="q" type="search" placeholder="Buscá por nombre o ingrediente…" autocomplete="off" aria-label="Buscar cookies">
@@ -1695,7 +1724,7 @@ var DEFAULTS = {
     cb("");
   }
   function ptsUi() {
-    var b = $("acct-pts"); if (!b) return; var on = pts && pts.on && memToken, g = (profile() || {}).g; b.hidden = !(on || (g && !pts)); if (on) b.textContent = "⭐ " + (pts.saldo || 0) + " puntos"; else if (g && !pts) b.textContent = "⭐ Mis puntos";
+    var b = $("acct-pts"); if (!b) return; var on = pts && pts.on && memToken, g = (profile() || {}).g; b.hidden = !(on || (g && !pts)); var tt = $("acct-pts-t"); if (on) tt.textContent = (pts.saldo || 0) + " puntos"; else if (g && !pts) tt.textContent = "Mis puntos";
   }
   function loadPuntos() {
     if (!ENDPOINT || !memToken) return;
@@ -1719,11 +1748,24 @@ var DEFAULTS = {
     document.body.appendChild(m); try { google.accounts.id.renderButton($("gbtn3"), { theme: "outline", size: "large", text: "signin_with", shape: "pill", locale: "es" }); } catch (e) {}
     m.addEventListener("click", function (e) { if (e.target === m || e.target.closest("[data-x]")) { window.__ptsOpen = false; m.remove(); } });
   }
-  function ptsPop() {
-    var q = pts || ptsPub || {}, pc = Number(q.pct) || 0, ex = pc > 0 ? Math.round(100 / pc) : 0, dd = Number(q.dias) || 0, m = document.createElement("div"); m.className = "ptsm";
-    var top = pts ? '<div class="big">' + (pts.saldo || 0) + '</div><b>puntos = ' + money(pts.saldo || 0) + ' de descuento</b>' + (pts.prox ? "<p>⏳ " + pts.prox.pts + " vencen el " + String(pts.prox.fecha).split("-").reverse().join("/") + "</p>" : "") : '<div class="big">⭐</div><b>Club de puntos</b>';
-    m.innerHTML = '<div>' + top + '<p style="text-align:left;background:#FFF4E5;border-radius:14px;padding:12px 14px"><b>Cómo sumar puntos</b><br>1️⃣ Hacé tu pedido y pagalo.<br>2️⃣ Sumás ' + (pc ? fm(pc) + "%" : "un %") + ' de lo que pagás en puntos' + (ex ? " (1 cookie gratis cada ~" + ex + ")" : "") + '.<br>3️⃣ 1 punto = $1 de descuento, en cualquier producto.' + (dd ? "<br>4️⃣ Duran " + dd + " días." : "") + '</p><p>Elegí tus productos y canjeá los puntos en <b>Mi horno</b> antes de enviar el pedido.</p>' + (pts ? "" : '<button type="button" data-login="1">Ver mis puntos</button>') + '<button type="button" data-go="1">Elegir productos 🍪</button><button type="button" class="sec" data-x="1">Cerrar</button></div>';
-    document.body.appendChild(m); m.addEventListener("click", function (e) { if (e.target === m || e.target.closest("[data-x]")) m.remove(); else if (e.target.closest("[data-login]")) { m.remove(); ptsLogin(); } else if (e.target.closest("[data-go]")) { m.remove(); var cb = document.querySelector('#cats-in button[data-cat]:not([data-cat=""]):not([data-cat^="__"])'); if (cb) cb.click(); } });
+  function ptsPop() { openCanjes(); }
+  function closeCanjes() { var m = $("canjes"); if (m) m.remove(); document.body.style.overflow = ""; }
+  function openCanjes() {
+    closeCanjes(); var q = pts || ptsPub || {}, pc = Number(q.pct) || 0, dd = Number(q.dias) || 0, sal = pts ? (pts.saldo || 0) : 0, m = document.createElement("div"); m.id = "canjes";
+    var L = (data ? data.productos : []).map(function (p, i) { return { p: p, i: i }; }).filter(function (x) { return x.p.precio > 0; });
+    var hero = pts ? '<div class="cj-hero"><div class="n">⭐ ' + sal + '</div><b>puntos = ' + money(sal) + ' de descuento</b>' + (pts.prox ? "<p>⏳ " + pts.prox.pts + " vencen el " + String(pts.prox.fecha).split("-").reverse().join("/") + "</p>" : "") + "</div>" : '<div class="cj-hero"><div class="n">⭐</div><b>Club de puntos</b><p>Sumá puntos con cada pedido y canjealos por cookies</p><button type="button" data-login="1">Ver mis puntos</button></div>';
+    var steps = '<div class="cj-steps"><div><i>🛒</i>Hacé tu pedido y pagalo</div><div><i>⭐</i>Sumás ' + (pc ? fm(pc) + "%" : "un %") + ' en puntos' + (dd ? " (duran " + dd + " días)" : "") + '</div><div><i>🍪</i>1 punto = $1 de descuento</div></div>';
+    var cards = L.map(function (x) {
+      var p = x.p, im = (p.medios || []).filter(function (z) { return z.t === "img"; })[0], pr = p.precio, ok = pts && sal >= pr;
+      return '<div class="cj-c' + (p.agotada ? " off" : "") + '"><div class="cj-img">' + (im ? '<img src="' + esc(im.src) + '" alt="' + esc(p.nombre) + '" loading="lazy">' : "🍪") + '</div><div class="cj-b"><b>' + esc(p.nombre) + '</b><span class="cj-p">⭐ ' + Number(pr).toLocaleString("es-AR") + ' puntos</span>' + (p.agotada ? '<span class="cj-s">Agotada por ahora</span>' : '<span class="cj-s' + (ok ? " ok" : "") + '">' + (!pts ? "Entrá para ver si te alcanza" : ok ? "¡Te alcanza!" : "Te faltan " + (pr - sal).toLocaleString("es-AR")) + '</span><button type="button" data-add="' + x.i + '">Agregar a mi pedido</button>') + "</div></div>";
+    }).join("");
+    m.innerHTML = '<div class="cj"><div class="cj-top"><button type="button" data-back="1" aria-label="Volver">←</button><b>Club de puntos</b></div>' + hero + steps + '<h3>Canjeá por cookies</h3><p class="cj-sub">Con tus puntos descontás el precio de lo que quieras. Elegí y usalos en <b>Mi horno</b>.</p><div class="cj-grid">' + (cards || '<p class="cj-sub">Pronto vas a ver acá los productos.</p>') + "</div></div>";
+    document.body.appendChild(m); document.body.style.overflow = "hidden"; m.scrollTop = 0;
+    m.addEventListener("click", function (e) {
+      if (e.target.closest("[data-back]")) { closeCanjes(); return; }
+      if (e.target.closest("[data-login]")) { closeCanjes(); ptsLogin(); return; }
+      var ad = e.target.closest("[data-add]"); if (ad) { var bt = document.querySelector('.stepper [data-i="' + ad.getAttribute("data-add") + '"][data-d="1"]'); if (bt) bt.click(); if (pts) usePts = true; closeCanjes(); toast("Agregada a Mi horno 🍪"); if (data) { refresh(); } }
+    });
   }
   function fm(n) { return String(Math.round(n * 10) / 10).replace(".", ","); }
   document.addEventListener("click", function (e) { if (e.target.closest("#club-bn-b")) { ptsPop(); return; } if (e.target.closest("[data-ptslogin]")) { ptsLogin(); return; } if (e.target.closest("#acct-pts")) { if (pts) ptsPop(); else ptsLogin(); return; } if (e.target.closest("[data-usepts]")) { usePts = !usePts; renderCart(); } });

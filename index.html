@@ -338,6 +338,10 @@ footer img { width: 150px; height: auto; border-radius: 12px; display: block; }
 .hpanel a:hover { background: var(--sky); }
 .hpanel svg { flex: none; width: 20px; height: 20px; fill: none; stroke: var(--blue); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .hpanel .hh { font: 600 .8rem var(--font-display); color: var(--ink-soft); text-transform: uppercase; letter-spacing: .05em; padding-inline: 6px; }
+.acctbar, .tools { align-self: start; }
+.clubbn { padding: 14px 0; }
+.clubbn .wrap { display: flex; justify-content: center; }
+.clubbn button { font: 800 1rem var(--font-body); border: 0; border-radius: 999px; padding: 12px 22px; cursor: pointer; background: linear-gradient(135deg,#FFB020,#FF7A00); color: #fff; box-shadow: 0 4px 14px rgba(255,122,0,.35); }
 @media (max-width: 759px) { .sb-in { grid-template-columns: 1fr auto; grid-template-areas: "acct tools" "search search"; gap: 8px 12px; padding-block: 6px 8px; } .tools { gap: 12px; } }
 .cats { background: #fff; border-bottom: 1px solid var(--sky-line); }
 .cats-in { max-width: 1180px; margin-inline: auto; padding: 0 16px; display: flex; gap: 6px; justify-content: flex-start; overflow-x: auto; scrollbar-width: none; }
@@ -1659,7 +1663,7 @@ var DEFAULTS = {
         google.accounts.id.initialize({ client_id: id, auto_select: true, callback: function (r) {
           try {
             var u = jwtPayload(r.credential);
-            memToken = r.credential; tokExp = (u.exp || 0) * 1000; try { localStorage.setItem("uovo-tok", JSON.stringify({ t: memToken, x: tokExp })); } catch (e4) {} tokWake(memToken); loadCupones(); if (ordLogin && $("orders").classList.contains("open")) openOrders();
+            memToken = r.credential; tokExp = (u.exp || 0) * 1000; try { localStorage.setItem("uovo-tok", JSON.stringify({ t: memToken, x: tokExp })); } catch (e4) {} tokWake(memToken); loadCupones(); ptsSes(r.credential); if (ordLogin && $("orders").classList.contains("open")) openOrders();
             var old = profile() || {};
             $("name").value = u.name || u.given_name || ""; $("email").value = u.email || ""; if (old.t) $("phone").value = old.t;
             try { localStorage.setItem("uovo-cliente", JSON.stringify({ n: $("name").value, e: $("email").value, t: $("phone").value, g: 1 })); } catch (err) {}
@@ -1669,7 +1673,6 @@ var DEFAULTS = {
         google.accounts.id.renderButton($("gbtn"), { theme: "outline", size: "medium", text: "signin_with", shape: "pill", locale: "es" });
       }
       gReady = true;
-      if ((profile() || {}).g && !(memToken && tokExp - Date.now() > 90000)) { try { google.accounts.id.prompt(); } catch (e6) {} }
     }
     if (window.google && window.google.accounts) { go(); return; }
     if (document.getElementById("gsi")) return;
@@ -1690,15 +1693,34 @@ var DEFAULTS = {
   }
   function loadPuntos() {
     if (!ENDPOINT || !memToken) return;
-    fetch(ENDPOINT + "?puntos=1&token=" + encodeURIComponent(memToken)).then(function (r) { return r.json(); }).then(function (j) { pts = j && j.ok ? j : null; if (!pts) usePts = false; ptsUi(); if (pts && window.__ptsOpen) { window.__ptsOpen = false; ptsPop(); } if (data && $("drawer").classList.contains("open")) renderCart(); }).catch(function () {});
+    fetch(ENDPOINT + "?puntos=1&token=" + encodeURIComponent(memToken)).then(function (r) { return r.json(); }).then(function (j) { pts = j && j.ok ? j : null; if (j && j.error === "TK") { memToken = ""; tokExp = 0; try { localStorage.removeItem("uovo-tok"); } catch (e9) {} } if (!pts) usePts = false; ptsUi(); clubBn(); if (pts && window.__ptsOpen) { window.__ptsOpen = false; var lg = $("ptslg"); if (lg) lg.remove(); ptsPop(); } if (data && $("drawer").classList.contains("open")) renderCart(); }).catch(function () {});
+  }
+  var ptsPub = null;
+  function ptsSes(cr) { if (!ENDPOINT) return; fetch(ENDPOINT + "?sesion=1&token=" + encodeURIComponent(cr)).then(function (r) { return r.json(); }).then(function (j) { if (j && j.ses) { memToken = j.ses; tokExp = Date.now() + 85 * 864e5; try { localStorage.setItem("uovo-tok", JSON.stringify({ t: memToken, x: tokExp })); } catch (e8) {} } }).catch(function () {}); }
+  function clubBn() {
+    var q = pts || ptsPub, b = q && q.banner, el = $("club-bn");
+    if (!q || !q.on || !b || b.on === false) { if (el) el.hidden = true; return; }
+    if (!el) { el = document.createElement("section"); el.id = "club-bn"; el.className = "clubbn"; el.innerHTML = '<div class="wrap"><button type="button" id="club-bn-b"></button></div>'; }
+    el.querySelector("button").textContent = b.texto || "⭐ Club de puntos · Mirá los canjes";
+    var lu = b.lugar, ref = lu === "arriba" ? $("scene") : lu === "medio" ? $("catalogo") : document.querySelector("footer");
+    if (ref && ref.parentNode) ref.parentNode.insertBefore(el, ref); el.hidden = false;
+  }
+  function loadPub() { if (!ENDPOINT) return; fetch(ENDPOINT + "?puntos=1").then(function (r) { return r.json(); }).then(function (j) { if (j && j.ok) { ptsPub = j; clubBn(); } }).catch(function () {}); }
+  setTimeout(loadPub, 0);
+  function ptsLogin() {
+    window.__ptsOpen = true; var m = document.createElement("div"); m.className = "ptsm"; m.id = "ptslg";
+    m.innerHTML = '<div><b>Confirmá tu sesión para ver tus puntos</b><p>Tocá el botón de Google, es un solo paso.</p><div id="gbtn3" style="display:flex;justify-content:center;min-height:44px"></div><button type="button" class="sec" data-x="1">Cerrar</button></div>';
+    document.body.appendChild(m); try { google.accounts.id.renderButton($("gbtn3"), { theme: "outline", size: "large", text: "signin_with", shape: "pill", locale: "es" }); } catch (e) {}
+    m.addEventListener("click", function (e) { if (e.target === m || e.target.closest("[data-x]")) { window.__ptsOpen = false; m.remove(); } });
   }
   function ptsPop() {
-    var q = pts || {}, pc = Number(q.pct) || 0, ex = pc > 0 ? Math.round(100 / pc) : 0, dd = Number(q.dias) || 0, m = document.createElement("div"); m.className = "ptsm";
-    m.innerHTML = '<div><div class="big">' + (q.saldo || 0) + '</div><b>puntos = ' + money(q.saldo || 0) + ' de descuento</b>' + (q.prox ? "<p>⏳ " + q.prox.pts + " vencen el " + String(q.prox.fecha).split("-").reverse().join("/") + "</p>" : "") + '<p style="text-align:left;background:#FFF4E5;border-radius:14px;padding:12px 14px"><b>Cómo sumar puntos</b><br>1️⃣ Hacé tu pedido y pagalo.<br>2️⃣ Sumás ' + (pc ? fm(pc) + "%" : "un %") + ' de lo que pagás en puntos' + (ex ? " (1 cookie gratis cada ~" + ex + ")" : "") + '.<br>3️⃣ 1 punto = $1 de descuento, en cualquier producto.' + (dd ? "<br>4️⃣ Duran " + dd + " días." : "") + '</p><p>Elegí tus productos y canjeá los puntos en <b>Mi horno</b> antes de enviar el pedido.</p><button type="button" data-go="1">Elegir productos 🍪</button><button type="button" class="sec" data-x="1">Cerrar</button></div>';
-    document.body.appendChild(m); m.addEventListener("click", function (e) { if (e.target === m || e.target.closest("[data-x]")) m.remove(); else if (e.target.closest("[data-go]")) { m.remove(); var cb = document.querySelector('#cats-in button[data-cat]:not([data-cat=""]):not([data-cat^="__"])'); if (cb) cb.click(); } });
+    var q = pts || ptsPub || {}, pc = Number(q.pct) || 0, ex = pc > 0 ? Math.round(100 / pc) : 0, dd = Number(q.dias) || 0, m = document.createElement("div"); m.className = "ptsm";
+    var top = pts ? '<div class="big">' + (pts.saldo || 0) + '</div><b>puntos = ' + money(pts.saldo || 0) + ' de descuento</b>' + (pts.prox ? "<p>⏳ " + pts.prox.pts + " vencen el " + String(pts.prox.fecha).split("-").reverse().join("/") + "</p>" : "") : '<div class="big">⭐</div><b>Club de puntos</b>';
+    m.innerHTML = '<div>' + top + '<p style="text-align:left;background:#FFF4E5;border-radius:14px;padding:12px 14px"><b>Cómo sumar puntos</b><br>1️⃣ Hacé tu pedido y pagalo.<br>2️⃣ Sumás ' + (pc ? fm(pc) + "%" : "un %") + ' de lo que pagás en puntos' + (ex ? " (1 cookie gratis cada ~" + ex + ")" : "") + '.<br>3️⃣ 1 punto = $1 de descuento, en cualquier producto.' + (dd ? "<br>4️⃣ Duran " + dd + " días." : "") + '</p><p>Elegí tus productos y canjeá los puntos en <b>Mi horno</b> antes de enviar el pedido.</p>' + (pts ? "" : '<button type="button" data-login="1">Ver mis puntos</button>') + '<button type="button" data-go="1">Elegir productos 🍪</button><button type="button" class="sec" data-x="1">Cerrar</button></div>';
+    document.body.appendChild(m); m.addEventListener("click", function (e) { if (e.target === m || e.target.closest("[data-x]")) m.remove(); else if (e.target.closest("[data-login]")) { m.remove(); ptsLogin(); } else if (e.target.closest("[data-go]")) { m.remove(); var cb = document.querySelector('#cats-in button[data-cat]:not([data-cat=""]):not([data-cat^="__"])'); if (cb) cb.click(); } });
   }
   function fm(n) { return String(Math.round(n * 10) / 10).replace(".", ","); }
-  document.addEventListener("click", function (e) { if (e.target.closest("#acct-pts")) { if (pts) ptsPop(); else { window.__ptsOpen = true; try { google.accounts.id.prompt(); } catch (e7) {} } return; } if (e.target.closest("[data-usepts]")) { usePts = !usePts; renderCart(); } });
+  document.addEventListener("click", function (e) { if (e.target.closest("#club-bn-b")) { ptsPop(); return; } if (e.target.closest("[data-ptslogin]")) { ptsLogin(); return; } if (e.target.closest("#acct-pts")) { if (pts) ptsPop(); else ptsLogin(); return; } if (e.target.closest("[data-usepts]")) { usePts = !usePts; renderCart(); } });
   function loadCupones() {
     if (!ENDPOINT || !memToken) return; loadPuntos();
     fetch(ENDPOINT + "?cupones=1&token=" + encodeURIComponent(memToken) + "&tel=" + encodeURIComponent((function () { try { return (JSON.parse(localStorage.getItem("uovo-cliente") || "{}").t || "").replace(/\D/g, ""); } catch (e) { return ""; } })())).then(function (r) { return r.json(); }).then(function (j) {
@@ -1901,8 +1923,8 @@ var DEFAULTS = {
     ce.hidden = !(cb0 && x.n > 0 && !x.cupon);
     if (!ce.hidden) ce.textContent = cb0.min > x.base ? fill(data.config.texto_cupon_minimo, { min: money(cb0.min), nombre: cb0.nombre, pct: cb0.pct }) : fill(data.config.texto_cupon, { texto: cb0.texto || cb0.nombre, nombre: cb0.nombre, pct: cb0.pct });
     var pe2 = $("c-pts"), tk0 = ""; try { tk0 = JSON.parse(localStorage.getItem("uovo-cliente") || "{}").t || ""; } catch (e) {} var hasTel = (pts && pts.saldo > 0) || String(($("phone") && $("phone").value) || tk0).replace(/\D/g, "").length >= 8, pm = ptsMax(x.ptsNet), gan = pts && pts.on && pts.pct > 0 ? Math.floor(x.t * pts.pct / 100) : 0;
-    pe2.hidden = !(x.n > 0 && pts && pts.on && (pm > 0 || gan > 0));
-    if (!pe2.hidden) pe2.innerHTML = (pm > 0 ? "<span>⭐ Tenés <b>" + pts.saldo + " puntos</b> (= " + money(pts.saldo) + ")</span><button type=\"button\" data-usepts=\"1\" class=\"" + (usePts ? "off" : "") + "\">" + (usePts ? "No usar puntos" : "Usar " + pm + " puntos · −" + money(pm)) + "</button>" : "") + (gan > 0 ? (hasTel ? "<span>🍪 Con este pedido sumás <b>" + gan + " puntos</b></span>" : "<span>📱 Agregá tu teléfono al pedir y ganá <b>" + gan + " puntos</b></span>") : "");
+    var needTk = !pts && !!(profile() || {}).g && x.n > 0; pe2.hidden = !(needTk || (x.n > 0 && pts && pts.on && (pm > 0 || gan > 0)));
+    if (!pe2.hidden) pe2.innerHTML = needTk ? "<span>⭐ Confirmá tu sesión para sumar y usar tus puntos</span><button type=\"button\" data-ptslogin=\"1\">Confirmar</button>" : (pm > 0 ? "<span>⭐ Tenés <b>" + pts.saldo + " puntos</b> (= " + money(pts.saldo) + ")</span><button type=\"button\" data-usepts=\"1\" class=\"" + (usePts ? "off" : "") + "\">" + (usePts ? "No usar puntos" : "Usar " + pm + " puntos · −" + money(pm)) + "</button>" : "") + (gan > 0 ? (hasTel ? "<span>🍪 Con este pedido sumás <b>" + gan + " puntos</b></span>" : "<span>📱 Agregá tu teléfono al pedir y ganá <b>" + gan + " puntos</b></span>") : "");
     $("c-total").textContent = money(x.t); setTransf($("c-transf"), x.t);
     var note = $("c-note"); note.hidden = !(x.n > 0 && !ok); note.textContent = "Por ahora no estamos tomando pedidos.";
     $("cart-go").textContent = waitMode ? "Anotarme en la cola" : data.config.boton_enviar;

@@ -1541,7 +1541,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
     return inixOrd().filter(function (k) { return !inixCfg().hid[k] && B[k]; }).map(function (k) { return B[k]; }).join("");
   }
   /* ---------- Personalizar inicio ---------- */
-  var IXK = "uovo_adm_inix", IXB = [["cur", "Pedidos en curso"], ["banner", "Aviso de lista de espera"], ["hero", "Ventas del mes y por venir"], ["kpis", "Pendientes, a cocinar, para entregar"], ["alertas", "Alertas"], ["cocinar", "Para cocinar"], ["atajos", "Atajos rápidos"], ["hoy", "Hoy"], ["insumos", "Insumos para pedidos"]], IXA = ["masas", "compras", "cupones", "packs", "recetas", "stock", "textos", "cola", "tandas", "proveedores", "nuevoped", "productos", "finanzas", "resenas", "reportes"], ATNAV = { proveedores: "proveedores", nuevoped: "pedidos", productos: "productos", finanzas: "finanzas", resenas: "resenas" }, ATDH = { nuevoped: 1, productos: 1, finanzas: 1, resenas: 1 };
+  var IXK = "uovo_adm_inix", IXB = [["cur", "Pedidos en curso"], ["banner", "Aviso de lista de espera"], ["hero", "Ventas del mes y por venir"], ["kpis", "Pendientes, a cocinar, para entregar"], ["alertas", "Alertas"], ["cocinar", "Para cocinar"], ["atajos", "Atajos rápidos"], ["hoy", "Hoy"], ["insumos", "Insumos para pedidos"]], IXA = ["masas", "compras", "cupones", "packs", "recetas", "stock", "textos", "cola", "tandas", "proveedores", "nuevoped", "productos", "finanzas", "resenas", "reportes", "clientes", "club"], ATNAV = { clientes: "clientes", club: "club", proveedores: "proveedores", nuevoped: "pedidos", productos: "productos", finanzas: "finanzas", resenas: "resenas" }, ATDH = { nuevoped: 1, productos: 1, finanzas: 1, resenas: 1 };
   function atHid(k) { var c = inixCfg(); return !!c.ath[k] || (ATDH[k] && !(c.ats || {})[k]); }
   function atOk(k) { return allowed(k === "nuevoped" || k === "masas" ? "pedidos" : k); }
   var KPS = { pend: "Pendientes", coc: "A cocinar", list: "Para entregar", ent: "Entregados", canc: "Cancelados", hoy: "Hoy", cur: "En curso" };
@@ -1785,14 +1785,14 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
 
   /* ---------- Atajos rápidos (popup) y accesos directos ---------- */
   var SCT = { cupones: "Cupones", packs: "Packs y combos", recetas: "Recetas", stock: "Stock", textos: "Textos de la página", compras: "Lista de compras", cola: "Lista de espera", tandas: "Tandas" };
-  var SCS = { masas: "Masas", reportes: "Reportes", proveedores: "Proveedores", nuevoped: "Nuevo pedido", productos: "Productos", finanzas: "Finanzas", resenas: "Reseñas", compras: "Compras", cupones: "Cupones", packs: "Packs", recetas: "Recetas", stock: "Stock", textos: "Textos", cola: "Espera", tandas: "Tandas" };
+  var SCS = { clientes: "Clientes", club: "Club de puntos", masas: "Masas", reportes: "Reportes", proveedores: "Proveedores", nuevoped: "Nuevo pedido", productos: "Productos", finanzas: "Finanzas", resenas: "Reseñas", compras: "Compras", cupones: "Cupones", packs: "Packs", recetas: "Recetas", stock: "Stock", textos: "Textos", cola: "Espera", tandas: "Tandas" };
   function scBadge(k) {
     if (k === "compras") return st.stock && st.recetas ? cmpPend() : 0;
     if (k === "stock") return (st.stock || []).filter(function (x) { return x.mov && x.nivel && x.nivel !== "ok"; }).length;
     if (k === "cola") return colWait().length;
     return 0;
   }
-  var SCI = { masas: "🥣", reportes: "📊", proveedores: "🚚", nuevoped: "➕", productos: "🍪", finanzas: "📊", resenas: "⭐", cupones: "🏷️", packs: "🎁", recetas: "🧁", stock: "📦", textos: "✏️", compras: "🛒", cola: "🔔", tandas: "📅" };
+  var SCI = { clientes: "👥", club: "⭐", masas: "🥣", reportes: "📊", proveedores: "🚚", nuevoped: "➕", productos: "🍪", finanzas: "📊", resenas: "⭐", cupones: "🏷️", packs: "🎁", recetas: "🧁", stock: "📦", textos: "✏️", compras: "🛒", cola: "🔔", tandas: "📅" };
   function scMeta(k) {
     if (k === "cupones") { var n = (st.cupones || []).filter(function (x) { return x.activo; }).length; return st.cupones ? n + (n === 1 ? " activo" : " activos") : "Ver y crear"; }
     if (k === "packs") { var p = (st.packs || []).filter(function (x) { return x.ac; }).length; return st.packs ? p + (p === 1 ? " activo" : " activos") : "Activar y pausar"; }

@@ -1642,6 +1642,7 @@ var DEFAULTS = {
     var s = profile(), on = !!(s && s.g && s.n);
     $("gbtn").hidden = on; $("acct-msg").hidden = on; $("acct-user").hidden = !on;
     if (on) $("acct-name").textContent = s.n.split(" ")[0];
+    ptsUi();
   }
   $("acct-out").addEventListener("click", function () {
     try { localStorage.removeItem("uovo-cliente"); if (window.google && google.accounts) google.accounts.id.disableAutoSelect(); } catch (e) {}
@@ -1668,6 +1669,7 @@ var DEFAULTS = {
         google.accounts.id.renderButton($("gbtn"), { theme: "outline", size: "medium", text: "signin_with", shape: "pill", locale: "es" });
       }
       gReady = true;
+      if ((profile() || {}).g && !(memToken && tokExp - Date.now() > 90000)) { try { google.accounts.id.prompt(); } catch (e6) {} }
     }
     if (window.google && window.google.accounts) { go(); return; }
     if (document.getElementById("gsi")) return;
@@ -1684,11 +1686,11 @@ var DEFAULTS = {
     cb("");
   }
   function ptsUi() {
-    var b = $("acct-pts"); if (!b) return; var on = pts && pts.on && memToken; b.hidden = !on; if (on) b.textContent = "⭐ " + (pts.saldo || 0) + " puntos";
+    var b = $("acct-pts"); if (!b) return; var on = pts && pts.on && memToken, g = (profile() || {}).g; b.hidden = !(on || (g && !pts)); if (on) b.textContent = "⭐ " + (pts.saldo || 0) + " puntos"; else if (g && !pts) b.textContent = "⭐ Mis puntos";
   }
   function loadPuntos() {
     if (!ENDPOINT || !memToken) return;
-    fetch(ENDPOINT + "?puntos=1&token=" + encodeURIComponent(memToken)).then(function (r) { return r.json(); }).then(function (j) { pts = j && j.ok ? j : null; if (!pts) usePts = false; ptsUi(); if (data && $("drawer").classList.contains("open")) renderCart(); }).catch(function () {});
+    fetch(ENDPOINT + "?puntos=1&token=" + encodeURIComponent(memToken)).then(function (r) { return r.json(); }).then(function (j) { pts = j && j.ok ? j : null; if (!pts) usePts = false; ptsUi(); if (pts && window.__ptsOpen) { window.__ptsOpen = false; ptsPop(); } if (data && $("drawer").classList.contains("open")) renderCart(); }).catch(function () {});
   }
   function ptsPop() {
     if (!pts) return; var m = document.createElement("div"), ex = pts.pct > 0 ? Math.round(100 / pts.pct) : 0; m.className = "ptsm";
@@ -1696,7 +1698,7 @@ var DEFAULTS = {
     document.body.appendChild(m); m.addEventListener("click", function (e) { if (e.target === m || e.target.closest("[data-x]")) m.remove(); else if (e.target.closest("[data-go]")) { m.remove(); openCart(); } });
   }
   function fm(n) { return String(Math.round(n * 10) / 10).replace(".", ","); }
-  document.addEventListener("click", function (e) { if (e.target.closest("#acct-pts")) { ptsPop(); return; } if (e.target.closest("[data-usepts]")) { usePts = !usePts; renderCart(); } });
+  document.addEventListener("click", function (e) { if (e.target.closest("#acct-pts")) { if (pts) ptsPop(); else { window.__ptsOpen = true; try { google.accounts.id.prompt(); } catch (e7) {} } return; } if (e.target.closest("[data-usepts]")) { usePts = !usePts; renderCart(); } });
   function loadCupones() {
     if (!ENDPOINT || !memToken) return; loadPuntos();
     fetch(ENDPOINT + "?cupones=1&token=" + encodeURIComponent(memToken) + "&tel=" + encodeURIComponent((function () { try { return (JSON.parse(localStorage.getItem("uovo-cliente") || "{}").t || "").replace(/\D/g, ""); } catch (e) { return ""; } })())).then(function (r) { return r.json(); }).then(function (j) {

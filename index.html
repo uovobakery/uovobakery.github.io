@@ -292,7 +292,18 @@ footer img { width: 150px; height: auto; border-radius: 12px; display: block; }
 .acctbar #acct-user { display: flex; align-items: flex-start; gap: 14px; }
 .acctbar .tool { color: var(--ink-soft); text-decoration: none; font: 600 .7rem/1.2 var(--font-body); padding: 2px 4px; margin: 0; align-self: flex-start; }
 .acctbar button.tool:hover { color: var(--blue); }
-#acct-who { cursor: default; }
+#acct-who { cursor: default; display: grid; justify-items: center; gap: 2px; }
+.acctbar button.ptsb { display: block; margin-top: 2px; padding: 3px 10px; border-radius: 999px; background: linear-gradient(135deg,#FFB020,#FF7A00); color: #fff; font: 800 .72rem/1.2 var(--font-body); text-decoration: none; box-shadow: 0 2px 8px rgba(255,122,0,.35); white-space: nowrap; }
+.acctbar button.ptsb:hover { color: #fff; filter: brightness(1.06); }
+.dpts { background: linear-gradient(135deg,#FFF6E0,#FFEBC2); border-radius: 14px; padding: 10px 12px; margin: 0 0 10px; font-size: .9rem; display: grid; gap: 6px; color: var(--ink); }
+.dpts button { font: 800 .85rem var(--font-body); border: 0; border-radius: 999px; padding: 8px 14px; cursor: pointer; background: linear-gradient(135deg,#FFB020,#FF7A00); color: #fff; justify-self: start; }
+.dpts button.off { background: #fff; color: #FF7A00; box-shadow: inset 0 0 0 2px #FFB020; }
+.ptsm { position: fixed; inset: 0; z-index: 90; background: rgba(10,30,70,.5); display: flex; align-items: center; justify-content: center; padding: 18px; }
+.ptsm > div { background: #fff; border-radius: 22px; padding: 22px 20px; width: 100%; max-width: 380px; text-align: center; display: grid; gap: 10px; }
+.ptsm .big { font: 800 2.6rem/1 var(--font-body); color: #FF7A00; }
+.ptsm p { margin: 0; color: var(--ink-soft); font-size: .95rem; line-height: 1.45; }
+.ptsm button { font: 800 1rem var(--font-body); border: 0; border-radius: 999px; padding: 12px; cursor: pointer; background: linear-gradient(135deg,#FFB020,#FF7A00); color: #fff; }
+.ptsm button.sec { background: none; color: var(--blue); }
 #acct-who:hover { color: var(--ink-soft); }
 .acctbar #acct-name { font-weight: 600; color: inherit; max-width: 9ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sform { grid-area: search; position: relative; display: flex; }
@@ -498,7 +509,7 @@ body:has(.backdrop:not([hidden])), body:has(.qpop-b:not([hidden])), body:has(.dr
   <div class="acctbar" id="acct" hidden>
     <span id="acct-msg">Iniciá sesión y completamos tus datos solos</span>
     <div id="gbtn"></div>
-    <span id="acct-user" hidden><span class="tool" id="acct-who"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg><span id="acct-name"></span></span><button class="tool" type="button" id="acct-orders"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2l-2 4v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6l-2-4z"/><path d="M4 6h16"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span>Mis pedidos</span></button><button class="tool" type="button" id="acct-out" aria-label="Salir"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg><span>Salir</span></button></span>
+    <span id="acct-user" hidden><span class="tool" id="acct-who"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg><span id="acct-name"></span><button type="button" class="ptsb" id="acct-pts" hidden></button></span><button class="tool" type="button" id="acct-orders"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2l-2 4v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6l-2-4z"/><path d="M4 6h16"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span>Mis pedidos</span></button><button class="tool" type="button" id="acct-out" aria-label="Salir"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg><span>Salir</span></button></span>
   </div>
   <form class="sform" id="sform" role="search">
     <input id="q" type="search" placeholder="Buscá por nombre o ingrediente…" autocomplete="off" aria-label="Buscar cookies">
@@ -594,6 +605,7 @@ body:has(.backdrop:not([hidden])), body:has(.qpop-b:not([hidden])), body:has(.dr
     <div class="dbody">
       <div class="dpromo" id="c-promo" hidden></div>
       <div class="dpromo cup" id="c-cup" hidden></div>
+      <div class="dpts" id="c-pts" hidden></div>
       <ul class="lines cartlines" id="c-lines"></ul>
       <div class="dempty" id="c-empty" hidden>Todavía no elegiste nada.</div>
     </div>
@@ -1339,11 +1351,13 @@ var DEFAULTS = {
   function packText(k) { return Object.keys(k.sel).filter(function (n) { return k.sel[n] > 0; }).map(function (n) { return k.sel[n] + " " + n; }).join(" + "); }
   function validPacks() { return pk.filter(function (k) { return tierFor(k.q); }); }
   function chosenCombos() { return comboList().filter(function (cb) { return (cq[cb.nombre] || 0) > 0; }); }
-  var cupones = [], memToken = "", tokExp = 0;
+  var cupones = [], memToken = "", tokExp = 0, pts = null, usePts = false;
   try { var _t = JSON.parse(localStorage.getItem("uovo-tok") || "null"); if (_t && _t.t && _t.x - Date.now() > 90000) { memToken = _t.t; tokExp = _t.x; } else localStorage.removeItem("uovo-tok"); } catch (e5) {}
+  if (memToken) setTimeout(function () { loadPuntos(); }, 0);
   function cuponActivo(base) {
     var best = null; cupones.forEach(function (c) { if (c.pct > 0 && base > 0 && base >= (c.min || 0) && (!best || c.pct > best.pct)) best = c; }); return best;
   }
+  function ptsMax(net) { if (!pts || !pts.on || !(pts.saldo > 0)) return 0; var m = Math.min(Math.floor(pts.saldo), Math.floor(net)); return m >= (Number(pts.min) || 0) && m > 0 ? m : 0; }
   function totals() {
     var unit = [], n = 0, ct = 0;
     var elig = (function () { var m = {}, o = []; try { m = JSON.parse(data.config.pack_categorias || "{}") || {}; } catch (x) { m = {}; } Object.keys(m).forEach(function (k) { if (Array.isArray(m[k])) m[k].forEach(function (c) { c = String(c).trim().toLowerCase(); if (c && o.indexOf(c) < 0) o.push(c); }); }); return o.length ? o : null; })(), fuera = 0;
@@ -1354,8 +1368,8 @@ var DEFAULTS = {
     chosenCombos().forEach(function (cb) { as += Math.max(0, comboNormal(cb) - cb.precio) * cq[cb.nombre]; });
     var prices = data.productos.filter(function (p) { return !p.agotada; }).map(function (p) { return p.precio; }), base = prices.length ? Math.min.apply(null, prices) : 0;
     validPacks().forEach(function (k) { var t = tierFor(k.q), norm = 0; Object.keys(k.sel).forEach(function (nm) { var p = prodByName(nm); norm += (p ? p.precio : base) * k.sel[nm]; }); ct += t.p; n += k.q; as += Math.max(0, norm - t.p); });
-    var t0 = e.total + ct, cp = cuponActivo(t0), cd = cp ? Math.round(t0 * cp.pct / 100) : 0;
-    return { n: n, t: t0 - cd, base: t0, cupon: cp, cupDesc: cd, ahorro: e.ahorro, singles: e.total, combos: ct, ahorroTotal: e.ahorro + as };
+    var t0 = e.total + ct, cp = cuponActivo(t0), cd = cp ? Math.round(t0 * cp.pct / 100) : 0, pd = usePts ? ptsMax(t0 - cd) : 0;
+    return { n: n, t: t0 - cd - pd, ptsDesc: pd, ptsNet: t0 - cd, base: t0, cupon: cp, cupDesc: cd, ahorro: e.ahorro, singles: e.total, combos: ct, ahorroTotal: e.ahorro + as };
   }
 
   var CART_KEY = "uovo-carrito", CART_TTL = 2 * 3600 * 1000;
@@ -1585,6 +1599,7 @@ var DEFAULTS = {
     if (tt.ahorro > 0) lines.push("Descuento por cantidad: -" + money(tt.ahorro));
     chosenCombos().forEach(function (cb) { lines.push(cq[cb.nombre] + " x PACK " + cb.nombre + " (" + cb.items.map(function (it) { return it.c + " " + it.n; }).join(" + ") + ") - " + money(cb.precio * cq[cb.nombre])); });
     validPacks().forEach(function (k) { lines.push("PACK " + k.q + " cookies (" + packText(k) + ") - " + money(tierFor(k.q).p)); });
+    if (tt.ptsDesc > 0) lines.push("Puntos usados: " + tt.ptsDesc + " (-" + money(tt.ptsDesc) + ")");
     if (tt.cupDesc > 0) lines.push("Cupón " + tt.cupon.nombre + " (-" + tt.cupon.pct + "%): -" + money(tt.cupDesc));
     return data.config.mensaje_inicial + "\n\n" +
       "Nombre: " + $("name").value.trim() + "\n\n" +
@@ -1600,12 +1615,12 @@ var DEFAULTS = {
     if (!ENDPOINT) return;
     try {
       var order = {
-        id: orderId, token: memToken, cupon: (totals().cupon || {}).nombre || "", nombre: $("name").value.trim(), email: $("email").value.trim(), telefono: $("phone").value.replace(/[^\d+]/g, ""), entrega: deliveryTxt,
+        id: orderId, token: memToken, puntos: totals().ptsDesc || 0, cupon: (totals().cupon || {}).nombre || "", nombre: $("name").value.trim(), email: $("email").value.trim(), telefono: $("phone").value.replace(/[^\d+]/g, ""), entrega: deliveryTxt,
         items: chosen().map(function (p) { return { nombre: p.nombre, cantidad: qty[p.nombre] }; }),
         combos: chosenCombos().map(function (cb) { return { nombre: cb.nombre, cantidad: cq[cb.nombre] }; }),
         packs: validPacks().map(function (k) { return { q: k.q, sel: Object.keys(k.sel).filter(function (n) { return k.sel[n] > 0; }).map(function (n) { return { n: n, c: k.sel[n] }; }) }; })
       };
-      fetch(ENDPOINT, { method: "POST", mode: "no-cors", keepalive: true, body: JSON.stringify(order) }).catch(function () {});
+      fetch(ENDPOINT, { method: "POST", mode: "no-cors", keepalive: true, body: JSON.stringify(order) }).catch(function () {}); if (order.puntos) { usePts = false; setTimeout(loadPuntos, 5000); }
     } catch (err) {}
   }
 
@@ -1668,13 +1683,27 @@ var DEFAULTS = {
     if (memToken && tokExp - Date.now() > 90000) { cb(memToken); return; }
     cb("");
   }
-  function loadCupones() {
+  function ptsUi() {
+    var b = $("acct-pts"); if (!b) return; var on = pts && pts.on && memToken; b.hidden = !on; if (on) b.textContent = "⭐ " + (pts.saldo || 0) + " puntos";
+  }
+  function loadPuntos() {
     if (!ENDPOINT || !memToken) return;
+    fetch(ENDPOINT + "?puntos=1&token=" + encodeURIComponent(memToken)).then(function (r) { return r.json(); }).then(function (j) { pts = j && j.ok ? j : null; if (!pts) usePts = false; ptsUi(); if (data && $("drawer").classList.contains("open")) renderCart(); }).catch(function () {});
+  }
+  function ptsPop() {
+    if (!pts) return; var m = document.createElement("div"), ex = pts.pct > 0 ? Math.round(100 / pts.pct) : 0; m.className = "ptsm";
+    m.innerHTML = '<div><div class="big">' + (pts.saldo || 0) + '</div><b>puntos = ' + money(pts.saldo || 0) + ' de descuento</b>' + (pts.prox ? "<p>⏳ " + pts.prox.pts + " vencen el " + String(pts.prox.fecha).split("-").reverse().join("/") + "</p>" : "") + "<p>Sumás " + fm(pts.pct) + "% de cada compra en puntos" + (ex ? " (1 cookie gratis cada ~" + ex + ")" : "") + ". Canjealos en <b>Mi horno</b>: se descuentan del total, en cualquier producto." + "</p>" + '<button type="button" data-go="1">Ir a Mi horno 🔥</button><button type="button" class="sec" data-x="1">Seguir mirando</button></div>';
+    document.body.appendChild(m); m.addEventListener("click", function (e) { if (e.target === m || e.target.closest("[data-x]")) m.remove(); else if (e.target.closest("[data-go]")) { m.remove(); openCart(); } });
+  }
+  function fm(n) { return String(Math.round(n * 10) / 10).replace(".", ","); }
+  document.addEventListener("click", function (e) { if (e.target.closest("#acct-pts")) { ptsPop(); return; } if (e.target.closest("[data-usepts]")) { usePts = !usePts; renderCart(); } });
+  function loadCupones() {
+    if (!ENDPOINT || !memToken) return; loadPuntos();
     fetch(ENDPOINT + "?cupones=1&token=" + encodeURIComponent(memToken) + "&tel=" + encodeURIComponent((function () { try { return (JSON.parse(localStorage.getItem("uovo-cliente") || "{}").t || "").replace(/\D/g, ""); } catch (e) { return ""; } })())).then(function (r) { return r.json(); }).then(function (j) {
       cupones = (j && j.cupones) || []; if (data) { refresh(); if ($("drawer").classList.contains("open")) renderCart(); }
     }).catch(function () {});
   }
-  $("acct-out").addEventListener("click", function () { memToken = ""; tokExp = 0; cupones = []; try { localStorage.removeItem("uovo-tok"); } catch (e) {} if (data) refresh(); });
+  $("acct-out").addEventListener("click", function () { memToken = ""; tokExp = 0; cupones = []; pts = null; usePts = false; ptsUi(); try { localStorage.removeItem("uovo-tok"); } catch (e) {} if (data) refresh(); });
 
   /* Mis pedidos */
   var ordData = null, ordAsk = "", ordLogin = false;
@@ -1864,11 +1893,14 @@ var DEFAULTS = {
     $("c-lines").innerHTML = cartLinesHtml(true);
     $("c-empty").hidden = x.n > 0;
     var ph = promoHint(), pe = $("c-promo"); pe.hidden = !ph; if (ph) pe.innerHTML = "<span>" + esc(ph.txt) + '</span><div class="bar"><i style="width:' + ph.pct + '%"></i></div>';
-    var sm = $("c-sum"); sm.hidden = !(x.n > 0 && (x.ahorroTotal > 0 || x.cupDesc > 0));
-    if (!sm.hidden) sm.innerHTML = "<div><span>Subtotal</span><span>" + money(x.base + x.ahorroTotal) + "</span></div>" + (x.ahorroTotal > 0 ? '<div class="g"><span>' + esc(data.config.texto_ahorro_total) + "</span><span>−" + money(x.ahorroTotal) + "</span></div>" : "") + (x.cupDesc > 0 ? '<div class="g"><span>' + esc(fill(data.config.texto_cupon_aplicado, { nombre: x.cupon.nombre })) + " (−" + x.cupon.pct + "%)</span><span>−" + money(x.cupDesc) + "</span></div>" : "");
+    var sm = $("c-sum"); sm.hidden = !(x.n > 0 && (x.ahorroTotal > 0 || x.cupDesc > 0 || x.ptsDesc > 0));
+    if (!sm.hidden) sm.innerHTML = "<div><span>Subtotal</span><span>" + money(x.base + x.ahorroTotal) + "</span></div>" + (x.ahorroTotal > 0 ? '<div class="g"><span>' + esc(data.config.texto_ahorro_total) + "</span><span>−" + money(x.ahorroTotal) + "</span></div>" : "") + (x.cupDesc > 0 ? '<div class="g"><span>' + esc(fill(data.config.texto_cupon_aplicado, { nombre: x.cupon.nombre })) + " (−" + x.cupon.pct + "%)</span><span>−" + money(x.cupDesc) + "</span></div>" : "") + (x.ptsDesc > 0 ? '<div class="g"><span>⭐ Puntos usados (' + x.ptsDesc + ")</span><span>−" + money(x.ptsDesc) + "</span></div>" : "");
     var ce = $("c-cup"), cb0 = cupones.slice().sort(function (a, b) { return b.pct - a.pct; })[0];
     ce.hidden = !(cb0 && x.n > 0 && !x.cupon);
     if (!ce.hidden) ce.textContent = cb0.min > x.base ? fill(data.config.texto_cupon_minimo, { min: money(cb0.min), nombre: cb0.nombre, pct: cb0.pct }) : fill(data.config.texto_cupon, { texto: cb0.texto || cb0.nombre, nombre: cb0.nombre, pct: cb0.pct });
+    var pe2 = $("c-pts"), pm = ptsMax(x.ptsNet), gan = pts && pts.on && pts.pct > 0 ? Math.floor(x.t * pts.pct / 100) : 0;
+    pe2.hidden = !(x.n > 0 && pts && pts.on && (pm > 0 || gan > 0));
+    if (!pe2.hidden) pe2.innerHTML = (pm > 0 ? "<span>⭐ Tenés <b>" + pts.saldo + " puntos</b> (= " + money(pts.saldo) + ")</span><button type=\"button\" data-usepts=\"1\" class=\"" + (usePts ? "off" : "") + "\">" + (usePts ? "No usar puntos" : "Usar " + pm + " puntos · −" + money(pm)) + "</button>" : "") + (gan > 0 ? "<span>🍪 Con este pedido sumás <b>" + gan + " puntos</b></span>" : "");
     $("c-total").textContent = money(x.t); setTransf($("c-transf"), x.t);
     var note = $("c-note"); note.hidden = !(x.n > 0 && !ok); note.textContent = "Por ahora no estamos tomando pedidos.";
     $("cart-go").textContent = waitMode ? "Anotarme en la cola" : data.config.boton_enviar;

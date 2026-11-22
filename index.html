@@ -1083,8 +1083,14 @@ var DEFAULTS = {
   }
   window.addEventListener("scroll", function () { if (!_spyT) _spyT = requestAnimationFrame(spy); }, { passive: true });
   window.addEventListener("resize", paintCats);
+  var _hp = 0;
+  function goHash() {
+    var m = /^#p=(.+)$/.exec(location.hash || ""); if (!m || _hp || !data) return; _hp = 1; var nm = ""; try { nm = decodeURIComponent(m[1]).toLowerCase(); } catch (e) { return; }
+    var i = -1; data.productos.forEach(function (p, k) { if (p.nombre.toLowerCase() === nm) i = k; }); if (i < 0) return;
+    setTimeout(function () { var el = $("card-" + i); if (el && !el.hidden && el.offsetParent) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.style.boxShadow = "0 0 0 4px #FFB020"; setTimeout(function () { el.style.boxShadow = ""; }, 2600); } }, 600);
+  }
   function applyFilter() {
-        renderCats(); renderGrid(); renderPromos(); refresh();
+        renderCats(); renderGrid(); renderPromos(); refresh(); goHash();
     if (cookieLoop) cookieLoop.refresh(); if (revLoop) revLoop.refresh(); if (promoLoop) promoLoop.refresh(); if (packLoop) packLoop.refresh();
   }
   var _sm = 0;

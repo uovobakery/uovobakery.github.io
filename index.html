@@ -1400,7 +1400,7 @@ var DEFAULTS = {
   function ptsCover(net) {
     if (!pts || !pts.on || !(pts.saldo > 0)) return { d: 0, p: 0 };
     var rem = Math.floor(pts.saldo), d = 0, sp = 0, sing = 0;
-    data.productos.forEach(function (p) { var q = p.agotada ? 0 : (qty[p.nombre] || 0), c = ppCost(p); sing += q * p.precio; for (var i = 0; i < q; i++) if (c > 0 && rem >= c && d + p.precio <= net) { rem -= c; sp += c; d += p.precio; } });
+    data.productos.forEach(function (p) { var q = p.agotada ? 0 : (qty[p.nombre] || 0), c = ppCost(p); sing += q * p.precio; for (var i = 0; i < q; i++) { var cov = Math.min(p.precio, net - d); if (!(c > 0) || cov <= 0) break; var pc = cov < p.precio ? Math.ceil(c * cov / p.precio) : c; if (rem < pc) break; rem -= pc; sp += pc; d += cov; } });
     var left = Math.min(rem, Math.floor(net - d), Math.max(0, Math.floor(net - sing))); if (left > 0) { d += left; sp += left; }
     return d > 0 && sp >= (Number(pts.min) || 0) ? { d: d, p: sp } : { d: 0, p: 0 };
   }
@@ -1765,7 +1765,7 @@ var DEFAULTS = {
     var steps = '<div class="cj-steps"><div><i>🛒</i>' + X("t1", "Hacé tu pedido y pagalo") + '</div><div><i>⭐</i>' + X("t2", "Sumá puntos con cada pedido pagado") + '</div><div><i>🍪</i>' + X("t3", "Usalos como descuento en tu pedido") + '</div></div>';
     var cards = L.map(function (x) {
       var p = x.p, im = (p.medios || []).filter(function (z) { return z.t === "img"; })[0], pr = p.precio, ok = pts && sal >= pr;
-      return '<div class="cj-c' + (p.agotada ? " off" : "") + '"><div class="cj-img">' + (im ? '<img src="' + esc(im.src) + '" alt="' + esc(p.nombre) + '" loading="lazy">' : "🍪") + '</div><div class="cj-b"><b>' + esc(p.nombre) + '</b>' + (p.agotada ? '<span class="cj-s">Agotada por ahora</span>' : '<span class="cj-p">' + X("sp", "⭐ {n} puntos").replace("{n}", ppCost(p)) + '</span><button type="button" data-add="' + x.i + '">' + X("ba", "Agregar a mi horno") + '</button>') + "</div></div>";
+      return '<div class="cj-c' + (p.agotada ? " off" : "") + '"><div class="cj-img">' + (im ? '<img src="' + esc(im.src) + '" alt="' + esc(p.nombre) + '" loading="lazy">' : "🍪") + '</div><div class="cj-b"><b>' + esc(p.nombre) + '</b>' + (p.agotada ? '<span class="cj-s">Agotada por ahora</span>' : '<button type="button" data-add="' + x.i + '">' + X("ba", "⭐ {n} pts").replace("{n}", ppCost(p)) + '</button>') + "</div></div>";
     }).join("");
     m.innerHTML = '<div class="cj"><div class="cj-top"><button type="button" data-back="1" aria-label="Volver">←</button><b>Club de puntos</b></div>' + hero + steps + '<h3>' + X("th", "Elegí tus cookies") + '</h3><p class="cj-sub">' + X("ts", "Cada cookie te suma puntos. Usalos como descuento en Mi horno.") + '</p><div class="cj-grid">' + (cards || '<p class="cj-sub">Pronto vas a ver acá los productos.</p>') + "</div></div>";
     document.body.appendChild(m); document.body.style.overflow = "hidden"; m.scrollTop = 0;

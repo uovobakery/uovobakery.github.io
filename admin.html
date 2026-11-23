@@ -2299,37 +2299,16 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
     });
   }
   function cliD(d) { return d ? ("0" + d.getDate()).slice(-2) + "/" + ("0" + (d.getMonth() + 1)).slice(-2) : "—"; }
-  var CLS = [["gasto", "Más gastaron"], ["n", "Más pedidos"], ["rec", "Último pedido"], ["ant", "Más antiguos"], ["tk", "Ticket promedio"], ["prod", "Más productos"], ["pts", "Más puntos"], ["nom", "Nombre A–Z"]];
-  var CLF = [["rep", "Repiten (2+)"], ["pts", "Con puntos"], ["deuda", "Con deuda"], ["sinped", "Sin pedidos"]];
-  var CLD = [["30", "Últimos 30 días"], ["90", "Últimos 90 días"], ["inact", "Inactivos +60 días"], ["nuevos", "Nuevos (30 días)"]];
   function cliTk(c) { return c.n ? c.gasto / c.n : 0; }
   function cliFilt(L) {
-    var q = nrm(st.cliq || ""), F = st.clfc || [], dp = st.clfd || "", now = Date.now(), D = 864e5, s = st.clis || "gasto";
-    var d0 = st.clf0 ? new Date(st.clf0 + "T00:00:00") : null, d1 = st.clf1 ? new Date(st.clf1 + "T23:59:59") : null;
-    L = L.filter(function (c) {
-      if (q && nrm(c.blob).indexOf(q) < 0) return false;
-      if (F.indexOf("rep") >= 0 && c.n < 2) return false;
-      if (F.indexOf("pts") >= 0 && !(c.pts > 0)) return false;
-      if (F.indexOf("deuda") >= 0 && !(c.sinpagar > 0)) return false;
-      if (F.indexOf("sinped") >= 0 && c.n > 0) return false;
-      if (dp === "30" && !(c.last && now - c.last <= 30 * D)) return false;
-      if (dp === "90" && !(c.last && now - c.last <= 90 * D)) return false;
-      if (dp === "inact" && !(c.last && now - c.last > 60 * D)) return false;
-      if (dp === "nuevos" && !(c.first && now - c.first <= 30 * D)) return false;
-      if (d0 && !(c.last && c.last >= d0)) return false;
-      if (d1 && !(c.last && c.last <= d1)) return false;
-      return true;
-    });
-    var sv = function (c) { return c.pts || 0; };
-    L.sort(function (a, b) {
-      var r = s === "n" ? b.n - a.n || b.gasto - a.gasto : s === "rec" ? (b.last || 0) - (a.last || 0) : s === "ant" ? (a.first ? +a.first : 9e15) - (b.first ? +b.first : 9e15) : s === "tk" ? cliTk(b) - cliTk(a) : s === "prod" ? b.cant - a.cant : s === "pts" ? sv(b) - sv(a) : s === "nom" ? String(a.nombre || "~").localeCompare(String(b.nombre || "~"), "es") : b.gasto - a.gasto;
-      return st.clid ? -r : r;
-    });
-    return L;
+    var q = nrm(st.cliq || "");
+    L = L.filter(function (c) { return !q || nrm(c.blob).indexOf(q) >= 0; });
+    L.sort(function (a, b) { return b.gasto - a.gasto; });
+    return fxList("clientes", L);
   }
   function cliRows(L) {
     L = cliFilt(L); var c0 = $("cli-c"); if (c0) c0.textContent = L.length + (L.length === 1 ? " cliente" : " clientes");
-    if (!L.length) return '<div class="empty">' + (st.cliq || (st.clfc || []).length || st.clfd || st.clf0 || st.clf1 ? "Sin resultados con esos filtros." : "Todavía no hay clientes.") + "</div>";
+    if (!L.length) return '<div class="empty">' + (st.cliq || fxCount("clientes") ? "Sin resultados con esos filtros." : "Todavía no hay clientes.") + "</div>";
     return L.map(function (c) {
       var cl = c.cl, ini = (c.nombre || "?").trim().charAt(0).toUpperCase();
       return '<div class="clr" data-clic="' + esc(c.k) + '"><span class="clk cli-i">' + esc(ini) + '</span><div class="clm"><b>' + esc(c.nombre || c.tel || "Sin nombre") + "</b><small>" + (c.n ? c.n + (c.n === 1 ? " pedido" : " pedidos") + " · " + money(c.gasto) + " · último " + cliD(c.last) : "Sin pedidos aún" + (c.tel ? " · " + esc(c.tel) : "")) + '</small></div>' + (cl && cl.saldo > 0 ? '<div class="clp"><b>' + cl.saldo + "</b><small>⭐ pts</small></div>" : "") + (waLink(c.tel) ? '<button class="ibx wa" data-clav="' + esc(c.k) + '" data-ch="wa" aria-label="Avisar por WhatsApp">💬</button>' : "") + (c.mail ? '<button class="ibx" data-clav="' + esc(c.k) + '" data-ch="mail" aria-label="Avisar por mail">✉️</button>' : "") + "</div>";
@@ -2338,21 +2317,12 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
   function renderClientes() {
     if (!st.loaded.pedidos) return BACK + '<div class="empty">Cargando…</div>';
     var L = cliAgg(), rec = L.filter(function (c) { return c.n >= 2; }).length, tot = 0, np = 0; L.forEach(function (c) { tot += c.gasto; np += c.n; });
-    var F = st.clfc || [], dp = st.clfd || "", act = F.length || dp || st.clf0 || st.clf1, s = st.clis || "gasto";
     return BACK + '<div class="card clh"><div><b>' + L.length + '</b><small>clientes</small></div><div><b>' + rec + '</b><small>repiten (2+ pedidos)</small></div><div><b>' + money(np ? tot / np : 0) + '</b><small>ticket promedio</small></div></div>' +
-      '<div style="display:flex;gap:8px;margin-bottom:8px"><input class="inp" id="cli-q" placeholder="Buscar cliente…" value="' + esc(st.cliq || "") + '" style="margin:0;flex:1"><button class="btn" data-cadd="1" style="width:auto;padding:0 14px">＋ Cliente</button></div>' +
-      '<div class="chips">' + CLS.map(function (x) { var on = x[0] === s; return '<button class="chip' + (on ? " on" : "") + '" data-clis="' + x[0] + '">' + x[1] + (on ? (st.clid ? " ↑" : " ↓") : "") + "</button>"; }).join("") + '</div>' +
-      '<div class="chips">' + CLF.map(function (x) { return '<button class="chip' + (F.indexOf(x[0]) >= 0 ? " on" : "") + '" data-cfc="' + x[0] + '">' + x[1] + "</button>"; }).join("") + CLD.map(function (x) { return '<button class="chip' + (x[0] === dp ? " on" : "") + '" data-cfd="' + x[0] + '">' + x[1] + "</button>"; }).join("") + '<button class="chip' + (st.clfo || st.clf0 || st.clf1 ? " on" : "") + '" data-cfo="1">📅 Fechas</button>' + (act ? '<button class="chip" data-cfx="1">✕ Limpiar</button>' : "") + '</div>' +
-      (st.clfo || st.clf0 || st.clf1 ? '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px"><label class="meta">Último pedido desde<input class="inp" type="date" id="cli-d0" value="' + esc(st.clf0 || "") + '" style="margin:2px 0 0"></label><label class="meta">Hasta<input class="inp" type="date" id="cli-d1" value="' + esc(st.clf1 || "") + '" style="margin:2px 0 0"></label></div>' : "") +
+      '<div style="display:flex;gap:8px;margin-bottom:10px"><input class="search" id="cli-q" type="search" placeholder="Buscar cliente…" value="' + esc(st.cliq || "") + '" style="margin:0;flex:1">' + fxBtn("clientes") + '<button class="btn" data-cadd="1" aria-label="Agregar cliente" style="width:52px;padding:0;font-size:1.5rem">＋</button></div>' +
       '<div class="meta" id="cli-c" style="margin:0 2px 8px">' + cliFilt(L).length + ' clientes</div><div id="cli-l">' + cliRows(L) + "</div>";
   }
   function cliCtl(t) {
     var b;
-    if ((b = t.closest("[data-clis]"))) { var k0 = b.getAttribute("data-clis"); if ((st.clis || "gasto") === k0) st.clid = !st.clid; else { st.clis = k0; st.clid = false; } render(true); return true; }
-    if ((b = t.closest("[data-cfc]"))) { var k = b.getAttribute("data-cfc"), F = (st.clfc || []).slice(), i = F.indexOf(k); if (i >= 0) F.splice(i, 1); else F.push(k); st.clfc = F; render(true); return true; }
-    if ((b = t.closest("[data-cfd]"))) { var d = b.getAttribute("data-cfd"); st.clfd = st.clfd === d ? "" : d; render(true); return true; }
-    if (t.closest("[data-cfo]")) { st.clfo = !(st.clfo || st.clf0 || st.clf1); if (!st.clfo) { st.clf0 = ""; st.clf1 = ""; } render(true); return true; }
-    if (t.closest("[data-cfx]")) { st.clfc = []; st.clfd = ""; st.clf0 = ""; st.clf1 = ""; st.clfo = false; render(true); return true; }
     if (t.closest("[data-cadd]")) { cliAdd(); return true; }
     return false;
   }
@@ -2517,14 +2487,14 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
     return BACK + '<div class="card clh"><div><b>' + tot.toLocaleString("es-AR") + '</b><small>puntos en circulación</small></div><div><b>' + n + '</b><small>clientes con puntos</small></div><div><b>' + money(tot) + '</b><small>de descuento posible</small></div></div>' +
       '<button class="btn" data-clbg="1" style="margin-bottom:8px">🎁 Regalar puntos</button><button class="btn" data-clbr="1" style="margin-bottom:12px;background:linear-gradient(135deg,#2E86F5,#0F59C4)">📥 Cargar puntos a pedidos ya pagados</button>' +
       '<div class="card"><div style="display:flex;align-items:center;gap:8px"><div class="nm" style="flex:1">⚙️ Cómo funciona</div><label class="clon"><input type="checkbox" id="cl-on"' + (C.on === false ? "" : " checked") + "> Activo</label></div>" +
-      '<div class="meta">% que le devolvés al cliente en puntos (1 punto = $1 de descuento)</div><div class="clch">' + rec.map(function (r) { return '<button class="sm' + (r === pct ? " on" : "") + '" data-clbp="' + r + '">' + r + "%" + (r === 5 ? " ⭐ recomendado" : "") + "</button>"; }).join("") + '<input class="inp" id="cl-pct" inputmode="decimal" value="' + (pct || "") + '" placeholder="Otro %" style="width:90px"></div>' +
+      '<details style="margin-top:8px"><summary class="meta" style="cursor:pointer;font-weight:700">' + (pct || 0) + "% en puntos · vencen a los " + dias + ' días · tocá para editar</summary><div class="meta" style="margin-top:8px">% que le devolvés al cliente en puntos (1 punto = $1 de descuento)</div><div class="clch">' + rec.map(function (r) { return '<button class="sm' + (r === pct ? " on" : "") + '" data-clbp="' + r + '">' + r + "%" + (r === 5 ? " ⭐ recomendado" : "") + "</button>"; }).join("") + '<input class="inp" id="cl-pct" inputmode="decimal" value="' + (pct || "") + '" placeholder="Otro %" style="width:90px"></div>' +
       '<div class="clex" id="cl-ej">' + clbEj(pct) + "</div>" +
       '<div class="meta" style="margin-top:12px">Los puntos vencen a los (días)</div><div class="clch">' + [90, 180, 365].map(function (d) { return '<button class="sm' + (d === dias ? " on" : "") + '" data-clbd="' + d + '">' + d + "</button>"; }).join("") + '<input class="inp" id="cl-dias" inputmode="numeric" value="' + dias + '" style="width:90px"></div>' +
       '<div class="meta" style="margin-top:12px">Mínimo de puntos para canjear (opcional)</div><input class="inp" id="cl-min" inputmode="numeric" value="' + (Number(C.min) || "") + '" placeholder="Sin mínimo">' +
       '<div class="meta" style="margin-top:12px">Botón «tienda de canjes» en la página</div><label class="clon" style="display:flex;gap:6px;margin:4px 0"><input type="checkbox" id="cl-bon"' + (C.bon === false ? "" : " checked") + '> Mostrar</label><input class="inp" id="cl-btx" placeholder="⭐ Club de puntos · Mirá los canjes" value="' + esc(C.btx || "") + '"><div class="clch">' + [["arriba", "Arriba"], ["medio", "En el medio"], ["abajo", "Abajo"]].map(function (x) { return '<button class="sm' + (x[0] === (C.blu || "abajo") ? " on" : "") + '" data-clbl="' + x[0] + '">' + x[1] + "</button>"; }).join("") + '</div>' +
       '<details style="margin-top:12px" id="cl-tx"><summary class="meta" style="cursor:pointer">🏷️ Textos de la página de canjes</summary><div class="meta" style="margin:6px 0">Dejá vacío para usar el texto de ejemplo.</div>' + CLT.map(function (x) { return '<div class="meta" style="margin-top:6px">' + x[1] + '</div><input class="inp" data-cltx="' + x[0] + '" placeholder="' + esc(x[2]) + '" value="' + esc((C.txt || {})[x[0]] || "") + '">'; }).join("") + '</details>' +
       '<details style="margin-top:12px"><summary class="meta" style="cursor:pointer">💬 Mensaje de WhatsApp al regalar</summary><textarea class="inp" id="cl-pl" rows="4" style="margin-top:6px">' + esc(C.plantilla || CLB_DEF) + '</textarea><div class="meta">Podés usar {nombre} {pts} {motivo} {saldo} {desc}</div></details>' +
-      '<button class="btn" data-clbs="1" style="margin-top:12px">Guardar</button></div>' +
+      '</details><button class="btn" data-clbs="1" style="margin-top:12px">Guardar</button></div>' +
       '<div class="nm" style="margin:14px 2px 6px">🏆 Clientes</div><input class="inp" id="cl-q" placeholder="Buscar cliente…" value="' + esc(st.clq || "") + '"><div id="clb-l" style="margin-top:8px">' + clbRows() + "</div>";
   }
   function clbWaBtn(tel, msg) { var w = waLink(tel); return w ? '<a class="btn" style="display:block;text-align:center;text-decoration:none;background:linear-gradient(135deg,#25D366,#128C7E)" target="_blank" rel="noopener" href="' + w + "?text=" + encodeURIComponent(msg) + '">💬 Avisar por WhatsApp</a>' : ""; }
@@ -3188,6 +3158,22 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
         ["fn", "Compra más reciente primero", "f", cmpV(function (x) { return pdays(x.fecha); })], ["fv", "Compra más vieja primero", "f", cmpV(function (x) { return pdays(x.fecha); }, 1)],
         ["pa", "Proveedor A → Z", "r", function (a, b) { return cmpS(a.prov || "\uffff", b.prov || "\uffff"); }],
         ["cM", "Mayor cantidad comprada", "q", cmpV(function (x) { return Number(x.cant) || null; }, 1)]] },
+    clientes: { g: function () { var dd = function (c) { return c.last ? (Date.now() - c.last) / 864e5 : null; }; return [
+        yn("pd", "Pedidos hechos", "Con pedidos", "Sin pedidos aún", function (c) { return c.n > 0; }, function (c) { return c.n === 0; }),
+        yn("rp", "Repetición", "Repiten (2+)", "Compraron 1 vez", function (c) { return c.n >= 2; }, function (c) { return c.n === 1; }),
+        yn("pt", "Puntos", "Con puntos", "Sin puntos", function (c) { return c.pts > 0; }, function (c) { return !(c.pts > 0); }),
+        yn("dd", "Deuda", "Con deuda", "Sin deuda", function (c) { return c.sinpagar > 0; }, function (c) { return !(c.sinpagar > 0); }),
+        { id: "ul", l: "Último pedido", o: [["a", "Últimos 30 días", function (c) { var d = dd(c); return d != null && d <= 30; }], ["b", "Últimos 90 días", function (c) { var d = dd(c); return d != null && d <= 90; }], ["c", "Inactivos (+60 días)", function (c) { var d = dd(c); return d != null && d > 60; }], ["d", "Nuevos (primer pedido en 30 días)", function (c) { return !!c.first && (Date.now() - c.first) / 864e5 <= 30; }]] },
+        yn("ml", "Mail", "Con mail", "Sin mail", function (c) { return !!c.mail; }, function (c) { return !c.mail; }),
+        yn("wa", "WhatsApp", "Con WhatsApp", "Sin WhatsApp", function (c) { return !!waLink(c.tel); }, function (c) { return !waLink(c.tel); })]; },
+      s: [["gM", "Más gastaron primero", "g", cmpV(function (c) { return c.gasto; }, 1)], ["gm", "Menos gastaron primero", "g", cmpV(function (c) { return c.gasto; })],
+        ["nM", "Más pedidos primero", "n", cmpV(function (c) { return c.n; }, 1)], ["nm", "Menos pedidos primero", "n", cmpV(function (c) { return c.n; })],
+        ["rc", "Último pedido más reciente", "r", cmpV(function (c) { return c.last ? +c.last : null; }, 1)], ["rv", "Último pedido más viejo", "r", cmpV(function (c) { return c.last ? +c.last : null; })],
+        ["an", "Más antiguos primero", "a", cmpV(function (c) { return c.first ? +c.first : null; })],
+        ["tk", "Ticket promedio mayor", "t", cmpV(function (c) { return cliTk(c); }, 1)],
+        ["pr", "Más productos comprados", "p", cmpV(function (c) { return c.cant; }, 1)],
+        ["pt", "Más puntos primero", "q", cmpV(function (c) { return c.pts || 0; }, 1)],
+        ["az", "Nombre A → Z", "z", function (a, b) { return cmpS(a.nombre, b.nombre); }], ["za", "Nombre Z → A", "z", function (a, b) { return cmpS(b.nombre, a.nombre); }]] },
     cola: { g: function () { return dynG("es", "Estado", st.cola || [], function (x) { return x.est; }); },
       s: [["fn", "Más nuevos primero", "f", cmpV(function (x) { return pfd(x.fecha); }, 1)], ["fv", "Más viejos primero", "f", cmpV(function (x) { return pfd(x.fecha); })],
         ["tM", "Total mayor → menor", "t", cmpV(function (x) { return x.total; }, 1)], ["tm", "Total menor → mayor", "t", cmpV(function (x) { return x.total; })],
@@ -3389,7 +3375,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
       ["[data-redit]", "Editar receta", "Cambiá insumos y cantidades de una masa. El costo por cookie se recalcula solo."]],
     reportes: [["#evo", "Evolución mensual 📈", "Cobrado, costos y resultado mes a mes con barras y tabla. Elegí 3, 6 o 12 meses. Solo cuenta pedidos pagados."], ["[data-rptpl]", "Plantillas", "Tocá una y ves los números y el gráfico al instante."],
       ["[data-rpk]", "Armá el tuyo", "Elegí fuente, cómo agrupar, qué medir y el período. Abajo cambiás el tipo de gráfico."]],
-    clientes: [[".clh", "Resumen", "Cuántos clientes tenés, cuántos repiten y el ticket promedio."], ["#cli-q", "Buscar y ordenar", "Buscá por nombre o teléfono y ordená por gasto, pedidos, recientes o puntos."], ["#cli-l .clr", "Legajo del cliente", "Tocá un cliente y después ✏️ Editar: nombre, teléfono y mail son opcionales. En «Más datos» sumás otros teléfonos, mails, nombres, domicilio, DNI o campos nuevos. Si dos clientes comparten un dato (teléfono, mail o nombre) se unifican solos con todo su historial."], ["[data-cadd]", "Agregar cliente", "Cargá a alguien que todavía no pidió (nombre y WhatsApp o mail) para poder mandarle avisos."], [".chips", "Ordenar y filtrar", "Primera fila: cómo ordenar (tocá otra vez el activo para invertir). Segunda fila: filtros que se combinan, períodos y rango de fechas."], ["#cli-l .ibx", "Avisar tanda", "Tocá 💬 o ✉️ para mandarle el aviso de que abriste tanda, con los productos disponibles y el link de la página."], ["#cli-l", "Ficha del cliente", "Tocá un cliente: ves cuánto gastó, cookies más compradas, últimos pedidos y puntos, y podés regalarle puntos o escribirle."]],
+    clientes: [[".clh", "Resumen", "Cuántos clientes tenés, cuántos repiten y el ticket promedio."], ["#cli-q", "Buscar y ordenar", "Buscá por nombre o teléfono y ordená por gasto, pedidos, recientes o puntos."], ["#cli-l .clr", "Legajo del cliente", "Tocá un cliente y después ✏️ Editar: nombre, teléfono y mail son opcionales. En «Más datos» sumás otros teléfonos, mails, nombres, domicilio, DNI o campos nuevos. Si dos clientes comparten un dato (teléfono, mail o nombre) se unifican solos con todo su historial."], ["[data-cadd]", "Agregar cliente", "Cargá a alguien que todavía no pidió (nombre y WhatsApp o mail) para poder mandarle avisos."], ["[data-fxk]", "Filtrar y ordenar", "El embudo filtra por pedidos, puntos, deuda, último pedido, mail o WhatsApp y ordena por gasto, pedidos, recientes, puntos o nombre. Se combinan; Aplicar aparece solo. La escoba roja limpia todo."], ["#cli-l .ibx", "Avisar tanda", "Tocá 💬 o ✉️ para mandarle el aviso de que abriste tanda, con los productos disponibles y el link de la página."], ["#cli-l", "Ficha del cliente", "Tocá un cliente: ves cuánto gastó, cookies más compradas, últimos pedidos y puntos, y podés regalarle puntos o escribirle."]],
     club: [[".clh", "Resumen", "Puntos en circulación, clientes con puntos y cuánto descuento representan si todos canjean."], ["[data-clbr]", "Puntos a pedidos ya pagados", "Elegí una o varias tandas y les cargás los puntos de los pedidos que ya estaban pagados. No se duplican."], ["[data-clbg]", "Regalar puntos 🎁", "Para sorteos o eventos: elegí cliente, puntos y motivo. Después te aparece el botón de WhatsApp con el mensaje ya armado."], ["#cl-ej", "Cuánto regalás", "Poné el % que devolvés y acá ves en cookies qué significa y cuánto te queda de ganancia. Se recalcula con tus precios y costos."], ["#cl-tx", "Textos de la página de canjes", "Cambiá los textos que ve el cliente en la página de canjes: títulos, pasos, texto de cada cookie y botón. Si dejás uno vacío usa el de ejemplo."], ["#cl-btx", "Botón en la página", "Mostrá u ocultá el botón de la tienda de canjes, cambiá el texto y elegí dónde va: arriba, en el medio o abajo de la página."], ["#cl-dias", "Vencimiento", "Los puntos viejos vencen primero. Elegí a los cuántos días."], ["#clb-l", "Ranking", "Tocá un cliente para ver sus movimientos, regalarle o avisarle por WhatsApp."]],
     accesos: [[".help", "Compartir acceso", "Solo vos ves esta pantalla."],
       ["#a-mail", "Mail de Google", "Escribí el mail de la persona. Entra con esa cuenta."],

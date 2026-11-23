@@ -372,6 +372,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
       if (op === "cupones") { d.cup = d.cup || [{ r: 2, activo: true, nombre: "BIENVENIDA", pct: 10, n: 1, min: 0, texto: "10% en tu primera compra" }]; return res({ ok: true, cupones: d.cup }); }
       if (op === "contactos") return res({ ok: true, contactos: d.ctc || [] });
       if (op === "addContacto") { d.ctc = d.ctc || []; d.ctc.push({ r: d.ctc.length + 2, nombre: extra.nombre, tel: String(extra.tel || "").replace(/\D/g, ""), mail: extra.mail || "" }); return res({ ok: true }); }
+      if (op === "setContacto") { d.ctc = d.ctc || []; var zc = d.ctc.filter(function (z) { return z.r === extra.r; })[0]; if (!zc) { zc = { r: d.ctc.length + 2 }; d.ctc.push(zc); } zc.nombre = extra.nombre; zc.tel = String(extra.tel || "").replace(/\D/g, ""); zc.mail = extra.mail || ""; zc.dat = extra.dat || ""; return res({ ok: true, r: zc.r }); }
       if (op === "delContacto") { d.ctc = (d.ctc || []).filter(function (z) { return z.r !== extra.r; }); return res({ ok: true }); }
       if (op === "addPuntosPed") { var dp = 0; JSON.parse(extra.items || "[]").forEach(function (z) { dp += Number(z[1]) || 0; }); return res({ ok: true, n: 1, pts: dp, saldo: dp }); }
       if (op === "addPuntosRetro") { var dn = JSON.parse(extra.items || "[]").length; return res({ ok: true, n: dn, pts: dn * 30 }); }
@@ -1830,7 +1831,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
     if (k === "stock") return api("stock").then(ok(function (j) { st.stock = j.stock; st.alertas = !!j.alertas; }));
     if (k === "textos") return api("config").then(ok(function (j) { st.cfg = j.config; }));
     if (k === "clientes") return Promise.all([st.loaded.pedidos ? Promise.resolve() : api("pedidos").then(ok(function (j) { st.pedidos = j.pedidos; st.loaded.pedidos = true; })), api("contactos").then(ok(function (j) { st.ctc = j.contactos || []; })), api("puntos").then(ok(function (j) { st.club = j; }))]);
-    if (k === "club") return api("puntos").then(ok(function (j) { st.club = j; }));
+    if (k === "club") return Promise.all([st.loaded.pedidos ? Promise.resolve() : api("pedidos").then(ok(function (j) { st.pedidos = j.pedidos; st.loaded.pedidos = true; })), api("contactos").then(ok(function (j) { st.ctc = j.contactos || []; })), api("puntos").then(ok(function (j) { st.club = j; }))]);
     if (k === "cola") return api("cola").then(ok(function (j) { st.cola = j.cola; st.loaded.cola = true; }));
     if (k === "tandas") return Promise.all([api("tandas"), api("config"), api("cola")]).then(function (R) { if (R[1] && R[1].ok) st.cfg = R[1].config; if (R[2] && R[2].ok) { st.cola = R[2].cola; st.loaded.cola = true; } });
     return Promise.resolve();
@@ -2249,22 +2250,53 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
   /* ---------- Cupones ---------- */
   /* ===== CLIENTES ===== */
   function cliKey(p) { var t = clbTel(p.tel); return t.length >= 8 ? "t" + t : p.mail ? "m" + String(p.mail).toLowerCase() : "n" + nrm(p.nombre); }
+  function cliDat(x) { try { var d = JSON.parse(x.dat || "{}"); return d && typeof d === "object" ? d : {}; } catch (e) { return {}; } }
+  function cliIds(r) {
+    var a = [];
+    (r.tels || []).forEach(function (t) { t = clbTel(t); if (t.length >= 8) a.push("t" + t); });
+    (r.mails || []).forEach(function (m) { m = String(m || "").trim().toLowerCase(); if (m) a.push("m" + m); });
+    (r.noms || []).forEach(function (n) { n = nrm(n); if (n) a.push("n" + n); });
+    return a;
+  }
+  function cliUniq(L, f) { var s = {}, o = []; L.forEach(function (x) { var k = f(x); if (k && !s[k]) { s[k] = 1; o.push(x); } }); return o; }
+  function cliNameByTel(tel) {
+    var t = clbTel(tel); if (t.length < 8) return "";
+    var x = (st.ctc || []).filter(function (z) { return z.nombre && [z.tel].concat(cliDat(z).tels || []).some(function (q) { return clbTel(q) === t; }); })[0]; if (x) return x.nombre;
+    var P = (st.pedidos || []).filter(function (p) { return p.nombre && clbTel(p.tel) === t; }); return P.length ? P[P.length - 1].nombre : "";
+  }
+  function clbNm(c) { return cliNameByTel(c.tel) || c.nombre || c.tel; }
   function cliAgg() {
-    var M = {};
-    (st.pedidos || []).forEach(function (p) {
-      var e = estadoDe(p); if (e === "canc" || e === "test") return;
-      var k = cliKey(p), o = M[k] = M[k] || { k: k, nombre: "", tel: "", mail: "", n: 0, gasto: 0, sinpagar: 0, cant: 0, first: null, last: null, cook: {}, ped: [] }, d = pf(p.fecha), pi = pedItems(p).cookies;
-      if (p.nombre) o.nombre = p.nombre; if (p.tel) o.tel = p.tel; if (p.mail) o.mail = p.mail;
-      o.n++; o.gasto += Number(p.total) || 0; if (!p.pg) o.sinpagar += Number(p.total) || 0; o.cant += Number(p.cant) || 0; o.ped.push(p);
-      if (d) { if (!o.first || d < o.first) o.first = d; if (!o.last || d > o.last) o.last = d; }
-      Object.keys(pi).forEach(function (c) { o.cook[c] = (o.cook[c] || 0) + pi[c]; });
+    var R = [], par = [], idx = {};
+    function find(i) { while (par[i] !== i) { par[i] = par[par[i]]; i = par[i]; } return i; }
+    function add(r) { var i = R.length; R.push(r); par.push(i); cliIds(r).forEach(function (id) { if (idx[id] === undefined) idx[id] = i; else { var a = find(i), b = find(idx[id]); if (a !== b) par[a] = b; } }); }
+    (st.pedidos || []).forEach(function (p) { var e = estadoDe(p); if (e === "canc" || e === "test") return; add({ p: p, tels: [p.tel], mails: [p.mail], noms: [p.nombre] }); });
+    (st.ctc || []).forEach(function (x) { var d = cliDat(x); add({ x: x, d: d, tels: [x.tel].concat(d.tels || []), mails: [x.mail].concat(d.mails || []), noms: [x.nombre].concat(d.nombres || []) }); });
+    var G = {}; R.forEach(function (r, i) { var g = find(i); (G[g] = G[g] || []).push(r); });
+    return Object.keys(G).map(function (g) {
+      var L = G[g], o = { k: "", nombre: "", tel: "", mail: "", n: 0, gasto: 0, sinpagar: 0, cant: 0, first: null, last: null, cook: {}, ped: [], ctc: null, ctcs: [], ex: {}, pts: 0, cl: null }, ids = [], tl = [], ml = [], nl = [];
+      L.filter(function (r) { return r.p; }).sort(function (a, b) { return (pf(a.p.fecha) || 0) - (pf(b.p.fecha) || 0); }).forEach(function (r) {
+        var p = r.p, d = pf(p.fecha), pi = pedItems(p).cookies;
+        if (p.nombre) o.nombre = p.nombre; if (p.tel) o.tel = p.tel; if (p.mail) o.mail = p.mail;
+        o.n++; o.gasto += Number(p.total) || 0; if (!p.pg) o.sinpagar += Number(p.total) || 0; o.cant += Number(p.cant) || 0; o.ped.push(p);
+        if (d) { if (!o.first || d < o.first) o.first = d; if (!o.last || d > o.last) o.last = d; }
+        Object.keys(pi).forEach(function (c) { o.cook[c] = (o.cook[c] || 0) + pi[c]; });
+      });
+      L.forEach(function (r) { if (r.x) { o.ctcs.push(r.x); if (!o.ctc) o.ctc = r.x; } });
+      if (o.ctc) { if (o.ctc.nombre) o.nombre = o.ctc.nombre; if (o.ctc.tel) o.tel = o.ctc.tel; if (o.ctc.mail) o.mail = o.ctc.mail; }
+      L.forEach(function (r) {
+        tl = tl.concat(r.tels || []); ml = ml.concat(r.mails || []); nl = nl.concat(r.noms || []); ids = ids.concat(cliIds(r));
+        if (r.d && r.d.ex) Object.keys(r.d.ex).forEach(function (k) { if (r.d.ex[k] && !o.ex[k]) o.ex[k] = r.d.ex[k]; });
+      });
+      o.tels = cliUniq([o.tel].concat(tl), function (t) { t = clbTel(t); return t.length >= 8 ? t : ""; });
+      o.mails = cliUniq([o.mail].concat(ml), function (m) { return String(m || "").trim().toLowerCase(); });
+      o.noms = cliUniq(nl, function (n) { n = nrm(n); return n && n !== nrm(o.nombre) ? n : ""; });
+      if (!o.tel && o.tels.length) o.tel = o.tels[0]; if (!o.mail && o.mails.length) o.mail = o.mails[0];
+      var seen = {}; o.tels.forEach(function (t) { var k = clbTel(t), cl = clbFind(t); if (cl && !seen[k]) { seen[k] = 1; o.cl = o.cl || { saldo: 0, gan: 0, usados: 0 }; o.cl.saldo += cl.saldo || 0; o.cl.gan += cl.gan || 0; o.cl.usados += cl.usados || 0; } });
+      o.pts = o.cl ? o.cl.saldo : 0;
+      o.blob = [o.nombre].concat(o.tels, o.mails, o.noms, Object.keys(o.ex).map(function (k) { return o.ex[k]; })).join(" ");
+      ids.sort(); o.k = ids[0] || ("x" + g);
+      return o;
     });
-    (st.ctc || []).forEach(function (x) {
-      var k = cliKey({ tel: x.tel, mail: x.mail, nombre: x.nombre });
-      if (M[k]) { if (!M[k].mail && x.mail) M[k].mail = x.mail; return; }
-      M[k] = { k: k, nombre: x.nombre, tel: x.tel, mail: x.mail, n: 0, gasto: 0, sinpagar: 0, cant: 0, first: null, last: null, cook: {}, ped: [], ctc: x };
-    });
-    return Object.keys(M).map(function (k) { return M[k]; });
   }
   function cliD(d) { return d ? ("0" + d.getDate()).slice(-2) + "/" + ("0" + (d.getMonth() + 1)).slice(-2) : "—"; }
   var CLS = [["gasto", "Más gastaron"], ["n", "Más pedidos"], ["rec", "Último pedido"], ["ant", "Más antiguos"], ["tk", "Ticket promedio"], ["prod", "Más productos"], ["pts", "Más puntos"], ["nom", "Nombre A–Z"]];
@@ -2275,10 +2307,9 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
     var q = nrm(st.cliq || ""), F = st.clfc || [], dp = st.clfd || "", now = Date.now(), D = 864e5, s = st.clis || "gasto";
     var d0 = st.clf0 ? new Date(st.clf0 + "T00:00:00") : null, d1 = st.clf1 ? new Date(st.clf1 + "T23:59:59") : null;
     L = L.filter(function (c) {
-      var cl = clbFind(c.tel);
-      if (q && nrm(c.nombre + " " + c.tel + " " + c.mail).indexOf(q) < 0) return false;
+      if (q && nrm(c.blob).indexOf(q) < 0) return false;
       if (F.indexOf("rep") >= 0 && c.n < 2) return false;
-      if (F.indexOf("pts") >= 0 && !(cl && cl.saldo > 0)) return false;
+      if (F.indexOf("pts") >= 0 && !(c.pts > 0)) return false;
       if (F.indexOf("deuda") >= 0 && !(c.sinpagar > 0)) return false;
       if (F.indexOf("sinped") >= 0 && c.n > 0) return false;
       if (dp === "30" && !(c.last && now - c.last <= 30 * D)) return false;
@@ -2289,7 +2320,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
       if (d1 && !(c.last && c.last <= d1)) return false;
       return true;
     });
-    var sv = function (c) { return ((clbFind(c.tel) || {}).saldo || 0); };
+    var sv = function (c) { return c.pts || 0; };
     L.sort(function (a, b) {
       var r = s === "n" ? b.n - a.n || b.gasto - a.gasto : s === "rec" ? (b.last || 0) - (a.last || 0) : s === "ant" ? (a.first ? +a.first : 9e15) - (b.first ? +b.first : 9e15) : s === "tk" ? cliTk(b) - cliTk(a) : s === "prod" ? b.cant - a.cant : s === "pts" ? sv(b) - sv(a) : s === "nom" ? String(a.nombre || "~").localeCompare(String(b.nombre || "~"), "es") : b.gasto - a.gasto;
       return st.clid ? -r : r;
@@ -2300,7 +2331,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
     L = cliFilt(L); var c0 = $("cli-c"); if (c0) c0.textContent = L.length + (L.length === 1 ? " cliente" : " clientes");
     if (!L.length) return '<div class="empty">' + (st.cliq || (st.clfc || []).length || st.clfd || st.clf0 || st.clf1 ? "Sin resultados con esos filtros." : "Todavía no hay clientes.") + "</div>";
     return L.map(function (c) {
-      var cl = clbFind(c.tel), ini = (c.nombre || "?").trim().charAt(0).toUpperCase();
+      var cl = c.cl, ini = (c.nombre || "?").trim().charAt(0).toUpperCase();
       return '<div class="clr" data-clic="' + esc(c.k) + '"><span class="clk cli-i">' + esc(ini) + '</span><div class="clm"><b>' + esc(c.nombre || c.tel || "Sin nombre") + "</b><small>" + (c.n ? c.n + (c.n === 1 ? " pedido" : " pedidos") + " · " + money(c.gasto) + " · último " + cliD(c.last) : "Sin pedidos aún" + (c.tel ? " · " + esc(c.tel) : "")) + '</small></div>' + (cl && cl.saldo > 0 ? '<div class="clp"><b>' + cl.saldo + "</b><small>⭐ pts</small></div>" : "") + (waLink(c.tel) ? '<button class="ibx wa" data-clav="' + esc(c.k) + '" data-ch="wa" aria-label="Avisar por WhatsApp">💬</button>' : "") + (c.mail ? '<button class="ibx" data-clav="' + esc(c.k) + '" data-ch="mail" aria-label="Avisar por mail">✉️</button>' : "") + "</div>";
     }).join("");
   }
@@ -2336,6 +2367,38 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
         if (!j || !j.ok) { b.disabled = false; toast(j && j.msg || "No se pudo"); return; }
         m.remove(); toast("Cliente agregado ✓"); cliCtcLoad(function () { if (st.v === "clientes") render(true); });
       }).catch(function () { b.disabled = false; toast("No se pudo"); });
+    });
+  }
+  function cliEdit(c) {
+    var keys = ["Domicilio", "DNI", "Cumpleaños", "Notas"];
+    (st.ctc || []).forEach(function (x) { Object.keys(cliDat(x).ex || {}).forEach(function (k) { if (keys.indexOf(k) < 0) keys.push(k); }); });
+    Object.keys(c.ex).forEach(function (k) { if (keys.indexOf(k) < 0) keys.push(k); });
+    var inp = function (at, ph, im, v) { return '<input class="inp" ' + at + '="1" inputmode="' + im + '" placeholder="' + ph + '" value="' + esc(v || "") + '">'; };
+    var otT = c.tels.filter(function (t) { return clbTel(t) !== clbTel(c.tel); }), otM = c.mails.filter(function (x) { return x.toLowerCase() !== String(c.mail || "").toLowerCase(); });
+    var more = otT.length || otM.length || c.noms.length || Object.keys(c.ex).length;
+    var m = clbPop('<div class="phd"><h3 style="flex:1">✏️ Legajo del cliente</h3><button class="sm" data-clx="1">✕</button></div><div class="add"><input class="inp" id="ce-n" placeholder="Nombre" value="' + esc(c.nombre || "") + '"><input class="inp" id="ce-t" inputmode="tel" placeholder="Teléfono (opcional)" value="' + esc(c.tel || "") + '"><input class="inp" id="ce-m" type="email" placeholder="Mail (opcional)" value="' + esc(c.mail || "") + '">' +
+      '<details' + (more ? " open" : "") + ' style="margin-top:6px"><summary class="meta" style="cursor:pointer">➕ Más datos</summary>' +
+      '<div class="meta" style="margin-top:8px">Otros teléfonos</div><div id="ce-lt">' + otT.map(function (v) { return inp("data-cet", "Otro teléfono", "tel", v); }).join("") + '</div><button type="button" class="sm" data-ceadd="cet">＋ Teléfono</button>' +
+      '<div class="meta" style="margin-top:8px">Otros mails</div><div id="ce-lm">' + otM.map(function (v) { return inp("data-cem", "Otro mail", "email", v); }).join("") + '</div><button type="button" class="sm" data-ceadd="cem">＋ Mail</button>' +
+      '<div class="meta" style="margin-top:8px">Otros nombres (si pidió con otro nombre; se unifica el historial)</div><div id="ce-ln">' + c.noms.map(function (v) { return inp("data-cen", "Otro nombre", "text", v); }).join("") + '</div><button type="button" class="sm" data-ceadd="cen">＋ Nombre</button>' +
+      '<div class="meta" style="margin-top:10px">Datos</div><div id="ce-lx">' + keys.map(function (k) { return '<label class="meta">' + esc(k) + '<input class="inp" data-cex="' + esc(k) + '" value="' + esc(c.ex[k] || "") + '" style="margin:2px 0 6px"></label>'; }).join("") + '</div>' +
+      '<div style="display:flex;gap:8px"><input class="inp" id="ce-nf" placeholder="Nuevo campo (ej. Alergias)" style="margin:0;flex:1"><button type="button" class="sm" data-cenf="1">＋ Campo</button></div></details>' +
+      '<div style="display:flex;gap:8px;margin-top:10px"><button class="btn" data-ceok="1" style="flex:1">Guardar</button><button class="sm" data-clx="1">Cancelar</button></div></div>');
+    m.addEventListener("click", function (e) {
+      var a = e.target.closest("[data-ceadd]"); if (a) { var at = a.getAttribute("data-ceadd"); m.querySelector("#ce-l" + at.slice(-1)).insertAdjacentHTML("beforeend", inp("data-" + at, at === "cet" ? "Otro teléfono" : at === "cem" ? "Otro mail" : "Otro nombre", at === "cet" ? "tel" : at === "cem" ? "email" : "text", "")); var I = m.querySelectorAll("[data-" + at + "]"); I[I.length - 1].focus(); return; }
+      if (e.target.closest("[data-cenf]")) { var f = m.querySelector("#ce-nf"), nn = f.value.trim(); if (!nn) return; if (!m.querySelector('[data-cex="' + nn.replace(/"/g, "") + '"]')) m.querySelector("#ce-lx").insertAdjacentHTML("beforeend", '<label class="meta">' + esc(nn) + '<input class="inp" data-cex="' + esc(nn) + '" style="margin:2px 0 6px"></label>'); f.value = ""; var X = m.querySelectorAll("[data-cex]"); X[X.length - 1].focus(); return; }
+      var ok = e.target.closest("[data-ceok]"); if (!ok) return;
+      var get = function (at) { return Array.prototype.map.call(m.querySelectorAll("[" + at + "]"), function (i) { return i.value.trim(); }).filter(Boolean); };
+      var nombre = m.querySelector("#ce-n").value.trim(), tel = m.querySelector("#ce-t").value.trim(), mail = m.querySelector("#ce-m").value.trim(), ex = {}, mails = get("data-cem");
+      Array.prototype.forEach.call(m.querySelectorAll("[data-cex]"), function (i) { var v = i.value.trim(); if (v) ex[i.getAttribute("data-cex")] = v; });
+      if (!nombre && !tel && !mail) { toast("Poné nombre, teléfono o mail"); return; }
+      var bad = [mail].concat(mails).filter(function (x) { return x && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(x); }); if (bad.length) { toast("Hay un mail que no es válido"); return; }
+      var dat = { tels: get("data-cet").map(function (t) { return t.replace(/\D/g, ""); }).filter(Boolean), mails: mails, nombres: get("data-cen"), ex: ex };
+      ok.disabled = true;
+      api("setContacto", { r: c.ctc ? c.ctc.r : 0, otel: c.ctc ? c.ctc.tel : "", onombre: c.ctc ? c.ctc.nombre : "", nombre: nombre, tel: tel, mail: mail, dat: JSON.stringify(dat) }).then(function (j) {
+        if (!j || !j.ok) { ok.disabled = false; toast(j && j.msg || "No se pudo guardar"); return; }
+        m.remove(); toast("Guardado ✓"); cliCtcLoad(function () { if (st.v === "clientes") render(true); });
+      }).catch(function () { ok.disabled = false; toast("No se pudo guardar"); });
     });
   }
   var CLB_ASIG = "¡Hola {nombre}! 🍪 Te asignamos {pts} puntos en Uovo por tu compra. Ya tenés {saldo} puntos (= {desc} de descuento) para tu próximo pedido. ¡Gracias por tu compra! 💙";
@@ -2376,11 +2439,11 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
       var el = c.ped.filter(function (p) { return (p.pg || estadoDe(p) === "ent") && Number(p.total) > 0 && !(net[p.id] > 0); }), pend = 0, tot = 0;
       el.forEach(function (p) { pend += Math.floor(Number(p.total) * pct / 100); tot += Number(p.total); });
       if (!(pend > 0) || clbTel(c.tel).length < 8) return;
-      e.innerHTML = '<div class="cjb" style="margin-top:10px"><b>⭐ Le corresponden ' + pend + ' puntos más</b><small> · ' + el.length + (el.length === 1 ? " pedido" : " pedidos") + " sin puntos (" + money(tot) + ")</small><button class=\"btn\" data-cpas=\"1\" style=\"margin-top:8px\">Asignar puntos correspondientes</button></div>";
-      e.querySelector("[data-cpas]").addEventListener("click", function () { m.remove(); cliAsig(c, el, pend, pct); });
+      e.innerHTML = '<div class="cjb" style="margin-top:10px"><b>⭐ Le corresponden ' + pend + ' puntos más</b><small> · ' + el.length + (el.length === 1 ? " pedido" : " pedidos") + " sin puntos (" + money(tot) + ')</small><div class="meta" style="margin-top:8px">Puntos a asignar (podés cambiarlos)</div><div style="display:flex;gap:8px;margin-top:4px"><input class="inp" id="cp-n" inputmode="numeric" value="' + pend + '" style="margin:0;flex:1"><button class="btn" data-cpas="1" style="width:auto;padding:0 16px">Asignar</button></div></div>';
+      e.querySelector("[data-cpas]").addEventListener("click", function () { var v = Math.floor(parseAR(e.querySelector("#cp-n").value) || 0); if (v <= 0) { toast("Poné los puntos"); return; } m.remove(); cliAsig(c, el, v, pct, true); });
     }).catch(function () {});
   }
-  function cliAsig(c, el, pend, pct) {
+  function cliAsig(c, el, pend, pct, go) {
     var tot = 0; el.forEach(function (p) { tot += Number(p.total); });
     var m = clbPop('<h3>⭐ Asignar puntos a ' + esc(c.nombre || c.tel) + '</h3><div class="meta">' + el.length + (el.length === 1 ? " pedido" : " pedidos") + " · " + money(tot) + " · " + pct + '% = ' + pend + ' puntos. Podés cambiar la cantidad.</div><input class="inp" id="ca-p" inputmode="numeric" value="' + pend + '" style="margin:10px 0"><div style="display:flex;gap:8px"><button class="btn" data-caok="1" style="flex:1">Asignar</button><button class="sm" data-clx="1">Cancelar</button></div>');
     m.addEventListener("click", function (e) {
@@ -2394,19 +2457,20 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
         clbLoad(function () { if (st.v === "clientes") render(true); });
       }).catch(function () { b.disabled = false; toast("No se pudo"); });
     });
+    if (go) m.querySelector("[data-caok]").click();
   }
   function cliPop(k) {
     var c = cliAgg().filter(function (x) { return x.k === k; })[0]; if (!c) return;
-    var cl = clbFind(c.tel), top = Object.keys(c.cook).map(function (n) { return [n, c.cook[n]]; }).sort(function (a, b) { return b[1] - a[1]; }).slice(0, 5), mx = top.length ? top[0][1] : 1, w = waLink(c.tel);
+    var cl = c.cl, top = Object.keys(c.cook).map(function (n) { return [n, c.cook[n]]; }).sort(function (a, b) { return b[1] - a[1]; }).slice(0, 5), mx = top.length ? top[0][1] : 1, w = waLink(c.tel);
     var ped = c.ped.slice().sort(function (a, b) { return (pf(b.fecha) || 0) - (pf(a.fecha) || 0); }).slice(0, 5);
     var box = function (v, l) { return '<div><b>' + v + "</b><small>" + l + "</small></div>"; };
-    var m = clbPop('<div class="phd"><h3 style="flex:1">' + esc(c.nombre || "Cliente") + '</h3><button class="sm" data-clx="1">✕</button></div><div class="meta" style="margin:0 0 8px">' + esc(c.tel || "") + (c.mail ? " · " + esc(c.mail) : "") + '</div><div class="clh" style="margin-bottom:10px">' + box(c.n, c.n === 1 ? "pedido" : "pedidos") + box(money(c.gasto), "gastó") + box(money(c.n ? c.gasto / c.n : 0), "ticket prom.") + box(c.cant, "productos") + '</div>' +
+    var m = clbPop('<div class="phd"><h3 style="flex:1">' + esc(c.nombre || "Cliente") + '</h3><button class="sm" data-cedit="1">✏️ Editar</button><button class="sm" data-clx="1">✕</button></div><div class="meta" style="margin:0 0 8px">' + esc(c.tels.concat(c.mails).join(" · ")) + '</div>' + (c.noms.length ? '<div class="meta" style="margin:0 0 8px">También: ' + esc(c.noms.join(", ")) + "</div>" : "") + (Object.keys(c.ex).length ? '<div class="meta" style="margin:0 0 8px">' + Object.keys(c.ex).map(function (k) { return "<b>" + esc(k) + ":</b> " + esc(c.ex[k]); }).join(" · ") + "</div>" : "") + '<div class="clh" style="margin-bottom:10px">' + box(c.n, c.n === 1 ? "pedido" : "pedidos") + box(money(c.gasto), "gastó") + box(money(c.n ? c.gasto / c.n : 0), "ticket prom.") + box(c.cant, "productos") + '</div>' +
       '<div class="meta">Cliente desde ' + cliD(c.first) + " · último pedido " + cliD(c.last) + (c.sinpagar > 0 ? " · <b style=\"color:#d93a2f\">" + money(c.sinpagar) + " sin pagar</b>" : "") + "</div>" +
       '<div class="cjb"><b>⭐ ' + (cl ? cl.saldo : 0) + " puntos</b> <small>(= " + money(cl ? cl.saldo : 0) + ")" + (cl ? " · ganó " + (cl.gan || 0) + " · usó " + (cl.usados || 0) : "") + '</small></div>' +
       (top.length ? '<div class="nm" style="margin:8px 0 4px">🍪 Más compradas</div>' + top.map(function (t) { return '<div class="rl" style="display:flex;gap:8px;align-items:center"><span style="flex:1;min-width:0">' + esc(t[0]) + '<div class="pbar" style="margin:3px 0 0"><i class="st-list" style="width:' + Math.round(t[1] * 100 / mx) + '%"></i></div></span><b>' + t[1] + "</b></div>"; }).join("") : "") +
       '<div class="nm" style="margin:10px 0 4px">🧾 Últimos pedidos</div>' + ped.map(function (p) { return '<div class="rl" style="display:flex;gap:8px;align-items:center"><span style="flex:1">' + esc(p.id) + ' <small style="opacity:.6">' + esc(String(p.fecha).split(" ")[0]) + "</small></span>" + stTag(estadoDe(p)) + '<b>' + money(p.total) + "</b></div>"; }).join("") +
       '<div id="cp-pend"></div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn" data-cgift="1" style="flex:1">🎁 Regalar puntos</button>' + (w ? '<button class="ibx wa" data-cav="wa" aria-label="Avisar por WhatsApp">💬</button>' : "") + (c.mail ? '<button class="ibx" data-cav="mail" aria-label="Avisar por mail">✉️</button>' : "") + (c.ctc ? '<button class="sm" data-cdel="1" aria-label="Quitar contacto">🗑</button>' : "") + "</div>");
-    m.addEventListener("click", function (e) { if (e.target.closest("[data-cgift]")) { m.remove(); clbGift({ nombre: c.nombre, tel: c.tel }); } else if (e.target.closest("[data-cav]")) { m.remove(); cliAv(c, e.target.closest("[data-cav]").getAttribute("data-cav")); } else if (e.target.closest("[data-cdel]")) { confirmM("¿Quitar a " + (c.nombre || "este contacto") + " de la lista?", function () { api("delContacto", { r: c.ctc.r, tel: c.ctc.tel, nombre: c.ctc.nombre }).then(function (j) { if (j && j.ok) { m.remove(); toast("Quitado ✓"); cliCtcLoad(function () { if (st.v === "clientes") render(true); }); } else toast(j && j.msg || "No se pudo"); }).catch(function () { toast("No se pudo"); }); }); } });
+    m.addEventListener("click", function (e) { if (e.target.closest("[data-cedit]")) { m.remove(); cliEdit(c); } else if (e.target.closest("[data-cgift]")) { m.remove(); clbGift({ nombre: c.nombre, tel: c.tel }); } else if (e.target.closest("[data-cav]")) { m.remove(); cliAv(c, e.target.closest("[data-cav]").getAttribute("data-cav")); } else if (e.target.closest("[data-cdel]")) { confirmM("¿Quitar a " + (c.nombre || "este contacto") + " de la lista?", function () { api("delContacto", { r: c.ctc.r, tel: c.ctc.tel, nombre: c.ctc.nombre }).then(function (j) { if (j && j.ok) { m.remove(); toast("Quitado ✓"); cliCtcLoad(function () { if (st.v === "clientes") render(true); }); } else toast(j && j.msg || "No se pudo"); }).catch(function () { toast("No se pudo"); }); }); } });
     cliPend(c, m);
   }
   document.addEventListener("click", function (e) {
@@ -2438,11 +2502,11 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
   function clbLabel(t, pts) { t = String(t || "").toLowerCase(); return /regalo/.test(t) ? "🎁 Regalo" : /canje/.test(t) ? "🛍️ Canje" : /revers/.test(t) ? "↩️ Reversa" : /venc/.test(t) ? "⌛ Vencidos" : pts < 0 ? "➖ Ajuste" : "🍪 Compra"; }
   function clbLoad(cb) { api("puntos").then(function (j) { if (j && j.ok) { st.club = j; } if (cb) cb(j); }).catch(function () { if (cb) cb(null); }); }
   function clbRows() {
-    var q = nrm(st.clq || ""), L = (st.club.clientes || []).slice().sort(function (a, b) { return (b.saldo || 0) - (a.saldo || 0); }).filter(function (c) { return !q || nrm(c.nombre + " " + c.tel).indexOf(q) >= 0; });
+    var q = nrm(st.clq || ""), L = (st.club.clientes || []).slice().sort(function (a, b) { return (b.saldo || 0) - (a.saldo || 0); }).filter(function (c) { return !q || nrm(clbNm(c) + " " + c.tel).indexOf(q) >= 0; });
     if (!L.length) return '<div class="empty">' + ((st.club.clientes || []).length ? "Sin resultados." : "Todavía nadie tiene puntos. Se suman solos cuando marcás un pedido como pagado.") + "</div>";
     return L.map(function (c, i) {
       var md = i < 3 && (c.saldo || 0) > 0 ? ["🥇", "🥈", "🥉"][i] : i + 1;
-      return '<div class="clr" data-clbc="' + esc(clbTel(c.tel)) + '"><span class="clk">' + md + '</span><div class="clm"><b>' + esc(c.nombre || c.tel) + "</b><small>" + esc(c.tel) + " · ganó " + (c.gan || 0) + " · usó " + (c.usados || 0) + (c.prox ? " · ⏳ vencen " + c.prox.pts + " el " + esc(clbF(c.prox.fecha)) : "") + '</small></div><div class="clp"><b>' + (c.saldo || 0) + "</b><small>pts</small></div></div>";
+      return '<div class="clr" data-clbc="' + esc(clbTel(c.tel)) + '"><span class="clk">' + md + '</span><div class="clm"><b>' + esc(clbNm(c)) + "</b><small>" + esc(c.tel) + " · ganó " + (c.gan || 0) + " · usó " + (c.usados || 0) + (c.prox ? " · ⏳ vencen " + c.prox.pts + " el " + esc(clbF(c.prox.fecha)) : "") + '</small></div><div class="clp"><b>' + (c.saldo || 0) + "</b><small>pts</small></div></div>";
     }).join("");
   }
   var CLT = [["hl", "Título de tus puntos", "puntos para usar en tu pedido"], ["hs", "Subtítulo (sin sesión)", "Sumá puntos con cada pedido y canjealos por cookies"], ["t1", "Paso 1", "Hacé tu pedido y pagalo"], ["t2", "Paso 2", "Sumá puntos con cada pedido pagado"], ["t3", "Paso 3", "Usalos como descuento en tu pedido"], ["th", "Título de la lista", "Elegí tus cookies"], ["ts", "Texto bajo el título", "Cada cookie te suma puntos. Usalos como descuento en Mi horno."], ["sp", "Puntos en cada cookie ({n} = puntos)", "⭐ Sumás {n} puntos"], ["ba", "Botón de cada cookie", "Agregar a mi horno"]];
@@ -2506,7 +2570,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
   }
   function clbCli(tel) {
     var c = clbFind(tel); if (!c) return;
-    var m = clbPop('<div class="phd"><h3 style="flex:1">' + esc(c.nombre || c.tel) + '</h3><button class="sm" data-clx="1">✕</button></div><div class="tot" style="margin:6px 0">' + (c.saldo || 0) + ' <span style="font-size:.85rem;color:var(--soft);font-weight:700">puntos = ' + money(c.saldo) + '</span></div><div class="meta">' + esc(c.tel) + " · ganó " + (c.gan || 0) + " · usó " + (c.usados || 0) + " · vencidos " + (c.vencidos || 0) + (c.prox ? " · ⏳ vencen " + c.prox.pts + " el " + esc(clbF(c.prox.fecha)) : "") + '</div><div style="display:flex;gap:8px;margin:10px 0"><button class="btn" data-cgift="1" style="flex:1">🎁 Regalar</button></div><div id="cm-mv" class="meta">Cargando…</div>');
+    var m = clbPop('<div class="phd"><h3 style="flex:1">' + esc(clbNm(c)) + '</h3><button class="sm" data-clx="1">✕</button></div><div class="tot" style="margin:6px 0">' + (c.saldo || 0) + ' <span style="font-size:.85rem;color:var(--soft);font-weight:700">puntos = ' + money(c.saldo) + '</span></div><div class="meta">' + esc(c.tel) + " · ganó " + (c.gan || 0) + " · usó " + (c.usados || 0) + " · vencidos " + (c.vencidos || 0) + (c.prox ? " · ⏳ vencen " + c.prox.pts + " el " + esc(clbF(c.prox.fecha)) : "") + '</div><div style="display:flex;gap:8px;margin:10px 0"><button class="btn" data-cgift="1" style="flex:1">🎁 Regalar</button></div><div id="cm-mv" class="meta">Cargando…</div>');
     var w = waLink(c.tel); if (w) { var o = { nombre: c.nombre || "", pts: c.saldo, motivo: "", saldo: c.saldo, desc: money(c.saldo) }; m.querySelector("[data-cgift]").insertAdjacentHTML("afterend", '<a class="sm" style="text-decoration:none;display:flex;align-items:center" target="_blank" rel="noopener" href="' + w + "?text=" + encodeURIComponent("¡Hola " + (c.nombre || "") + "! 🍪 Tenés " + c.saldo + " puntos en Uovo (= " + money(c.saldo) + " de descuento) para tu próximo pedido.") + '">💬</a>'); }
     m.addEventListener("click", function (e) { if (e.target.closest("[data-cgift]")) { m.remove(); clbGift({ nombre: c.nombre, tel: c.tel }); } });
     api("puntosMov", { tel: clbTel(c.tel) }).then(function (j) {
@@ -3325,7 +3389,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
       ["[data-redit]", "Editar receta", "Cambiá insumos y cantidades de una masa. El costo por cookie se recalcula solo."]],
     reportes: [["#evo", "Evolución mensual 📈", "Cobrado, costos y resultado mes a mes con barras y tabla. Elegí 3, 6 o 12 meses. Solo cuenta pedidos pagados."], ["[data-rptpl]", "Plantillas", "Tocá una y ves los números y el gráfico al instante."],
       ["[data-rpk]", "Armá el tuyo", "Elegí fuente, cómo agrupar, qué medir y el período. Abajo cambiás el tipo de gráfico."]],
-    clientes: [[".clh", "Resumen", "Cuántos clientes tenés, cuántos repiten y el ticket promedio."], ["#cli-q", "Buscar y ordenar", "Buscá por nombre o teléfono y ordená por gasto, pedidos, recientes o puntos."], ["[data-cadd]", "Agregar cliente", "Cargá a alguien que todavía no pidió (nombre y WhatsApp o mail) para poder mandarle avisos."], [".chips", "Ordenar y filtrar", "Primera fila: cómo ordenar (tocá otra vez el activo para invertir). Segunda fila: filtros que se combinan, períodos y rango de fechas."], ["#cli-l .ibx", "Avisar tanda", "Tocá 💬 o ✉️ para mandarle el aviso de que abriste tanda, con los productos disponibles y el link de la página."], ["#cli-l", "Ficha del cliente", "Tocá un cliente: ves cuánto gastó, cookies más compradas, últimos pedidos y puntos, y podés regalarle puntos o escribirle."]],
+    clientes: [[".clh", "Resumen", "Cuántos clientes tenés, cuántos repiten y el ticket promedio."], ["#cli-q", "Buscar y ordenar", "Buscá por nombre o teléfono y ordená por gasto, pedidos, recientes o puntos."], ["#cli-l .clr", "Legajo del cliente", "Tocá un cliente y después ✏️ Editar: nombre, teléfono y mail son opcionales. En «Más datos» sumás otros teléfonos, mails, nombres, domicilio, DNI o campos nuevos. Si dos clientes comparten un dato (teléfono, mail o nombre) se unifican solos con todo su historial."], ["[data-cadd]", "Agregar cliente", "Cargá a alguien que todavía no pidió (nombre y WhatsApp o mail) para poder mandarle avisos."], [".chips", "Ordenar y filtrar", "Primera fila: cómo ordenar (tocá otra vez el activo para invertir). Segunda fila: filtros que se combinan, períodos y rango de fechas."], ["#cli-l .ibx", "Avisar tanda", "Tocá 💬 o ✉️ para mandarle el aviso de que abriste tanda, con los productos disponibles y el link de la página."], ["#cli-l", "Ficha del cliente", "Tocá un cliente: ves cuánto gastó, cookies más compradas, últimos pedidos y puntos, y podés regalarle puntos o escribirle."]],
     club: [[".clh", "Resumen", "Puntos en circulación, clientes con puntos y cuánto descuento representan si todos canjean."], ["[data-clbr]", "Puntos a pedidos ya pagados", "Elegí una o varias tandas y les cargás los puntos de los pedidos que ya estaban pagados. No se duplican."], ["[data-clbg]", "Regalar puntos 🎁", "Para sorteos o eventos: elegí cliente, puntos y motivo. Después te aparece el botón de WhatsApp con el mensaje ya armado."], ["#cl-ej", "Cuánto regalás", "Poné el % que devolvés y acá ves en cookies qué significa y cuánto te queda de ganancia. Se recalcula con tus precios y costos."], ["#cl-tx", "Textos de la página de canjes", "Cambiá los textos que ve el cliente en la página de canjes: títulos, pasos, texto de cada cookie y botón. Si dejás uno vacío usa el de ejemplo."], ["#cl-btx", "Botón en la página", "Mostrá u ocultá el botón de la tienda de canjes, cambiá el texto y elegí dónde va: arriba, en el medio o abajo de la página."], ["#cl-dias", "Vencimiento", "Los puntos viejos vencen primero. Elegí a los cuántos días."], ["#clb-l", "Ranking", "Tocá un cliente para ver sus movimientos, regalarle o avisarle por WhatsApp."]],
     accesos: [[".help", "Compartir acceso", "Solo vos ves esta pantalla."],
       ["#a-mail", "Mail de Google", "Escribí el mail de la persona. Entra con esa cuenta."],
@@ -3389,6 +3453,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
     { t: "Cambiar los textos de la página de canjes", k: "textos canjes puntos club pagina titulo pasos boton editar frase cambiar mensaje", go: "club", p: ["Más → Club de puntos.", "Abrí «Textos de la página de canjes».", "Escribí los textos que quieras; los vacíos usan el de ejemplo.", "Tocá Guardar."] },
     { t: "Cambiar o mover el botón de canjes de la página", k: "boton canjes club tienda pagina ubicacion arriba medio abajo texto ocultar puntos", go: "club", p: ["Más → Club de puntos.", "En «Botón tienda de canjes en la página» tildá Mostrar o no.", "Escribí el texto y elegí Arriba, En el medio o Abajo.", "Tocá Guardar."] },
     { t: "Filtrar y ordenar clientes", k: "clientes filtrar ordenar fechas inactivos nuevos repiten deuda puntos ticket antiguos", go: "clientes", p: ["Más → Clientes.", "Elegí cómo ordenar (gasto, pedidos, último pedido, antigüedad, ticket, productos, puntos, nombre). Tocá otra vez el activo para invertir.", "Tocá uno o más filtros (repiten, con puntos, con deuda, sin pedidos) y un período. «📅 Fechas» abre el rango.", "También podés poner un rango de fechas del último pedido. Todo se combina."] },
+    { t: "Editar el legajo de un cliente o unir clientes repetidos", k: "legajo cliente editar unir unificar duplicado repetido telefono mail domicilio dni campos mas datos otro nombre", go: "clientes", p: ["Más → Clientes → tocá el cliente → ✏️ Editar.", "Nombre, teléfono y mail son opcionales.", "Abrí «Más datos»: otros teléfonos, mails, otros nombres, domicilio, DNI, o creá un campo nuevo.", "Para unir a dos clientes cargale al legajo el teléfono, mail o nombre del otro: se unifica el historial solo.", "Tocá Guardar."] },
     { t: "Agregar un cliente que todavía no pidió", k: "agregar cliente contacto nuevo sin pedido whatsapp mail aviso", go: "clientes", p: ["Más → Clientes → «＋ Cliente».", "Poné nombre y WhatsApp o mail.", "Aparece en la lista como «Sin pedidos aún» y le podés mandar el aviso de tanda.", "Para quitarlo, abrilo y tocá 🗑."] },
     { t: "Avisar a un cliente que abrió la tanda", k: "avisar tanda abrimos productos disponibles whatsapp mail link clientes mensaje", go: "clientes", p: ["Más → Clientes.", "Tocá 💬 (WhatsApp) o ✉️ (mail) en el cliente, o abrilo y tocá el mismo ícono. Abajo del mensaje elegís la plantilla: tanda abierta, nuevo producto o volvió un producto.", "El mensaje trae los productos disponibles y el link. Editalo si querés.", "Enviá por WhatsApp o por mail."] },
     { t: "Asignar puntos a un cliente por compras anteriores", k: "asignar puntos correspondientes cliente compras anteriores pedidos entregados whatsapp", go: "clientes", p: ["Más → Clientes y abrí el cliente.", "Si tiene pedidos sin puntos, aparece «Le corresponden N puntos».", "Tocá «Asignar puntos correspondientes», cambiá la cantidad si querés y confirmá.", "Después mandás el aviso por WhatsApp."] },

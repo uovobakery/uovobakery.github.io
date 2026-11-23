@@ -1396,6 +1396,14 @@ var DEFAULTS = {
   function cuponActivo(base) {
     var best = null; cupones.forEach(function (c) { if (c.pct > 0 && base > 0 && base >= (c.min || 0) && (!best || c.pct > best.pct)) best = c; }); return best;
   }
+  function ppCost(p) { var m = (pts || ptsPub || {}).pp || {}; return m[p.nombre] || Math.round(p.precio); }
+  function ptsCover(net) {
+    if (!pts || !pts.on || !(pts.saldo > 0)) return { d: 0, p: 0 };
+    var rem = Math.floor(pts.saldo), d = 0, sp = 0, sing = 0;
+    data.productos.forEach(function (p) { var q = p.agotada ? 0 : (qty[p.nombre] || 0), c = ppCost(p); sing += q * p.precio; for (var i = 0; i < q; i++) if (c > 0 && rem >= c && d + p.precio <= net) { rem -= c; sp += c; d += p.precio; } });
+    var left = Math.min(rem, Math.floor(net - d), Math.max(0, Math.floor(net - sing))); if (left > 0) { d += left; sp += left; }
+    return d > 0 && sp >= (Number(pts.min) || 0) ? { d: d, p: sp } : { d: 0, p: 0 };
+  }
   function ptsMax(net) { if (!pts || !pts.on || !(pts.saldo > 0)) return 0; var m = Math.min(Math.floor(pts.saldo), Math.floor(net)); return m >= (Number(pts.min) || 0) && m > 0 ? m : 0; }
   function totals() {
     var unit = [], n = 0, ct = 0;
@@ -1407,8 +1415,8 @@ var DEFAULTS = {
     chosenCombos().forEach(function (cb) { as += Math.max(0, comboNormal(cb) - cb.precio) * cq[cb.nombre]; });
     var prices = data.productos.filter(function (p) { return !p.agotada; }).map(function (p) { return p.precio; }), base = prices.length ? Math.min.apply(null, prices) : 0;
     validPacks().forEach(function (k) { var t = tierFor(k.q), norm = 0; Object.keys(k.sel).forEach(function (nm) { var p = prodByName(nm); norm += (p ? p.precio : base) * k.sel[nm]; }); ct += t.p; n += k.q; as += Math.max(0, norm - t.p); });
-    var t0 = e.total + ct, cp = cuponActivo(t0), cd = cp ? Math.round(t0 * cp.pct / 100) : 0, pd = usePts ? ptsMax(t0 - cd) : 0;
-    return { n: n, t: t0 - cd - pd, ptsDesc: pd, ptsNet: t0 - cd, base: t0, cupon: cp, cupDesc: cd, ahorro: e.ahorro, singles: e.total, combos: ct, ahorroTotal: e.ahorro + as };
+    var t0 = e.total + ct, cp = cuponActivo(t0), cd = cp ? Math.round(t0 * cp.pct / 100) : 0, pcv = usePts ? ptsCover(t0 - cd) : { d: 0, p: 0 }, pd = pcv.d;
+    return { n: n, t: t0 - cd - pd, ptsDesc: pd, ptsSpent: pcv.p, ptsNet: t0 - cd, base: t0, cupon: cp, cupDesc: cd, ahorro: e.ahorro, singles: e.total, combos: ct, ahorroTotal: e.ahorro + as };
   }
 
   var CART_KEY = "uovo-carrito", CART_TTL = 2 * 3600 * 1000;
@@ -1638,7 +1646,7 @@ var DEFAULTS = {
     if (tt.ahorro > 0) lines.push("Descuento por cantidad: -" + money(tt.ahorro));
     chosenCombos().forEach(function (cb) { lines.push(cq[cb.nombre] + " x PACK " + cb.nombre + " (" + cb.items.map(function (it) { return it.c + " " + it.n; }).join(" + ") + ") - " + money(cb.precio * cq[cb.nombre])); });
     validPacks().forEach(function (k) { lines.push("PACK " + k.q + " cookies (" + packText(k) + ") - " + money(tierFor(k.q).p)); });
-    if (tt.ptsDesc > 0) lines.push("Puntos usados: " + tt.ptsDesc + " (-" + money(tt.ptsDesc) + ")");
+    if (tt.ptsDesc > 0) lines.push("Puntos usados: " + tt.ptsSpent + " (-" + money(tt.ptsDesc) + ")");
     if (tt.cupDesc > 0) lines.push("Cupón " + tt.cupon.nombre + " (-" + tt.cupon.pct + "%): -" + money(tt.cupDesc));
     return data.config.mensaje_inicial + "\n\n" +
       "Nombre: " + $("name").value.trim() + "\n\n" +
@@ -1654,7 +1662,7 @@ var DEFAULTS = {
     if (!ENDPOINT) return;
     try {
       var order = {
-        id: orderId, token: memToken, puntos: totals().ptsDesc || 0, cupon: (totals().cupon || {}).nombre || "", nombre: $("name").value.trim(), email: $("email").value.trim(), telefono: $("phone").value.replace(/[^\d+]/g, ""), entrega: deliveryTxt,
+        id: orderId, token: memToken, puntos: totals().ptsSpent || 0, pdesc: totals().ptsDesc || 0, cupon: (totals().cupon || {}).nombre || "", nombre: $("name").value.trim(), email: $("email").value.trim(), telefono: $("phone").value.replace(/[^\d+]/g, ""), entrega: deliveryTxt,
         items: chosen().map(function (p) { return { nombre: p.nombre, cantidad: qty[p.nombre] }; }),
         combos: chosenCombos().map(function (cb) { return { nombre: cb.nombre, cantidad: cq[cb.nombre] }; }),
         packs: validPacks().map(function (k) { return { q: k.q, sel: Object.keys(k.sel).filter(function (n) { return k.sel[n] > 0; }).map(function (n) { return { n: n, c: k.sel[n] }; }) }; })
@@ -1728,7 +1736,7 @@ var DEFAULTS = {
   }
   function loadPuntos() {
     if (!ENDPOINT || !memToken) return;
-    fetch(ENDPOINT + "?puntos=1&token=" + encodeURIComponent(memToken)).then(function (r) { return r.json(); }).then(function (j) { pts = j && j.ok ? j : null; if (j && j.error === "TK") { memToken = ""; tokExp = 0; try { localStorage.removeItem("uovo-tok"); } catch (e9) {} } if (!pts) usePts = false; ptsUi(); clubBn(); if (pts && window.__ptsOpen) { window.__ptsOpen = false; var lg = $("ptslg"); if (lg) lg.remove(); ptsPop(); } if (data && $("drawer").classList.contains("open")) renderCart(); }).catch(function () {});
+    fetch(ENDPOINT + "?puntos=1&token=" + encodeURIComponent(memToken)).then(function (r) { return r.json(); }).then(function (j) { pts = j && j.ok ? j : null; if (pts && pts.tel && $("phone") && !String($("phone").value || "").trim()) $("phone").value = pts.tel; if (j && j.error === "TK") { memToken = ""; tokExp = 0; try { localStorage.removeItem("uovo-tok"); } catch (e9) {} } if (!pts) usePts = false; ptsUi(); clubBn(); if (pts && window.__ptsOpen) { window.__ptsOpen = false; var lg = $("ptslg"); if (lg) lg.remove(); ptsPop(); } if (data && $("drawer").classList.contains("open")) renderCart(); }).catch(function () {});
   }
   var ptsPub = null;
   function ptsSes(cr) { if (!ENDPOINT) return; fetch(ENDPOINT + "?sesion=1&token=" + encodeURIComponent(cr)).then(function (r) { return r.json(); }).then(function (j) { if (j && j.ses) { memToken = j.ses; tokExp = Date.now() + 85 * 864e5; try { localStorage.setItem("uovo-tok", JSON.stringify({ t: memToken, x: tokExp })); } catch (e8) {} } }).catch(function () {}); }
@@ -1757,7 +1765,7 @@ var DEFAULTS = {
     var steps = '<div class="cj-steps"><div><i>🛒</i>' + X("t1", "Hacé tu pedido y pagalo") + '</div><div><i>⭐</i>' + X("t2", "Sumá puntos con cada pedido pagado") + '</div><div><i>🍪</i>' + X("t3", "Usalos como descuento en tu pedido") + '</div></div>';
     var cards = L.map(function (x) {
       var p = x.p, im = (p.medios || []).filter(function (z) { return z.t === "img"; })[0], pr = p.precio, ok = pts && sal >= pr;
-      return '<div class="cj-c' + (p.agotada ? " off" : "") + '"><div class="cj-img">' + (im ? '<img src="' + esc(im.src) + '" alt="' + esc(p.nombre) + '" loading="lazy">' : "🍪") + '</div><div class="cj-b"><b>' + esc(p.nombre) + '</b>' + (p.agotada ? '<span class="cj-s">Agotada por ahora</span>' : '<span class="cj-p">' + X("sp", "⭐ Sumás {n} puntos").replace("{n}", Math.floor(pr * pc / 100)) + '</span><button type="button" data-add="' + x.i + '">' + X("ba", "Agregar a mi horno") + '</button>') + "</div></div>";
+      return '<div class="cj-c' + (p.agotada ? " off" : "") + '"><div class="cj-img">' + (im ? '<img src="' + esc(im.src) + '" alt="' + esc(p.nombre) + '" loading="lazy">' : "🍪") + '</div><div class="cj-b"><b>' + esc(p.nombre) + '</b>' + (p.agotada ? '<span class="cj-s">Agotada por ahora</span>' : '<span class="cj-p">' + X("sp", "⭐ {n} puntos").replace("{n}", ppCost(p)) + '</span><button type="button" data-add="' + x.i + '">' + X("ba", "Agregar a mi horno") + '</button>') + "</div></div>";
     }).join("");
     m.innerHTML = '<div class="cj"><div class="cj-top"><button type="button" data-back="1" aria-label="Volver">←</button><b>Club de puntos</b></div>' + hero + steps + '<h3>' + X("th", "Elegí tus cookies") + '</h3><p class="cj-sub">' + X("ts", "Cada cookie te suma puntos. Usalos como descuento en Mi horno.") + '</p><div class="cj-grid">' + (cards || '<p class="cj-sub">Pronto vas a ver acá los productos.</p>') + "</div></div>";
     document.body.appendChild(m); document.body.style.overflow = "hidden"; m.scrollTop = 0;
@@ -1966,13 +1974,13 @@ var DEFAULTS = {
     $("c-empty").hidden = x.n > 0;
     var ph = promoHint(), pe = $("c-promo"); pe.hidden = !ph; if (ph) pe.innerHTML = "<span>" + esc(ph.txt) + '</span><div class="bar"><i style="width:' + ph.pct + '%"></i></div>';
     var sm = $("c-sum"); sm.hidden = !(x.n > 0 && (x.ahorroTotal > 0 || x.cupDesc > 0 || x.ptsDesc > 0));
-    if (!sm.hidden) sm.innerHTML = "<div><span>Subtotal</span><span>" + money(x.base + x.ahorroTotal) + "</span></div>" + (x.ahorroTotal > 0 ? '<div class="g"><span>' + esc(data.config.texto_ahorro_total) + "</span><span>−" + money(x.ahorroTotal) + "</span></div>" : "") + (x.cupDesc > 0 ? '<div class="g"><span>' + esc(fill(data.config.texto_cupon_aplicado, { nombre: x.cupon.nombre })) + " (−" + x.cupon.pct + "%)</span><span>−" + money(x.cupDesc) + "</span></div>" : "") + (x.ptsDesc > 0 ? '<div class="g"><span>⭐ Puntos usados (' + x.ptsDesc + ")</span><span>−" + money(x.ptsDesc) + "</span></div>" : "");
+    if (!sm.hidden) sm.innerHTML = "<div><span>Subtotal</span><span>" + money(x.base + x.ahorroTotal) + "</span></div>" + (x.ahorroTotal > 0 ? '<div class="g"><span>' + esc(data.config.texto_ahorro_total) + "</span><span>−" + money(x.ahorroTotal) + "</span></div>" : "") + (x.cupDesc > 0 ? '<div class="g"><span>' + esc(fill(data.config.texto_cupon_aplicado, { nombre: x.cupon.nombre })) + " (−" + x.cupon.pct + "%)</span><span>−" + money(x.cupDesc) + "</span></div>" : "") + (x.ptsDesc > 0 ? '<div class="g"><span>⭐ Puntos usados (' + x.ptsSpent + ")</span><span>−" + money(x.ptsDesc) + "</span></div>" : "");
     var ce = $("c-cup"), cb0 = cupones.slice().sort(function (a, b) { return b.pct - a.pct; })[0];
     ce.hidden = !(cb0 && x.n > 0 && !x.cupon);
     if (!ce.hidden) ce.textContent = cb0.min > x.base ? fill(data.config.texto_cupon_minimo, { min: money(cb0.min), nombre: cb0.nombre, pct: cb0.pct }) : fill(data.config.texto_cupon, { texto: cb0.texto || cb0.nombre, nombre: cb0.nombre, pct: cb0.pct });
-    var pe2 = $("c-pts"), tk0 = ""; try { tk0 = JSON.parse(localStorage.getItem("uovo-cliente") || "{}").t || ""; } catch (e) {} var hasTel = (pts && pts.saldo > 0) || String(($("phone") && $("phone").value) || tk0).replace(/\D/g, "").length >= 8, pm = ptsMax(x.ptsNet), gan = pts && pts.on && pts.pct > 0 ? Math.floor(x.t * pts.pct / 100) : 0;
+    var pe2 = $("c-pts"), tk0 = ""; try { tk0 = JSON.parse(localStorage.getItem("uovo-cliente") || "{}").t || ""; } catch (e) {} var hasTel = (pts && (pts.saldo > 0 || pts.tel)) || String(($("phone") && $("phone").value) || tk0).replace(/\D/g, "").length >= 8, pcv = ptsCover(x.ptsNet), pm = pcv.d, gan = pts && pts.on && pts.pct > 0 ? Math.floor(x.t * pts.pct / 100) : 0;
     var needTk = !pts && !!(profile() || {}).g && x.n > 0; pe2.hidden = !(needTk || (x.n > 0 && pts && pts.on && (pm > 0 || gan > 0)));
-    if (!pe2.hidden) pe2.innerHTML = needTk ? "<span>⭐ Confirmá tu sesión para sumar y usar tus puntos</span><button type=\"button\" data-ptslogin=\"1\">Confirmar</button>" : (pm > 0 ? "<span>⭐ Tenés <b>" + pts.saldo + " puntos</b> (= " + money(pts.saldo) + ")</span><button type=\"button\" data-usepts=\"1\" class=\"" + (usePts ? "off" : "") + "\">" + (usePts ? "No usar puntos" : "Usar " + pm + " puntos · −" + money(pm)) + "</button>" : "") + (gan > 0 ? (hasTel ? "<span>🍪 Con este pedido sumás <b>" + gan + " puntos</b></span>" : "<span>📱 Agregá tu teléfono al pedir y ganá <b>" + gan + " puntos</b></span>") : "");
+    if (!pe2.hidden) pe2.innerHTML = needTk ? "<span>⭐ Confirmá tu sesión para sumar y usar tus puntos</span><button type=\"button\" data-ptslogin=\"1\">Confirmar</button>" : (pm > 0 ? "<span>⭐ Tenés <b>" + pts.saldo + " puntos</b></span><button type=\"button\" data-usepts=\"1\" class=\"" + (usePts ? "off" : "") + "\">" + (usePts ? "No usar puntos" : "Usar " + pcv.p + " puntos · −" + money(pm)) + "</button>" : "") + (gan > 0 ? (hasTel ? "<span>🍪 Con este pedido sumás <b>" + gan + " puntos</b></span>" : "<span>📱 Agregá tu teléfono al pedir y ganá <b>" + gan + " puntos</b></span>") : "");
     $("c-total").textContent = money(x.t); setTransf($("c-transf"), x.t);
     var note = $("c-note"); note.hidden = !(x.n > 0 && !ok); note.textContent = "Por ahora no estamos tomando pedidos.";
     $("cart-go").textContent = waitMode ? "Anotarme en la cola" : data.config.boton_enviar;

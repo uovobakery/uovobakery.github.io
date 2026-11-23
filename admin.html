@@ -1496,7 +1496,8 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
   }
 
   /* ---------- Inicio ---------- */
-  function pf(f) { var m = String(f || "").match(/(\d+)\/(\d+)\/(\d+)(?:\s+(\d+):(\d+))?/); return m ? new Date(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0)) : null; }
+  function movNorm(L) { return (L || []).map(function (m) { var d = m[0]; if (!/^\d+\/\d+\/\d+/.test(String(d))) { var x = new Date(d); if (!isNaN(x)) { var z = function (v) { return ("0" + v).slice(-2); }; m = m.slice(); m[0] = z(x.getDate()) + "/" + z(x.getMonth() + 1) + "/" + x.getFullYear() + " " + z(x.getHours()) + ":" + z(x.getMinutes()); } } return m; }); }
+function pf(f) { var m = String(f || "").match(/(\d+)\/(\d+)\/(\d+)(?:\s+(\d+):(\d+))?/); return m ? new Date(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0)) : null; }
   function inixHr() { var r = inixCfg().hr; return Array.isArray(r) ? r.filter(function (k) { return k === "pv" || k === "pc"; }) : ["pv", "pc"]; }
   var HRL = { pv: "Por venir", pc: "Por cobrar" };
   function hrRows(v) {
@@ -2119,7 +2120,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
     if (!st.loaded.pedidos && !st.pfetch) { st.pfetch = 1; api("pedidos").then(function (j) { if (j && j.ok) { st.pedidos = j.pedidos; st.loaded.pedidos = true; if (st.v === "finanzas") render(true); } }).catch(function () {}); }
     if (!st.loaded.productos && !st.prodf) { st.prodf = 1; api("catalogo").then(function (j) { if (j && j.ok) { st.productos = j.catalogo; st.loaded.productos = true; if (st.v === "finanzas") render(true); } }).catch(function () {}); }
     if (!st.fin && !st.finf) { st.finf = 1; api("finanzas").then(function (j) { if (j) { st.fin = j; if (st.v === "finanzas") render(true); } }).catch(function () {}); }
-    if (st.fm !== "r" && !st.movs && !st.movf && (st.fm === "pat" || st.fm === "rep" || st.fm === "res")) { st.movf = 1; api("stockMovs").then(function (j) { st.movs = j && j.ok ? j.movs : []; if (st.v === "finanzas") render(true); }).catch(function () { st.movs = []; }); }
+    if (st.fm !== "r" && !st.movs && !st.movf && (st.fm === "pat" || st.fm === "rep" || st.fm === "res")) { st.movf = 1; api("stockMovs").then(function (j) { st.movs = j && j.ok ? movNorm(j.movs) : []; if (st.v === "finanzas") render(true); }).catch(function () { st.movs = []; }); }
     if (st.fm === "pat" && !st.stock && !st.stkf2) { st.stkf2 = 1; api("stock").then(function (j) { st.stock = j && j.ok ? j.stock : []; if (st.v === "finanzas") render(true); }).catch(function () { st.stock = []; }); }
     if (st.fm === "pat" && !st.bal && !st.balf) { st.balf = 1; api("balance").then(function (j) { st.bal = j && j.ok ? j.items : []; if (st.v === "finanzas") render(true); }).catch(function () { st.bal = []; }); }
   }
@@ -2741,7 +2742,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
 
   function renderStock() {
     if (!st.stock) return BACK + '<div class="empty">Cargando…</div>';
-    if (!st.movs && !st.movf) { st.movf = 1; api("stockMovs").then(function (j) { st.movs = j && j.ok ? j.movs : []; if (st.v === "stock") render(true); }).catch(function () { st.movs = []; }); }
+    if (!st.movs && !st.movf) { st.movf = 1; api("stockMovs").then(function (j) { st.movs = j && j.ok ? movNorm(j.movs) : []; if (st.v === "stock") render(true); }).catch(function () { st.movs = []; }); }
     if (st.alertas && !st.recf) { st.recf = 1; api("recetas2").then(function (j) { if (j && j.ok) { st.recetas = j.recetas; st.insumos = j.insumos; } if (st.v === "stock") render(true); }).catch(function () {}); }
     if (st.alertas && !st.loaded.pedidos && !st.pfetch) { st.pfetch = 1; api("pedidos").then(function (j) { if (j && j.ok) { st.pedidos = j.pedidos; st.loaded.pedidos = true; if (st.v === "stock") render(true); } }).catch(function () {}); }
     var on = !!st.alertas, q = nrm(st.sks);
@@ -3288,7 +3289,7 @@ body:has(.modal), body:has(.fotos) { overflow: hidden; }
     });
   }
   function hasFirst(L, getS) { var a = [], b = []; L.forEach(function (x) { var z = getS(x); (z && z.mov && z.stock > 0 ? a : b).push(x); }); a.sort(function (p, q) { var zp = getS(p), zq = getS(q); return 0; }); return a.concat(b); }
-  function movRefresh() { api("stockMovs").then(function (j) { st.movs = j && j.ok ? j.movs : st.movs; st.movf = 1; if (st.v === "stock") render(true); }).catch(function () {}); }
+  function movRefresh() { api("stockMovs").then(function (j) { st.movs = j && j.ok ? movNorm(j.movs) : st.movs; st.movf = 1; if (st.v === "stock") render(true); }).catch(function () {}); }
   function stkDel(ins) {
     var m = document.createElement("div"); m.className = "modal"; 
     m.innerHTML = '<div class="box" style="width:100%"><h3>' + esc(ins) + '</h3><p>¿Qué querés hacer?</p><div style="display:flex;flex-direction:column;gap:8px"><button class="btn" style="background:#e08a00" data-a="zero">Dejar el stock en 0</button><button class="btn" style="background:#d93a2f" data-a="del">Eliminar el insumo (de Proveedores y Stock)</button><button class="sm" data-a="x">Volver</button></div></div>';

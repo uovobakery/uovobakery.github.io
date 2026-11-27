@@ -39,15 +39,12 @@ textarea{min-height:110px;resize:vertical}
 <div class="box" id="f">
 <h1>¿Qué te pareció tu pedido? 🍪</h1>
 <p>Tu opinión nos ayuda un montón. Son 30 segundos.</p>
-<label>Tu mail</label>
-<input type="text" id="m" autocomplete="email" inputmode="email" placeholder="nombre@mail.com">
-<div class="st" id="ms"></div>
-<a href="#" id="usetel" class="lnk">Usar mi teléfono</a>
-<div id="tw" hidden><label>Tu teléfono <small>(con característica, ej. 2914000000)</small></label>
-<input type="text" id="tl" autocomplete="tel" inputmode="tel" placeholder="2914000000">
-<div class="st" id="ts"></div></div>
+<label>Tu mail o teléfono</label>
+<input type="text" id="c" autocomplete="off" inputmode="email" placeholder="nombre@mail.com o 291 400 0000">
+<div class="st" id="cs"></div>
 <div id="nw" hidden><label>Tu nombre</label><input type="text" id="n" autocomplete="given-name" maxlength="60">
-<label>Tu apellido</label><input type="text" id="a" autocomplete="family-name" maxlength="60"></div>
+<label>Tu apellido</label><input type="text" id="a" autocomplete="family-name" maxlength="60">
+<label id="ol">Tu teléfono <small>(opcional)</small></label><input type="text" id="o" autocomplete="off" maxlength="80"></div>
 <label>Puntuación</label>
 <div class="stars" id="s"></div>
 <label>Contanos tu experiencia</label>
@@ -82,30 +79,28 @@ if (SR) { var rec = null, base = ""; $("mic").hidden = false;
     rec.onerror = function () { rec = null; $("mic").classList.remove("on"); };
     $("mic").classList.add("on"); rec.start();
   }; }
-var found = false, asked = false;
-function chk(m, t, cb) { fetch(ENDPOINT + "?resenaChk=1&mail=" + encodeURIComponent(m) + "&tel=" + encodeURIComponent(t)).then(function (r) { return r.json(); }).then(function (j) { cb(!!(j && j.found)); }).catch(function () { cb(null); }); }
+var found = false, who = "", last = "";
 var okM = function (v) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v); }, okT = function (v) { return v.replace(/\D/g, "").length >= 8; };
-function show(id, on) { $(id).hidden = !on; }
-function done(f, w) { found = f; $("ms").textContent = ""; $("ts").textContent = ""; (w === "m" ? $("ms") : $("ts")).className = "st ok2"; (w === "m" ? $("ms") : $("ts")).textContent = "✓ ¡Te reconocimos!"; show("nw", false); }
-$("m").onchange = function () {
-  var v = this.value.trim(); found = false; show("nw", false); $("ms").textContent = ""; $("ts").textContent = "";
-  if (!okM(v)) { if (v) { $("ms").className = "st no"; $("ms").textContent = "Revisá el mail."; } return; }
-  chk(v, "", function (f) { if (f) { done(true, "m"); show("tw", false); } else { $("ms").className = "st no"; $("ms").textContent = "No te encontramos con ese mail. ¿Probamos con tu teléfono?"; show("tw", true); } });
-};
-$("usetel").onclick = function (e) { e.preventDefault(); show("tw", true); $("tl").focus(); };
-$("tl").onchange = function () {
-  var v = this.value.trim(), m = $("m").value.trim(); found = false; show("nw", false); $("ts").textContent = "";
-  if (!okT(v)) { if (v) { $("ts").className = "st no"; $("ts").textContent = "Revisá el teléfono."; } return; }
-  chk(okM(m) ? m : "", v, function (f) { if (f) done(true, "t"); else { $("ts").className = "st no"; $("ts").textContent = "No te encontramos. Completá tus datos y listo."; show("nw", true); } });
-};
+function cv() { var v = $("c").value.trim(); return { m: okM(v) ? v : "", t: !okM(v) && okT(v) ? v : "", ok: okM(v) || okT(v) }; }
+function chk() {
+  var v = cv(); if (!v.ok) { found = false; last = ""; $("nw").hidden = true; $("cs").textContent = ""; if ($("c").value.trim().length > 5) { $("cs").className = "st no"; $("cs").textContent = "Revisá el mail o teléfono."; } return; }
+  var key = v.m + "|" + v.t; if (key === last) return; last = key; $("cs").className = "st"; $("cs").textContent = "Buscándote…";
+  fetch(ENDPOINT + "?resenaChk=1&mail=" + encodeURIComponent(v.m) + "&tel=" + encodeURIComponent(v.t)).then(function (r) { return r.json(); }).then(function (j) {
+    if (key !== last) return;
+    if (j && j.found) { found = true; who = j.nombre || ""; $("nw").hidden = true; $("cs").className = "st ok2"; $("cs").textContent = "✓ ¡Hola" + (who ? ", " + who : "") + "! Te reconocimos 💙"; }
+    else { found = false; who = ""; $("cs").className = "st no"; $("cs").textContent = "No te encontramos. Completá tus datos y listo."; $("ol").innerHTML = v.m ? "Tu teléfono <small>(opcional)</small>" : "Tu mail <small>(opcional)</small>"; $("nw").hidden = false; }
+  }).catch(function () { found = false; $("cs").className = "st no"; $("cs").textContent = "No pudimos verificarte. Completá tus datos y listo."; $("nw").hidden = false; });
+}
+$("c").onchange = chk; $("c").oninput = function () { if (cv().ok) { clearTimeout(window.__d); window.__d = setTimeout(chk, 700); } else chk(); };
 $("go").onclick = function () {
-  var m = $("m").value.trim(), tl = $("tl").value.trim(), n = $("n").value.trim(), t = $("t").value.trim();
-  if (!okM(m) && !okT(tl)) { $("e").textContent = "Poné tu mail o tu teléfono."; return; }
-  if (!found && !n) { $("e").textContent = $("tw").hidden && okM(m) ? "Esperá a que verifiquemos tu mail, o poné tu teléfono." : "Completá tu nombre."; if (!$("tw").hidden || !okM(m)) show("nw", true); return; }
+  var v = cv(), n = $("n").value.trim(), t = $("t").value.trim(), o = $("o").value.trim();
+  if (!v.ok) { $("e").textContent = "Poné tu mail o tu teléfono."; return; }
+  if (!found && !n) { $("nw").hidden = false; $("e").textContent = "Completá tu nombre."; return; }
   if (!star) { $("e").textContent = "Elegí de 1 a 5 estrellas."; return; }
   if (!t && !foto) { $("e").textContent = "Escribí unas palabras o sumá una foto."; return; }
+  var m = v.m, tl = v.t; if (!found && o) { if (okM(o) && !m) m = o; else if (okT(o) && !tl) tl = o; }
   $("go").disabled = true; $("e").textContent = "";
-  fetch(ENDPOINT, { method: "POST", mode: "no-cors", body: JSON.stringify({ accion: "resena", mail: okM(m) ? m : "", tel: okT(tl) ? tl : "", nombre: found ? "" : n, apellido: found ? "" : $("a").value.trim(), estrellas: star, comentario: t, foto: foto }) })
+  fetch(ENDPOINT, { method: "POST", mode: "no-cors", body: JSON.stringify({ accion: "resena", mail: m, tel: tl, nombre: found ? "" : n, apellido: found ? "" : $("a").value.trim(), estrellas: star, comentario: t, foto: foto }) })
     .then(function () { $("f").hidden = true; $("d").hidden = false; })
     .catch(function () { $("go").disabled = false; $("e").textContent = "No se pudo enviar. Probá de nuevo."; });
 };

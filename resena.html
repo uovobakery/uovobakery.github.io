@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0F59C4">
+<title>Tu reseña · Uovo</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap">
+<style>
+:root{--blue:#0F59C4;--sky:#EAF2FD;--ink:#0C2247;--soft:#5B6B88}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:Nunito,system-ui,sans-serif;color:var(--ink);background:linear-gradient(160deg,#0F59C4,#3C86F0 55%,#EAF2FD);padding:20px 16px 40px;display:flex;justify-content:center}
+.box{width:100%;max-width:460px;background:#fff;border-radius:22px;padding:24px 20px;box-shadow:0 14px 40px rgba(12,34,71,.28);align-self:flex-start}
+h1{font-family:Fredoka,system-ui,sans-serif;font-size:1.6rem;margin:0 0 4px;color:var(--blue)}
+p{margin:0 0 14px;color:var(--soft)}
+label{display:block;font-weight:800;font-size:.9rem;margin:14px 0 6px}
+label small{font-weight:600;color:var(--soft)}
+input[type=text],textarea{width:100%;font:inherit;border:2px solid #D6E3F8;border-radius:12px;padding:11px 12px;background:#F8FBFF;color:var(--ink)}
+input:focus,textarea:focus{outline:0;border-color:var(--blue)}
+textarea{min-height:110px;resize:vertical}
+.stars{display:flex;gap:6px}
+.stars button{border:0;background:none;font-size:2.3rem;line-height:1;cursor:pointer;color:#CBD8EE;padding:0 2px;transition:transform .12s}
+.stars button.on{color:#F5B301}
+.stars button:hover{transform:scale(1.15)}
+.file{display:flex;align-items:center;gap:10px}
+.file label{margin:0;cursor:pointer;background:var(--sky);color:var(--blue);border-radius:12px;padding:10px 14px;font-weight:800}
+.file input{display:none}
+#prev{width:64px;height:64px;object-fit:cover;border-radius:12px;display:none}
+.btn{width:100%;margin-top:20px;border:0;border-radius:14px;padding:14px;font:700 1.05rem Fredoka,system-ui,sans-serif;color:#fff;background:linear-gradient(135deg,#0F59C4,#2E7BEA);cursor:pointer;box-shadow:0 6px 16px rgba(15,89,196,.35)}
+.btn:disabled{opacity:.6}
+.err{color:#C0301F;font-weight:700;margin-top:10px;min-height:1.2em}
+.ok{text-align:center;padding:20px 0}
+.ok b{font:700 1.5rem Fredoka,system-ui,sans-serif;color:var(--blue);display:block;margin:10px 0}
+</style>
+</head>
+<body>
+<div class="box" id="f">
+<h1>¿Qué te parecieron las cookies? 🍪</h1>
+<p>Tu opinión nos ayuda un montón. Son 30 segundos.</p>
+<label>Tu mail o teléfono <small>(solo para saber quién sos, no se publica)</small></label>
+<input type="text" id="c" autocomplete="email" inputmode="email" placeholder="Ej: nombre@mail.com o 2914000000">
+<label>Tu nombre <small>(opcional, aparece en la reseña)</small></label>
+<input type="text" id="n" autocomplete="given-name" maxlength="60">
+<label>Puntuación</label>
+<div class="stars" id="s"></div>
+<label>Contanos tu experiencia</label>
+<textarea id="t" maxlength="800" placeholder="¿Qué sabor te gustó más? ¿Cómo te llegó?"></textarea>
+<label>Foto <small>(opcional)</small></label>
+<div class="file"><label for="p">📷 Agregar foto</label><input type="file" id="p" accept="image/*"><img id="prev" alt=""></div>
+<div class="err" id="e"></div>
+<button class="btn" id="go">Enviar reseña</button>
+</div>
+<div class="box" id="d" hidden><div class="ok"><div style="font-size:3rem">💙</div><b>¡Gracias!</b><p>Recibimos tu reseña. ¡Nos alegra mucho que hayas probado Uovo!</p></div></div>
+<script>
+var ENDPOINT = "https://script.google.com/macros/s/AKfycbwRgztSNbcqRVjj6Kji1BbUCoZxAdQlYLYPxf5-266YiG16hzG9J4II1L7qhxlENjmZNA/exec";
+var star = 0, foto = "";
+var $ = function (i) { return document.getElementById(i); };
+for (var i = 1; i <= 5; i++) { (function (k) { var b = document.createElement("button"); b.type = "button"; b.textContent = "★"; b.setAttribute("aria-label", k + " de 5"); b.onclick = function () { star = k; [].forEach.call($("s").children, function (x, j) { x.classList.toggle("on", j < k); }); }; $("s").appendChild(b); })(i); }
+$("p").onchange = function () {
+  var f = this.files[0]; if (!f) { foto = ""; $("prev").style.display = "none"; return; }
+  var r = new FileReader(); r.onload = function () { var im = new Image(); im.onload = function () {
+    var q = 0.8, w = 480, out = "";
+    for (var tries = 0; tries < 8; tries++) { var s = Math.min(1, w / Math.max(im.width, im.height)), c = document.createElement("canvas"); c.width = Math.round(im.width * s); c.height = Math.round(im.height * s); c.getContext("2d").drawImage(im, 0, 0, c.width, c.height); out = c.toDataURL("image/jpeg", q); if (out.length <= 44000) break; q -= 0.1; w = Math.round(w * 0.85); }
+    if (out.length > 44000) { foto = ""; $("e").textContent = "La foto es muy pesada, probá con otra."; return; }
+    foto = out; $("prev").src = out; $("prev").style.display = "block"; $("e").textContent = "";
+  }; im.src = r.result; }; r.readAsDataURL(f);
+};
+$("go").onclick = function () {
+  var c = $("c").value.trim(), t = $("t").value.trim();
+  if (c.length < 6) { $("e").textContent = "Poné tu mail o teléfono."; return; }
+  if (!star) { $("e").textContent = "Elegí de 1 a 5 estrellas."; return; }
+  if (!t && !foto) { $("e").textContent = "Escribí unas palabras o sumá una foto."; return; }
+  $("go").disabled = true; $("e").textContent = "";
+  fetch(ENDPOINT, { method: "POST", mode: "no-cors", body: JSON.stringify({ accion: "resena", contacto: c, nombre: $("n").value.trim(), estrellas: star, comentario: t, foto: foto }) })
+    .then(function () { $("f").hidden = true; $("d").hidden = false; })
+    .catch(function () { $("go").disabled = false; $("e").textContent = "No se pudo enviar. Probá de nuevo."; });
+};
+</script>
+</body>
+</html>

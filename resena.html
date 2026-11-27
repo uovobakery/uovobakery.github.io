@@ -28,6 +28,8 @@ textarea{min-height:110px;resize:vertical}
 #prev{width:64px;height:64px;object-fit:cover;border-radius:12px;display:none}
 .btn{width:100%;margin-top:20px;border:0;border-radius:14px;padding:14px;font:700 1.05rem Fredoka,system-ui,sans-serif;color:#fff;background:linear-gradient(135deg,#0F59C4,#2E7BEA);cursor:pointer;box-shadow:0 6px 16px rgba(15,89,196,.35)}
 .btn:disabled{opacity:.6}
+.st{font-weight:700;font-size:.88rem;margin-top:6px;min-height:1px}.st.ok2{color:#1E8E4E}.st.no{color:#B26A00}.lnk{display:inline-block;margin-top:6px;font-size:.85rem;font-weight:700;color:var(--blue)}
+.tw{position:relative}.mic{position:absolute;right:8px;bottom:8px;width:34px;height:34px;border-radius:50%;border:0;background:var(--sky);font-size:1rem;cursor:pointer;box-shadow:0 2px 6px rgba(12,34,71,.2)}.mic.on{background:#E53935;animation:pl 1s infinite}@keyframes pl{50%{transform:scale(1.12)}}
 .err{color:#C0301F;font-weight:700;margin-top:10px;min-height:1.2em}
 .ok{text-align:center;padding:20px 0}
 .ok b{font:700 1.5rem Fredoka,system-ui,sans-serif;color:var(--blue);display:block;margin:10px 0}
@@ -35,16 +37,21 @@ textarea{min-height:110px;resize:vertical}
 </head>
 <body>
 <div class="box" id="f">
-<h1>¿Qué te parecieron las cookies? 🍪</h1>
+<h1>¿Qué te pareció tu pedido? 🍪</h1>
 <p>Tu opinión nos ayuda un montón. Son 30 segundos.</p>
-<label>Tu mail o teléfono <small>(solo para saber quién sos, no se publica)</small></label>
-<input type="text" id="c" autocomplete="email" inputmode="email" placeholder="Ej: nombre@mail.com o 2914000000">
-<label>Tu nombre <small>(opcional, aparece en la reseña)</small></label>
-<input type="text" id="n" autocomplete="given-name" maxlength="60">
+<label>Tu mail</label>
+<input type="text" id="m" autocomplete="email" inputmode="email" placeholder="nombre@mail.com">
+<div class="st" id="ms"></div>
+<a href="#" id="usetel" class="lnk">Usar mi teléfono</a>
+<div id="tw" hidden><label>Tu teléfono <small>(con característica, ej. 2914000000)</small></label>
+<input type="text" id="tl" autocomplete="tel" inputmode="tel" placeholder="2914000000">
+<div class="st" id="ts"></div></div>
+<div id="nw" hidden><label>Tu nombre</label><input type="text" id="n" autocomplete="given-name" maxlength="60">
+<label>Tu apellido</label><input type="text" id="a" autocomplete="family-name" maxlength="60"></div>
 <label>Puntuación</label>
 <div class="stars" id="s"></div>
 <label>Contanos tu experiencia</label>
-<textarea id="t" maxlength="800" placeholder="¿Qué sabor te gustó más? ¿Cómo te llegó?"></textarea>
+<div class="tw"><textarea id="t" maxlength="800" placeholder="¿Qué fue lo que más te gustó? ¿Cómo te llegó?"></textarea><button type="button" id="mic" class="mic" aria-label="Dictar" hidden>🎤</button></div>
 <label>Foto <small>(opcional)</small></label>
 <div class="file"><label for="p">📷 Agregar foto</label><input type="file" id="p" accept="image/*"><img id="prev" alt=""></div>
 <div class="err" id="e"></div>
@@ -65,13 +72,40 @@ $("p").onchange = function () {
     foto = out; $("prev").src = out; $("prev").style.display = "block"; $("e").textContent = "";
   }; im.src = r.result; }; r.readAsDataURL(f);
 };
+var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SR) { var rec = null, base = ""; $("mic").hidden = false;
+  $("mic").onclick = function () {
+    if (rec) { rec.stop(); return; }
+    rec = new SR(); rec.lang = "es-AR"; rec.interimResults = true; rec.continuous = true; base = $("t").value ? $("t").value.replace(/\s+$/, "") + " " : "";
+    rec.onresult = function (e) { var x = ""; for (var i = 0; i < e.results.length; i++) x += e.results[i][0].transcript; $("t").value = (base + x).slice(0, 800); };
+    rec.onend = function () { rec = null; $("mic").classList.remove("on"); };
+    rec.onerror = function () { rec = null; $("mic").classList.remove("on"); };
+    $("mic").classList.add("on"); rec.start();
+  }; }
+var found = false, asked = false;
+function chk(m, t, cb) { fetch(ENDPOINT + "?resenaChk=1&mail=" + encodeURIComponent(m) + "&tel=" + encodeURIComponent(t)).then(function (r) { return r.json(); }).then(function (j) { cb(!!(j && j.found)); }).catch(function () { cb(null); }); }
+var okM = function (v) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v); }, okT = function (v) { return v.replace(/\D/g, "").length >= 8; };
+function show(id, on) { $(id).hidden = !on; }
+function done(f, w) { found = f; $("ms").textContent = ""; $("ts").textContent = ""; (w === "m" ? $("ms") : $("ts")).className = "st ok2"; (w === "m" ? $("ms") : $("ts")).textContent = "✓ ¡Te reconocimos!"; show("nw", false); }
+$("m").onchange = function () {
+  var v = this.value.trim(); found = false; show("nw", false); $("ms").textContent = ""; $("ts").textContent = "";
+  if (!okM(v)) { if (v) { $("ms").className = "st no"; $("ms").textContent = "Revisá el mail."; } return; }
+  chk(v, "", function (f) { if (f) { done(true, "m"); show("tw", false); } else { $("ms").className = "st no"; $("ms").textContent = "No te encontramos con ese mail. ¿Probamos con tu teléfono?"; show("tw", true); } });
+};
+$("usetel").onclick = function (e) { e.preventDefault(); show("tw", true); $("tl").focus(); };
+$("tl").onchange = function () {
+  var v = this.value.trim(), m = $("m").value.trim(); found = false; show("nw", false); $("ts").textContent = "";
+  if (!okT(v)) { if (v) { $("ts").className = "st no"; $("ts").textContent = "Revisá el teléfono."; } return; }
+  chk(okM(m) ? m : "", v, function (f) { if (f) done(true, "t"); else { $("ts").className = "st no"; $("ts").textContent = "No te encontramos. Completá tus datos y listo."; show("nw", true); } });
+};
 $("go").onclick = function () {
-  var c = $("c").value.trim(), t = $("t").value.trim();
-  if (c.length < 6) { $("e").textContent = "Poné tu mail o teléfono."; return; }
+  var m = $("m").value.trim(), tl = $("tl").value.trim(), n = $("n").value.trim(), t = $("t").value.trim();
+  if (!okM(m) && !okT(tl)) { $("e").textContent = "Poné tu mail o tu teléfono."; return; }
+  if (!found && !n) { $("e").textContent = $("tw").hidden && okM(m) ? "Esperá a que verifiquemos tu mail, o poné tu teléfono." : "Completá tu nombre."; if (!$("tw").hidden || !okM(m)) show("nw", true); return; }
   if (!star) { $("e").textContent = "Elegí de 1 a 5 estrellas."; return; }
   if (!t && !foto) { $("e").textContent = "Escribí unas palabras o sumá una foto."; return; }
   $("go").disabled = true; $("e").textContent = "";
-  fetch(ENDPOINT, { method: "POST", mode: "no-cors", body: JSON.stringify({ accion: "resena", contacto: c, nombre: $("n").value.trim(), estrellas: star, comentario: t, foto: foto }) })
+  fetch(ENDPOINT, { method: "POST", mode: "no-cors", body: JSON.stringify({ accion: "resena", mail: okM(m) ? m : "", tel: okT(tl) ? tl : "", nombre: found ? "" : n, apellido: found ? "" : $("a").value.trim(), estrellas: star, comentario: t, foto: foto }) })
     .then(function () { $("f").hidden = true; $("d").hidden = false; })
     .catch(function () { $("go").disabled = false; $("e").textContent = "No se pudo enviar. Probá de nuevo."; });
 };
